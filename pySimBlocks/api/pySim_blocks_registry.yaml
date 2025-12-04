@@ -1,0 +1,199 @@
+constant:
+  category: sources
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+  - out
+  parameters:
+  - name: value
+    optional: false
+    type: array (n,1)
+delay:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+  - out
+  parameters:
+  - name: num_delays
+    optional: false
+    type: int
+  - name: initial_output
+    optional: true
+    type: array (n,1)
+discrete_integrator:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+  - out
+  parameters:
+  - name: initial_state
+    optional: true
+    type: array (n,1)
+gain:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+  - out
+  parameters:
+  - name: gain
+    optional: false
+    type: float | array | matrix
+linear_state_space:
+  category: systems
+  inputs:
+    dynamic: false
+    ports:
+    - u
+  outputs:
+  - x
+  - y
+  parameters:
+  - name: A
+    optional: false
+    type: matrix (n,n)
+  - name: B
+    optional: false
+    type: matrix (n,m)
+  - name: C
+    optional: false
+    type: matrix (p,n)
+  - name: D
+    optional: true
+    type: matrix (p,m)
+  - name: x0
+    optional: true
+    type: array (n,1)
+luenberger:
+  category: observers
+  inputs:
+    dynamic: false
+    ports:
+    - u
+    - y
+  outputs:
+  - x_hat
+  - y_hat
+  parameters:
+  - name: A
+    optional: false
+    type: matrix (n,n)
+  - name: B
+    optional: false
+    type: matrix (n,m)
+  - name: C
+    optional: false
+    type: matrix (p,n)
+  - name: L
+    optional: false
+    type: matrix (n,p)
+  - name: D
+    optional: true
+    type: matrix (p,m)
+  - name: x0
+    optional: true
+    type: array (n,1)
+mux:
+  category: operators
+  inputs:
+    dynamic: true
+    pattern: in{}
+  outputs:
+  - out
+  parameters:
+  - name: num_inputs
+    optional: false
+    type: int
+ramp:
+  category: sources
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+  - out
+  parameters:
+  - name: slope
+    optional: false
+    type: float | array (n,1)
+  - name: start_time
+    optional: false
+    type: float | array (n,1)
+  - name: initial_output
+    optional: true
+    type: array (n,1)
+sinusoidal:
+  category: sources
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+  - out
+  parameters:
+  - name: amplitude
+    optional: false
+    type: float | array (n,1)
+  - name: frequency
+    optional: false
+    type: float | array (n,1)
+  - name: offset
+    optional: false
+    type: float | array (n,1)
+  - name: phase
+    optional: false
+    type: float | array (n,1)
+state_feedback:
+  category: controllers
+  inputs:
+    dynamic: false
+    ports:
+    - r
+    - x
+  outputs:
+  - u
+  parameters:
+  - name: K
+    optional: false
+    type: matrix (m,n)
+  - name: G
+    optional: true
+    type: matrix (m,p)
+step:
+  category: sources
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+  - out
+  parameters:
+  - name: value_before
+    optional: false
+    type: array (n,1)
+  - name: value_after
+    optional: false
+    type: array (n,1)
+  - name: t_step
+    optional: false
+    type: float
+sum:
+  category: operators
+  inputs:
+    dynamic: true
+    pattern: in{}
+  outputs:
+  - out
+  parameters:
+  - name: num_inputs
+    optional: false
+    type: int
+  - name: signs
+    optional: false
+    type: list[int]
