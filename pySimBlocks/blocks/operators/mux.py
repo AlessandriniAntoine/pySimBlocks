@@ -24,13 +24,7 @@ class Mux(Block):
             Number of input ports to create.
 
     Inputs:
-        in1: array (n1, 1)
-            First input signal.
-        in2: array (n2, 1)
-            Second input signal.
-        ...
-        inN: array (nN, 1)
-            N-th input signal.
+        Dynamic — in1, in2, ..., inN. array (n,1)
 
     Outputs:
         out: array (sum_i ni, 1)

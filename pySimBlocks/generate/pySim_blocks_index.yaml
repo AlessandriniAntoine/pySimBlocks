@@ -16,3 +16,4 @@ sources:
 - Ramp
 systems:
 - LinearStateSpace
+- SofaSystem

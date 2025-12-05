@@ -125,4 +125,10 @@ class Simulator:
             self.step()
             self._log(variables_to_log)
 
+        # Finalization
+        for block in self.model.blocks.values():
+            finalize = getattr(block, "finalize", None)
+            if callable(finalize):
+                finalize()
+
         return self.logs

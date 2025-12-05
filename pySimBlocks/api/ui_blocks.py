@@ -174,15 +174,33 @@ def compute_block_instance(block_registry, block_type, category, name, params):
 
         parsed[k] = v
 
-    # dynamic inputs
+    # Gestion static-dynamic inputs
     reg_in = reg["inputs"]
-    if reg_in.get("dynamic", False):
+
+    if reg_in["dynamic"] == "indexed":
         N = int(parsed["num_inputs"])
         inputs = [reg_in["pattern"].format(i+1) for i in range(N)]
-    else:
-        inputs = reg_in.get("ports", [])
 
-    outputs = reg["outputs"]
+    elif reg_in["dynamic"] == "specified":
+        key_param = reg_in["parameter"]
+        inputs = parsed[key_param]
+
+    else:  # static
+        inputs = reg_in["ports"]
+
+    # Gestion static-dynamic outputs
+    reg_out = reg["outputs"]
+
+    if reg_out["dynamic"] == "indexed":
+        N = int(parsed["num_outputs"])
+        outputs = [reg_out["pattern"].format(i+1) for i in range(N)]
+
+    elif reg_out["dynamic"] == "specified":
+        key_param = reg_out["parameter"]
+        outputs = parsed[key_param]
+
+    else:
+        outputs = reg_out["ports"]
 
     # name generation
     final_name = name.strip() or block_type

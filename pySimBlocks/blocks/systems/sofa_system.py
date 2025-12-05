@@ -55,8 +55,36 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
 
 class SofaSystem(Block):
+    """
+    SOFA system block.
 
-    def __init__(self, name, scene_file, input_keys, output_keys):
+    Description:
+        Computes:
+            out(t) = SOFA_simulation_step(in(t))
+
+    Parameters:
+        name: str
+            Block name.
+        scene_file: str
+            Path to the SOFA scene file (Python script).
+        input_keys: list of str
+            List of input keys for the SOFA controller.
+        output_keys: list of str
+            List of output keys for the SOFA controller.
+
+    Inputs:
+        Dynamic — specified by input_keys.
+
+    Outputs:
+        Dynamic — specified by output_keys.
+    """
+
+    def __init__(self,
+        name: str,
+        scene_file: str,
+        input_keys: list[str],
+        output_keys: list[str]
+    ):
         super().__init__(name)
 
         self.scene_file = scene_file
@@ -96,7 +124,11 @@ class SofaSystem(Block):
 
 
     def output_update(self, t: float):
-        # Outputs already stored during state_update()
+        """
+        Outputs were already updated during the previous state_update().
+        This block retrieves outputs from an external SOFA worker process,
+        so no computation is required here.
+        """
         pass
 
 
@@ -121,6 +153,24 @@ class SofaSystem(Block):
             self.outputs[k] = outputs[k]
 
         self.next_state["internal"] = self.state["internal"] + 1
+
+
+    def finalize(self):
+        """Ensure worker process is shutdown cleanly."""
+        if self.conn:
+            try:
+                self.conn.send({"cmd": "stop"})
+            except:
+                pass
+            try:
+                self.conn.close()
+            except:
+                pass
+
+        if self.process:
+            self.process.join(timeout=1.0)
+            if self.process.is_alive():
+                self.process.kill()
 
 
     def __del__(self):

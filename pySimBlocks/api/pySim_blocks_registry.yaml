@@ -4,7 +4,9 @@ constant:
     dynamic: false
     ports: []
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: value
     optional: false
@@ -16,7 +18,9 @@ delay:
     ports:
     - in
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: num_delays
     optional: false
@@ -31,7 +35,9 @@ discrete_derivator:
     ports:
     - in
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters: []
 discrete_integrator:
   category: operators
@@ -40,7 +46,9 @@ discrete_integrator:
     ports:
     - in
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: initial_state
     optional: true
@@ -55,7 +63,9 @@ gain:
     ports:
     - in
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: gain
     optional: false
@@ -67,8 +77,10 @@ linear_state_space:
     ports:
     - u
   outputs:
-  - x
-  - y
+    dynamic: false
+    ports:
+    - x
+    - y
   parameters:
   - name: A
     optional: false
@@ -93,8 +105,10 @@ luenberger:
     - u
     - y
   outputs:
-  - x_hat
-  - y_hat
+    dynamic: false
+    ports:
+    - x_hat
+    - y_hat
   parameters:
   - name: A
     optional: false
@@ -117,10 +131,12 @@ luenberger:
 mux:
   category: operators
   inputs:
-    dynamic: true
+    dynamic: indexed
     pattern: in{}
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: num_inputs
     optional: false
@@ -131,7 +147,9 @@ ramp:
     dynamic: false
     ports: []
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: slope
     optional: false
@@ -148,7 +166,9 @@ sinusoidal:
     dynamic: false
     ports: []
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: amplitude
     optional: false
@@ -162,6 +182,24 @@ sinusoidal:
   - name: phase
     optional: false
     type: float | array (n,1)
+sofa_system:
+  category: systems
+  inputs:
+    dynamic: specified
+    parameter: input_keys
+  outputs:
+    dynamic: specified
+    parameter: output_keys
+  parameters:
+  - name: scene_file
+    optional: false
+    type: str
+  - name: input_keys
+    optional: false
+    type: list of str
+  - name: output_keys
+    optional: false
+    type: list of str
 state_feedback:
   category: controllers
   inputs:
@@ -170,7 +208,9 @@ state_feedback:
     - r
     - x
   outputs:
-  - u
+    dynamic: false
+    ports:
+    - u
   parameters:
   - name: K
     optional: false
@@ -184,7 +224,9 @@ step:
     dynamic: false
     ports: []
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: value_before
     optional: false
@@ -198,10 +240,12 @@ step:
 sum:
   category: operators
   inputs:
-    dynamic: true
+    dynamic: indexed
     pattern: in{}
   outputs:
-  - out
+    dynamic: false
+    ports:
+    - out
   parameters:
   - name: num_inputs
     optional: false

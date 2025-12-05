@@ -75,21 +75,40 @@ def parse_items(section_text):
     return items
 
 
-def detect_dynamic_inputs(input_items):
+def detect_ports(section_text, is_input=True):
     """
-    Detect inputs like in1, in2, inN.
-    If 'inN' appears, treat inputs as dynamic:
-        pattern = "in{}"
+    Detect static, dynamic-indexed, or dynamic-specified ports from docstring section.
     """
-    names = [item["name"] for item in input_items]
+    # Extract lines
+    lines = section_text.split("\n")
 
-    # Case 1: No dynamic marker -> fixed ports
-    if "inN" not in names:
-        return {"dynamic": False, "ports": names}
+    # CASE 1 — Dynamic declarative (SOFA / FMU style)
+    # Example: "Dynamic — specified by input_keys"
+    for line in lines:
+        if "Dynamic" in line and "specified by" in line:
+            # retrieve which parameter controls the keys
+            # Example: specified by input_keys
+            m = re.search(r"specified by ([a-zA-Z0-9_]+)", line)
+            parameter = m.group(1) if m else None
+            return {
+                "dynamic": "specified",
+                "parameter": parameter
+            }
 
-    # Case 2: Dynamic input list
-    return {"dynamic": True, "pattern": "in{}"}
+    # CASE 2 — Dynamic indexed ("in1, ..., inN")
+    for line in lines:
+        if "Dynamic" in line and "in1" in line and "inN" in line:
+            return {
+                "dynamic": "indexed",
+                "pattern": "in{}"
+            }
 
+    # CASE 3 — Static ports ("x:", "r:", etc.)
+    items = parse_items(section_text)
+    return {
+        "dynamic": False,
+        "ports": [item["name"] for item in items]
+    }
 
 # ------------------------------------------------------------
 # Block discovery and import
@@ -156,16 +175,16 @@ def generate_registry(output_path="pySim_blocks_registry.yaml"):
         sections = extract_sections(doc)
 
         params = parse_items(sections["Parameters"])
-        inputs = detect_dynamic_inputs(parse_items(sections["Inputs"]))
-        outputs = parse_items(sections["Outputs"])
+        inputs = detect_ports(sections["Inputs"], is_input=True)
+        outputs = detect_ports(sections["Outputs"], is_input=False)
 
         params = [p for p in params if p["name"] != "name"]
 
         registry[block_type] = {
             "category": category,
             "parameters": params,
-            "inputs": inputs,
-            "outputs": [item["name"] for item in outputs],
+            "inputs": inputs,    # déjà une bonne structure
+            "outputs": outputs,
         }
 
     # Write YAML

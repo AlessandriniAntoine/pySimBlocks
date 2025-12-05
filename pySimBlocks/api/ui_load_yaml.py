@@ -32,14 +32,45 @@ def render_load_yaml(registry):
                 params = {k: v for k, v in blk.items()
                           if k not in ["name", "type", "from"]}
 
+                ### --- Compute INPUT PORTS ---
                 reg_in = registry[blk_type]["inputs"]
-                if reg_in.get("dynamic", False):
+
+                dynamic_mode = reg_in.get("dynamic", False)
+
+                if dynamic_mode == "indexed":
+                    # EX: in1, in2, ..., inN
                     N = int(params.get("num_inputs", 1))
                     computed_inputs = [reg_in["pattern"].format(i+1) for i in range(N)]
+
+                elif dynamic_mode == "specified":
+                    # EX: input_keys = ["cable", "motor"]
+                    param_name = reg_in["parameter"]  # ex: "input_keys"
+                    if param_name not in params:
+                        raise RuntimeError(f"Missing required parameter '{param_name}' for block {blk['name']}")
+                    computed_inputs = params[param_name]
+
                 else:
+                    # STATIC PORTS
                     computed_inputs = reg_in.get("ports", [])
 
-                computed_outputs = registry[blk_type]["outputs"]
+
+                ### --- Compute OUTPUT PORTS ---
+                reg_out = registry[blk_type]["outputs"]
+                dynamic_mode_out = reg_out.get("dynamic", False)
+
+                if dynamic_mode_out == "indexed":
+                    N = int(params.get("num_outputs", 1))
+                    computed_outputs = [reg_out["pattern"].format(i+1) for i in range(N)]
+
+                elif dynamic_mode_out == "specified":
+                    param_name = reg_out["parameter"]
+                    if param_name not in params:
+                        raise RuntimeError(f"Missing required parameter '{param_name}' for outputs of block {blk['name']}")
+                    computed_outputs = params[param_name]
+
+                else:
+                    computed_outputs = reg_out.get("ports", [])
+
 
                 st.session_state["blocks"].append({
                     "name": blk["name"],

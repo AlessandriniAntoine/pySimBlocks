@@ -20,13 +20,7 @@ class Sum(Block):
             List of +1 or -1 coefficients (length = num_inputs).
 
     Inputs:
-        in1: array (n,1)
-            First input signal.
-        in2: array (n,1)
-            Second input signal.
-        ...
-        inN: array (n,1)
-            N-th input signal.
+        Dynamic — in1, in2, ..., inN. array (n,1)
 
     Outputs:
         out: array (n,1)
