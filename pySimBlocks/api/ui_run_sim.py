@@ -20,8 +20,18 @@ def render_run_sim(param_str, model_str, yaml_data):
 
         env = {}
         try:
+
+            # =========================
+            # Remove local imports
+            # =========================
+            model_clean = "\n".join(
+                line for line in model_str.splitlines()
+                if "from parameters_auto" not in line
+            )
+
             exec(param_str, env, env)
-            exec(model_str, env, env)
+            exec(model_clean, env, env)
+
 
             sim = env["sim"]
             T = yaml_data["simulation"]["T"]
