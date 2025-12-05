@@ -1,6 +1,6 @@
 from pySimBlocks.blocks.controllers import StateFeedback
 from pySimBlocks.blocks.observers import Luenberger
-from pySimBlocks.blocks.operators import Delay, DiscreteIntegrator, Gain, Mux, Sum
+from pySimBlocks.blocks.operators import Delay, DiscreteDerivator, DiscreteIntegrator, Gain, Mux, Sum
 from pySimBlocks.blocks.sources import Constant, Ramp, Step, Sinusoidal
 from pySimBlocks.blocks.systems import LinearStateSpace
 
@@ -10,6 +10,7 @@ __all__ = [
     "Step",
     "Sinusoidal",
     "Delay",
+    "DiscreteDerivator",
     "DiscreteIntegrator",
     "Gain",
     "Mux",

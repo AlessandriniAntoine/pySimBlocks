@@ -17,6 +17,7 @@ pySimBlocks is a lightweight and extensible environment for building, configurin
 - [ ] Fonctionne si pas de path
 - [ ] Nom de la section des plots générés
 - [ ] Afficher la doc quand on selectionne un bloc
+- [ ] Exemple P - PI - PID
 
 
 ## Documentation
@@ -27,6 +28,6 @@ Si utilisation variables workspace ecrire: `= var_name`
 
 - [ ] Saturation
 - [ ] Block Sofa
-- [ ] Integrator
-- [ ] Derivator
+- [x] Integrator
+- [x] Derivator
 - [ ] Discrete PID
