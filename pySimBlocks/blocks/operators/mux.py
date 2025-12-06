@@ -7,52 +7,50 @@ class Mux(Block):
     Vertical signal concatenation (Mux).
 
     Description:
-        Concatenates multiple input signals into a single output vector:
+        Concatenates multiple column vectors vertically:
 
             out = [in1;
                    in2;
                    ...
                    inN]
 
-        All inputs are column vectors (ni, 1) and the output is the vertical
-        concatenation of all of them, i.e. shape (sum_i ni, 1).
+        Each input port expects a column vector (ni,1).
+        The output is (sum_i ni, 1).
 
     Parameters:
         name: str
             Block name.
-        num_inputs: int
-            Number of input ports to create.
+        num_inputs: int (optional)
+            Number of input ports to create. (default = 2)
 
     Inputs:
-        Dynamic — in1, in2, ..., inN. array (n,1)
+        Dynamic — in1, in2, ..., inN.
+            Each must be array (ni,1).
 
     Outputs:
-        out: array (sum_i ni, 1)
+        out: array (sum_i ni,1)
             Vertical concatenation of all inputs.
 
     Notes:
-        - If input_sizes is provided, each input is dimension-checked.
-        - If omitted, dimensions are inferred at first step.
-        - Mux has no internal state.
+        - Mux does NOT require all inputs to have the same dimension.
+        - Mux is stateless.
     """
 
     def __init__(self, name: str, num_inputs: int = 2):
         super().__init__(name)
 
-        if num_inputs < 1:
-            raise ValueError("num_inputs must be >= 1.")
+        if not isinstance(num_inputs, int) or num_inputs < 1:
+            raise ValueError(f"[{self.name}] num_inputs must be a positive integer.")
 
         self.num_inputs = num_inputs
 
-        # Create input ports: in1, in2, ..., inN
+        # Create dynamic input ports: in1, in2, ..., inN
         for i in range(num_inputs):
             self.inputs[f"in{i+1}"] = None
 
         # Single output
         self.outputs["out"] = None
 
-    # ---------------------------------------------------------
-    # INITIALIZATION
     # ---------------------------------------------------------
     def initialize(self, t0: float):
         """
@@ -67,40 +65,43 @@ class Mux(Block):
         self.outputs["out"] = self._compute_output()
 
     # ---------------------------------------------------------
-    # PHASE 1: OUTPUT UPDATE
-    # ---------------------------------------------------------
     def output_update(self, t: float):
         """
-        Compute y = vertcat(inputs).
+        Compute vertical concatenation of all inputs.
         """
-        for i in range(self.num_inputs):
-            if self.inputs[f"in{i+1}"] is None:
-                raise RuntimeError(
-                    f"[{self.name}] Input 'in{i+1}' is not connected or not set."
-                )
 
         self.outputs["out"] = self._compute_output()
 
     # ---------------------------------------------------------
-    # PHASE 2: STATE UPDATE
-    # ---------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        """
-        Mux has no internal state.
-        """
         pass
 
-    # ---------------------------------------------------------
-    # INTERNAL
+
     # ---------------------------------------------------------
     def _compute_output(self) -> np.ndarray:
         """
-        Concatenate inputs vertically.
+        Helper method to compute the vertical concatenation of all inputs.
+        Used during initialization.
         """
         vectors = []
 
         for i in range(self.num_inputs):
-            u = np.asarray(self.inputs[f"in{i+1}"]).reshape(-1, 1)
+            u = self.inputs[f"in{i+1}"]
+
+            if u is None:
+                raise RuntimeError(
+                    f"[{self.name}] Input 'in{i+1}' is not connected or not set."
+                )
+
+            u = np.asarray(u)
+
+            # Strict dimensional validation
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in{i+1}' must be a column vector (n,1). "
+                    f"Got shape {u.shape}."
+                )
+
             vectors.append(u)
 
         return np.vstack(vectors)

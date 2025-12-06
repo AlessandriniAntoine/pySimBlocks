@@ -23,11 +23,11 @@ delay:
     - out
   parameters:
   - name: num_delays
-    optional: false
+    optional: true
     type: int
   - name: initial_output
     optional: true
-    type: array (n,1)
+    type: float | array-like (n,) | array (n,1)
 discrete_derivator:
   category: operators
   inputs:
@@ -139,7 +139,7 @@ mux:
     - out
   parameters:
   - name: num_inputs
-    optional: false
+    optional: true
     type: int
 pid:
   category: controllers
@@ -184,7 +184,7 @@ ramp:
     optional: false
     type: float | array-like (n,) | array (n,1)
   - name: start_time
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: offset
     optional: true
@@ -206,10 +206,10 @@ sinusoidal:
     optional: false
     type: float | array-like (n,) | array (n,1)
   - name: offset
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: phase
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
 sofa_system:
   category: systems
@@ -245,7 +245,7 @@ state_feedback:
     optional: false
     type: matrix (m,n)
   - name: G
-    optional: true
+    optional: false
     type: matrix (m,p)
 step:
   category: sources
@@ -277,10 +277,10 @@ sum:
     - out
   parameters:
   - name: num_inputs
-    optional: false
+    optional: true
     type: int
   - name: signs
-    optional: false
+    optional: true
     type: list[int]
 white_noise:
   category: sources
@@ -293,10 +293,10 @@ white_noise:
     - out
   parameters:
   - name: mean
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: std
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: seed
     optional: true

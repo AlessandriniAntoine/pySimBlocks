@@ -7,59 +7,76 @@ class Delay(Block):
     N-step discrete delay.
 
     Description:
-        Implements:
-            out[k] = in[k - N]
-        using an internal shift buffer of length N.
+        out[k] = in[k - N]
 
     Parameters:
         name: str
             Block name.
-        num_delays: int
-            Number of discrete delays N ≥ 1.
-        initial_output: array (n,1) (optional)
+
+        num_delays: int (optional)
+            Number of discrete delays N ≥ 1. (default = 1)
+
+        initial_output: float | array-like (n,) | array (n,1) (optional)
             Initial buffer fill value.
+            If None:
+                - If input is known at initialize → buffer = u[0]
+                - Otherwise dimension stays unknown until first step
+            (default = None)
 
     Inputs:
         in: array (n,1)
-            Current input signal in[k].
+            Input signal u[k].
 
     Outputs:
         out: array (n,1)
-            Delayed signal in[k - N].
+            Delayed output signal y[k] = u[k - N].
     """
 
-    def __init__(self, name: str, num_delays: int = 1,
-                 initial_output: np.ndarray | None = None):
-
+    def __init__(self, name: str, num_delays: int = 1, initial_output=None):
         super().__init__(name)
 
-        if num_delays < 1:
-            raise ValueError("num_delays must be >= 1.")
+        if not isinstance(num_delays, int) or num_delays < 1:
+            raise ValueError(f"[{self.name}] num_delays must be >= 1.")
 
-        self.num_delays = int(num_delays)
+        self.num_delays = num_delays
 
         # Ports
-        self.inputs["in"] = None        # u[k]
-        self.outputs["out"] = None      # y[k] = u[k - N]
+        self.inputs["in"] = None
+        self.outputs["out"] = None
 
-        # Internal state = buffer of length N
+        # -------------------------------
+        # Validate initial_output (NEW)
+        # -------------------------------
         if initial_output is not None:
-            init = np.asarray(initial_output).reshape(-1, 1)
-            self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
+            arr = np.asarray(initial_output)
+
+            # Accepted shapes : scalar, (n,), (n,1)
+            if arr.ndim == 0:
+                arr = arr.reshape(1, 1)
+            elif arr.ndim == 1:
+                arr = arr.reshape(-1, 1)
+            elif arr.ndim == 2 and arr.shape[1] == 1:
+                pass
+            else:
+                raise ValueError(
+                    f"[{self.name}] initial_output must be scalar or vector (n,1). Got shape {arr.shape}."
+                )
+
+            self.state["buffer"] = [arr.copy() for _ in range(self.num_delays)]
+
         else:
-            # Initialized later when dimension is known
+            # Dimension unknown until initialize or state_update
             self.state["buffer"] = None
 
-        # next_state will contain the updated buffer after each step
         self.next_state["buffer"] = None
 
     # ------------------------------------------------------------------
-    # INITIALIZATION
-    # ------------------------------------------------------------------
     def initialize(self, t0: float):
         """
-        Initialize buffer based on initial_output or zeros.
-        Also compute initial output y[0].
+        Initialize buffer using:
+        - initial_output if provided
+        - input u[0] if known
+        - otherwise leave buffer=None
         """
         buffer = self.state["buffer"]
         u = self.inputs["in"]
@@ -69,59 +86,73 @@ class Delay(Block):
             self.outputs["out"] = buffer[0].copy()
             return
 
-        # Case 2: No initial_output provided → auto-init
-        # If u is already known at initialization:
+        # Case 2: u available → infer dimension
         if u is not None:
-            u = np.asarray(u).reshape(-1, 1)
+            u = np.asarray(u)
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' must be a column vector (n,1). Got {u.shape}."
+                )
+
+            u = u.reshape(-1, 1)
             self.state["buffer"] = [u.copy() for _ in range(self.num_delays)]
             self.outputs["out"] = u.copy()
             return
 
-        # Case 3: u unknown → initialize to zeros
-        # Dimension is unknown until input arrives → leave None, output None.
-        self.state["buffer"] = None
+        # Case 3: dimension unknown → defer
         self.outputs["out"] = None
 
     # ------------------------------------------------------------------
-    # PHASE 1 : OUTPUT UPDATE
-    # ------------------------------------------------------------------
     def output_update(self, t: float):
-        """
-        y[k] = buffer[0]
-        """
         buffer = self.state["buffer"]
 
+        # NEW: If buffer not initialized, infer dimension from current input
         if buffer is None:
-            raise RuntimeError(f"[{self.name}] Delay buffer uninitialized.")
+            u = self.inputs["in"]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] Delay buffer uninitialized (no input).")
 
+            u = np.asarray(u)
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' must be a column vector (n,1). Got {u.shape}."
+                )
+
+            u = u.reshape(-1, 1)
+
+            # Initialize buffer with zeros *of correct dimension*
+            zeros = np.zeros_like(u)
+            self.state["buffer"] = [zeros.copy() for _ in range(self.num_delays)]
+            buffer = self.state["buffer"]
+
+        # Now buffer is guaranteed to exist
         self.outputs["out"] = buffer[0].copy()
 
     # ------------------------------------------------------------------
-    # PHASE 2 : STATE UPDATE
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        """
-        buffer[k+1] = shift_left(buffer[k]) + u[k] at the end.
-        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
 
-        u = np.asarray(u).reshape(-1, 1)
+        u = np.asarray(u)
+        if u.ndim != 2 or u.shape[1] != 1:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a column vector (n,1). Got {u.shape}."
+            )
 
+        u = u.reshape(-1, 1)
         buffer = self.state["buffer"]
 
-        # If buffer was None (unknown size), initialize now
+        # Case: dimension still unknown → initialize buffer of zeros
         if buffer is None:
             zeros = np.zeros_like(u)
             buffer = [zeros.copy() for _ in range(self.num_delays)]
 
-        # Shift buffer left
+        # Shift buffer left and append u
         new_buffer = []
         for i in range(self.num_delays - 1):
             new_buffer.append(buffer[i + 1].copy())
 
-        # Append newest input u[k]
         new_buffer.append(u.copy())
 
         self.next_state["buffer"] = new_buffer

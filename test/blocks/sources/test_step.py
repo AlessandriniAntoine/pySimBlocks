@@ -11,6 +11,8 @@ def test_step_scalar_before():
     s = Step("s", 0.0, 1.0, start_time=1.0)
     s.initialize(0.0)
     assert np.allclose(s.outputs["out"], [[0.0]])
+    s.initialize(1.5)
+    assert np.allclose(s.outputs["out"], [[1.0]])
 
 
 def test_step_scalar_after():
@@ -24,6 +26,8 @@ def test_step_scalar_after():
 # ----------------------------------------------
 def test_step_vector():
     s = Step("s", [0, 0], [1, 2], start_time=1.0)
+    s.initialize(0.0)
+    assert np.allclose(s.outputs["out"], [[0.0], [0.0]])
     s.initialize(2.0)
     assert np.allclose(s.outputs["out"], [[1.0], [2.0]])
 
