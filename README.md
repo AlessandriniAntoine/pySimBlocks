@@ -39,4 +39,4 @@ Outputs:
 - [x] Block Sofa
 - [x] Integrator
 - [x] Derivator
-- [ ] Discrete PID
+- [x] Discrete PID

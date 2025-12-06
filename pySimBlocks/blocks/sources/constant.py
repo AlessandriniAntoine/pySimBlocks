@@ -14,7 +14,7 @@ class Constant(Block):
     Parameters:
         name: str
             Block name.
-        value: array (n,1)
+        value: float | array-like (n,) | array (n,1)
             Constant output value.
 
     Inputs:
@@ -25,27 +25,42 @@ class Constant(Block):
             Constant output vector.
     """
 
-
-    def __init__(
-        self,
-        name: str,
-        value: np.ndarray,
-    ):
+    def __init__(self, name: str, value):
         super().__init__(name)
 
-        value = np.asarray(value).reshape(-1, 1)
+        if not isinstance(value, (list, tuple, np.ndarray, float, int)):
+            raise TypeError(f"[{self.name}] Constant 'value' must be numeric or array-like.")
 
-        self.value = value
-        self.outputs["out"] = np.copy(self.value)
+        arr = np.asarray(value)
 
+        if arr.ndim == 0:              # scalar
+            arr = arr.reshape(1, 1)
+
+        elif arr.ndim == 1:            # vector (n,)
+            arr = arr.reshape(-1, 1)
+
+        elif arr.ndim == 2:
+            if arr.shape[0] == 1:      # row vector
+                arr = arr.reshape(-1, 1)
+            elif arr.shape[1] == 1:    # column vector
+                pass
+            else:
+                raise ValueError(
+                    f"[{self.name}] Constant 'value' must be scalar or vector. "
+                    f"Got matrix of shape {arr.shape}."
+                )
+        else:
+            raise ValueError(f"[{self.name}] Constant 'value' has too many dimensions.")
+
+        # Correct final assignment
+        self.value = arr
+        self.outputs["out"] = np.copy(arr)
 
     def initialize(self, t0: float) -> None:
         self.outputs["out"] = np.copy(self.value)
 
-
     def output_update(self, t: float) -> None:
         self.outputs["out"] = np.copy(self.value)
-
 
     def state_update(self, t: float, dt: float) -> None:
         pass

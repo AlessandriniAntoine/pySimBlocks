@@ -10,7 +10,7 @@ constant:
   parameters:
   - name: value
     optional: false
-    type: array (n,1)
+    type: float | array-like (n,) | array (n,1)
 delay:
   category: operators
   inputs:
@@ -67,9 +67,9 @@ gain:
     ports:
     - out
   parameters:
-  - name: gain
+  - name: value
     optional: false
-    type: float | array | matrix
+    type: float | array-like (n,) | array (n,1)
 linear_state_space:
   category: systems
   inputs:

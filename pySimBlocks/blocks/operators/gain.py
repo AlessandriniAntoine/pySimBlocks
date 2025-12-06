@@ -13,7 +13,7 @@ class Gain(Block):
     Parameters:
         name: str
             Block name.
-        gain: float | array | matrix
+        value: float | array-like (n,) | array (n,1)
             Gain scalar, vector, or matrix.
 
     Inputs:
@@ -33,6 +33,11 @@ class Gain(Block):
             self.K = gain
         else:
             self.K = np.asarray(gain)
+            if self.K.ndim not in (1, 2):
+                raise ValueError(
+                    f"[{self.name}] Gain 'K' must be a scalar, vector (m,), or matrix (m,n). "
+                    f"Got array with ndim={self.K.ndim}."
+                )
 
         # One input port, one output port
         self.inputs["in"] = None
@@ -85,9 +90,27 @@ class Gain(Block):
     # COMPUTATION
     # ------------------------------------------------------------------
     def _compute(self, u: np.ndarray) -> np.ndarray:
+
+        # CASE 1: scalar gain
         if np.isscalar(self.K):
             return self.K * u
 
-        # Matrix multiplication
-        K = np.asarray(self.K)
-        return K @ u
+        # CASE 2: vector gain (m,)
+        if self.K.ndim == 1:
+            if u.shape != (1, 1):
+                raise ValueError(
+                    f"[{self.name}] Input 'in' must be shape (1,1) when gain 'K' is a vector (shape {self.K.shape}). "
+                    f"Got input shape {u.shape}."
+                )
+            # Vector treated as row vector → output is (m,1)
+            return self.K.reshape(-1, 1) * u[0, 0]
+
+        # CASE 3: matrix gain (m,n)
+        m, n = self.K.shape
+        if u.shape[0] != n:
+            raise ValueError(
+                f"[{self.name}] Incompatible dimensions: K has shape {self.K.shape} "
+                f"but input 'in' has shape {u.shape}."
+            )
+
+        return self.K @ u
