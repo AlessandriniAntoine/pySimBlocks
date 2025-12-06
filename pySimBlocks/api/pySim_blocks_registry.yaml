@@ -282,3 +282,22 @@ sum:
   - name: signs
     optional: false
     type: list[int]
+white_noise:
+  category: sources
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+    dynamic: false
+    ports:
+    - out
+  parameters:
+  - name: mean
+    optional: false
+    type: float | array-like (n,) | array (n,1)
+  - name: std
+    optional: false
+    type: float | array-like (n,) | array (n,1)
+  - name: seed
+    optional: true
+    type: int

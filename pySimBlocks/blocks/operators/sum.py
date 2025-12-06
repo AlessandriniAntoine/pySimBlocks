@@ -14,10 +14,10 @@ class Sum(Block):
     Parameters:
         name: str
             Block name.
-        num_inputs: int
-            Number of input ports.
-        signs: list[int]
-            List of +1 or -1 coefficients (length = num_inputs).
+        num_inputs: int (optional)
+            Number of input ports. (default = 2)
+        signs: list[int] (optional)
+            List of +1 or -1 coefficients (length = num_inputs). (default = all +1)
 
     Inputs:
         Dynamic — in1, in2, ..., inN. array (n,1)
@@ -27,87 +27,79 @@ class Sum(Block):
             Weighted sum of all inputs.
     """
 
-    def __init__(self, name: str,
-                 num_inputs: int = 0,
-                 signs=None):
-
+    def __init__(self, name: str, num_inputs: int = 2, signs=None):
         super().__init__(name)
 
+        # --- Validate num_inputs / signs -------------------------------------
         if signs is None and num_inputs == 0:
-            raise ValueError("Either 'num_inputs' or 'signs' must be provided.")
-
-        if num_inputs == 0:
-            num_inputs = len(signs)
+            raise ValueError(f"[{self.name}] Either 'num_inputs' or 'signs' must be provided.")
 
         if signs is None:
             signs = [1] * num_inputs
 
+        if not isinstance(signs, (list, tuple)):
+            raise TypeError(f"[{self.name}] 'signs' must be a list or tuple.")
+
+        if any(s not in (+1, -1) for s in signs):
+            raise ValueError(f"[{self.name}] 'signs' must contain only +1 or -1.")
+
+        if num_inputs == 0:
+            num_inputs = len(signs)
+
         if len(signs) != num_inputs:
-            raise ValueError("Length of 'signs' must match num_inputs.")
+            raise ValueError(f"[{self.name}] len(signs) must equal num_inputs.")
 
-        # port names: in1, in2, ..., inN
+        if num_inputs <= 0:
+            raise ValueError(f"[{self.name}] num_inputs must be >= 1.")
+
         self.num_inputs = num_inputs
-        self.signs = signs
+        self.signs = list(signs)
 
+        # Create ports
         for i in range(num_inputs):
             self.inputs[f"in{i+1}"] = None
 
-        # one output
         self.outputs["out"] = None
 
-    # ------------------------------------------------------------------
-    # INITIALIZATION
-    # ------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def initialize(self, t0: float):
-        """
-        If all inputs are already defined, compute output.
-        Otherwise output stays None until first real step.
-        """
-
-        # Check if all inputs exist
+        # If inputs already present, compute; else stay None
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
                 self.outputs["out"] = None
                 return
 
-        # Compute initial sum
         self.outputs["out"] = self._compute_output()
 
-    # ------------------------------------------------------------------
-    # PHASE 1 : OUTPUT UPDATE
-    # ------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def output_update(self, t: float):
-        """
-        Compute y[k] = Σ s_i * u_i[k]
-        """
-        # Make sure all inputs are available
+        # Check all inputs & check dimension consistency
+        shapes = set()
         for i in range(self.num_inputs):
             u = self.inputs[f"in{i+1}"]
             if u is None:
-                raise RuntimeError(
-                    f"[{self.name}] Input 'in{i+1}' is not connected or not set."
+                raise RuntimeError(f"[{self.name}] Input 'in{i+1}' is not connected or not set.")
+
+            u = np.asarray(u)
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in{i+1}' must be a column vector (n,1). Got {u.shape}."
                 )
+
+            shapes.add(u.shape[0])
+
+        if len(shapes) > 1:
+            raise ValueError(f"[{self.name}] All inputs must have same dimension. Got sizes {shapes}.")
 
         self.outputs["out"] = self._compute_output()
 
-    # ------------------------------------------------------------------
-    # PHASE 2 : STATE UPDATE
-    # ------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        """
-        Sum block has no state.
-        """
         pass
 
-    # ------------------------------------------------------------------
-    # INTERNAL
-    # ------------------------------------------------------------------
-    def _compute_output(self) -> np.ndarray:
-        """
-        Compute Σ s_i * u_i as an (n,1) numpy array.
-        """
+    # ----------------------------------------------------------------------
+    def _compute_output(self):
         total = None
-
         for i in range(self.num_inputs):
             u = np.asarray(self.inputs[f"in{i+1}"]).reshape(-1, 1)
             s = self.signs[i]

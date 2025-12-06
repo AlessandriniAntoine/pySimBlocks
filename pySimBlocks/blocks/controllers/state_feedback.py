@@ -15,7 +15,7 @@ class StateFeedback(Block):
             Block name.
         K: matrix (m,n)
             State feedback gain.
-        G: matrix (m,p) (optional)
+        G: matrix (m,p)
             Reference feedforward gain. Default = zero matrix.
 
     Inputs:
