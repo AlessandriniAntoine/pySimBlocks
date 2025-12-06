@@ -1,0 +1,30 @@
+blocks:
+- name: step
+  from: sources
+  type: step
+  value_before: [[0.0]]
+  value_after: [[0.5]]
+  t_step: 0.2
+- name: sofa
+  from: systems
+  type: sofa_system
+  scene_file: /home/aalessan/Documents/ComplianceRobotics/emio/EmioLabs/assets/labs/EmioLabs_pySimBlocks/lab_pendulum.py
+  input_keys: [u]
+  output_keys: [markers, y]
+connections:
+- [step.out, sofa.u]
+simulation:
+  dt: 0.016666666666666666
+  T: 2.0
+  log:
+  - step.outputs.out
+  - sofa.outputs.markers
+  - sofa.outputs.y
+plot:
+- title: Outputs
+  log:
+  - step.outputs.out
+  - sofa.outputs.y
+- title: Markers
+  log:
+  - sofa.outputs.markers

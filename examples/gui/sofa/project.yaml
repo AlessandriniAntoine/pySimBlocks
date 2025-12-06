@@ -32,6 +32,16 @@ blocks:
   scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/sofa/finger/Finger.py
   input_keys: [cable]
   output_keys: [tip, measure]
+- name: sofa_ol
+  from: systems
+  type: sofa_system
+  scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/sofa/finger/Finger.py
+  input_keys: [cable]
+  output_keys: [tip, measure]
+- name: constant
+  from: sources
+  type: constant
+  value: [[0.0]]
 connections:
 - [step.out, error.in1]
 - [error.out, Kp.in]
@@ -41,6 +51,7 @@ connections:
 - [Ki.out, sum.in2]
 - [sum.out, sofa.cable]
 - [sofa.measure, error.in2]
+- [constant.out, sofa_ol.cable]
 simulation:
   dt: 0.01
   T: 5.0
@@ -48,6 +59,7 @@ simulation:
   - step.outputs.out
   - sofa.outputs.measure
   - sum.outputs.out
+  - sofa_ol.outputs.measure
 plot:
 - title: Outputs
   log:
@@ -56,3 +68,7 @@ plot:
 - title: Command
   log:
   - sum.outputs.out
+- title: OL vs CL
+  log:
+  - sofa.outputs.measure
+  - sofa_ol.outputs.measure

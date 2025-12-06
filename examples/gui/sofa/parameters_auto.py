@@ -19,5 +19,11 @@ sofa_scene_file = '/home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/
 sofa_input_keys = np.array(['cable'])
 sofa_output_keys = np.array(['tip', 'measure'])
 
+sofa_ol_scene_file = '/home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/sofa/finger/Finger.py'
+sofa_ol_input_keys = np.array(['cable'])
+sofa_ol_output_keys = np.array(['tip', 'measure'])
+
+constant_value = np.array([[0.0]])
+
 dt = 0.01
 T = 5.0

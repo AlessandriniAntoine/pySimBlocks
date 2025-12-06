@@ -141,6 +141,35 @@ mux:
   - name: num_inputs
     optional: false
     type: int
+pid:
+  category: controllers
+  inputs:
+    dynamic: false
+    ports:
+    - e
+  outputs:
+    dynamic: false
+    ports:
+    - u
+  parameters:
+  - name: controller_type
+    optional: false
+    type: str
+  - name: Kp
+    optional: true
+    type: array (m,n)
+  - name: Ki
+    optional: true
+    type: array (m,n)
+  - name: Kd
+    optional: true
+    type: array (m,n)
+  - name: u_min
+    optional: true
+    type: array (m,1)
+  - name: u_max
+    optional: true
+    type: array (m,1)
 ramp:
   category: sources
   inputs:

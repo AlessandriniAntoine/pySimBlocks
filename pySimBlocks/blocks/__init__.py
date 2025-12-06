@@ -3,7 +3,7 @@ from pySimBlocks.blocks.sources import Constant, Ramp, Step, Sinusoidal
 from pySimBlocks.blocks.systems import LinearStateSpace
 from pySimBlocks.blocks.systems.sofa_system import SofaSystem
 from pySimBlocks.blocks.observers import Luenberger
-from pySimBlocks.blocks.controllers import StateFeedback
+from pySimBlocks.blocks.controllers import Pid, StateFeedback
 
 __all__ = [
     "Constant",
@@ -19,5 +19,6 @@ __all__ = [
     "LinearStateSpace",
     "SofaSystem",
     "Luenberger",
+    "Pid",
     "StateFeedback",
 ]

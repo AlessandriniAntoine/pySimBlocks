@@ -1,5 +1,6 @@
 controllers:
 - StateFeedback
+- Pid
 observers:
 - Luenberger
 operators:
