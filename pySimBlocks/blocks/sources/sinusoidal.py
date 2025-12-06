@@ -17,10 +17,10 @@ class Sinusoidal(BlockSource):
             Amplitude A_i.
         frequency: float | array-like (n,) | array (n,1)
             Frequency f_i (Hz).
-        offset: float | array-like (n,) | array (n,1)
-            Offset added to each output.
-        phase: float | array-like (n,) | array (n,1)
-            Phase shift φ_i (rad).
+        offset: float | array-like (n,) | array (n,1) (optional)
+            Offset added to each output. (default = 0.0)
+        phase: float | array-like (n,) | array (n,1) (optional)
+            Phase shift φ_i (rad). (default = 0.0)
 
     Inputs:
         (none)

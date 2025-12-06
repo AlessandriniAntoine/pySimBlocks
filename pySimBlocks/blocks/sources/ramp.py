@@ -15,8 +15,8 @@ class Ramp(BlockSource):
             Block name.
         slope: float | array-like (n,) | array (n,1)
             Slope of each output dimension.
-        start_time: float | array-like (n,) | array (n,1)
-            Time at which each ramp starts.
+        start_time: float | array-like (n,) | array (n,1) (optional)
+            Time at which each ramp starts. (default = 0.0).
         offset: float | array-like (n,) | array (n,1) (optional)
             Value before the ramp starts (default = zeros).
 

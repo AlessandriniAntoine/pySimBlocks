@@ -13,12 +13,12 @@ class WhiteNoise(BlockSource):
     Parameters:
         name: str
             Block name.
-        mean: float | array-like (n,) | array (n,1)
-            Mean value for each dimension.
-        std: float | array-like (n,) | array (n,1)
-            Standard deviation for each dimension.
+        mean: float | array-like (n,) | array (n,1) (optional)
+            Mean value for each dimension. (default = 0.0)
+        std: float | array-like (n,) | array (n,1) (optional)
+            Standard deviation for each dimension. Must be >= 0. (default = 1.0)
         seed: int (optional)
-            Random seed for reproducibility.
+            Random seed for reproducibility. (default = None)
 
     Inputs:
         (none)
