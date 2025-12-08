@@ -38,7 +38,10 @@ discrete_derivator:
     dynamic: false
     ports:
     - out
-  parameters: []
+  parameters:
+  - name: initial_output
+    optional: true
+    type: float | array-like (n,) | array (n,1)
 discrete_integrator:
   category: operators
   inputs:
@@ -52,7 +55,7 @@ discrete_integrator:
   parameters:
   - name: initial_state
     optional: true
-    type: array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: method
     optional: true
     type: str
@@ -67,7 +70,7 @@ gain:
     ports:
     - out
   parameters:
-  - name: value
+  - name: gain
     optional: false
     type: float | array-like (n,) | array (n,1)
 linear_state_space:

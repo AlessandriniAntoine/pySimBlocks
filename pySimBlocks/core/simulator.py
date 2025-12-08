@@ -27,10 +27,12 @@ class Simulator:
         - Algebraic loop detection through the Model's topo ordering.
     """
 
-    def __init__(self, model: Model, dt: float):
+    def __init__(self, model: Model, dt: float, verbose: bool = False):
         self.model = model
         self.dt = float(dt)
         self.t = 0.0
+        self.verbose = verbose
+        self.model.verbose = verbose
 
         # blocks in valid causal order
         self.execution_order: List[Block] = model.execution_order()
@@ -121,7 +123,7 @@ class Simulator:
         self.initialize(self.t)
 
         # Main loop
-        for k in range(N):
+        for k in range(N+1):
             self.step()
             self._log(variables_to_log)
 
