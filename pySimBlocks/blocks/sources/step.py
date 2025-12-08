@@ -59,12 +59,14 @@ class Step(BlockSource):
         # Output port
         self.outputs["out"] = None
 
+        self.EPS = 1e-12 # This compensates for floating-point rounding and restores correct behavior on all time grids.
+
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float):
         self.outputs["out"] = (
             np.copy(self.value_before)
-            if t0 < self.start_time
+            if t0 < self.start_time - self.EPS
             else np.copy(self.value_after)
         )
 
@@ -72,6 +74,6 @@ class Step(BlockSource):
     def output_update(self, t: float):
         self.outputs["out"] = (
             np.copy(self.value_before)
-            if t < self.start_time
+            if t < self.start_time - self.EPS
             else np.copy(self.value_after)
         )
