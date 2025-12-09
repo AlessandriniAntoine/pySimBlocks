@@ -9,7 +9,8 @@ class LinearStateSpace(Block):
     Description:
         Implements:
             x[k+1] = A x[k] + B u[k]
-            y[k]   = C x[k] + D u[k]
+            y[k]   = C x[k]
+        Currently no matrix D to avoid algebric loop
 
     Parameters:
         name: str
@@ -20,8 +21,6 @@ class LinearStateSpace(Block):
             Input matrix.
         C: matrix (p,n)
             Output matrix.
-        D: matrix (p,m) (optional)
-            Feedthrough matrix (default = zeros).
         x0: array (n,1) (optional)
             Initial state vector (default = zeros).
 
@@ -43,7 +42,6 @@ class LinearStateSpace(Block):
         A: np.ndarray,
         B: np.ndarray,
         C: np.ndarray,
-        D: np.ndarray | None = None,
         x0: np.ndarray | None = None,
     ):
         super().__init__(name)
@@ -65,16 +63,6 @@ class LinearStateSpace(Block):
 
         if self.C.shape[1] != n:
             raise ValueError("C must have the same number of columns as A.")
-
-        m = self.B.shape[1]
-        p = self.C.shape[0]
-
-        if D is None:
-            self.D = np.zeros((p, m))
-        else:
-            self.D = np.asarray(D)
-            if self.D.shape != (p, m):
-                raise ValueError("D must have shape (p, m) with p = rows(C), m = cols(B).")
 
         # ------------------------------------------------------------------
         # Initial state x0
@@ -110,15 +98,7 @@ class LinearStateSpace(Block):
         for the initial output (but NOT for the subsequent steps).
         """
         x = self.state["x"]
-        u = self.inputs["u"]
-
-        if u is None:
-            # Default input at initialization = 0 (Simulink behavior)
-            u = np.zeros((self.B.shape[1], 1))
-        else:
-            u = np.asarray(u).reshape(self.B.shape[1], 1)
-
-        self.outputs["y"] = self.C @ x + self.D @ u
+        self.outputs["y"] = self.C @ x
 
         # Keep next_state consistent (no state change at t0)
         self.outputs["x"] = x.copy()
@@ -129,16 +109,11 @@ class LinearStateSpace(Block):
     # ----------------------------------------------------------------------
     def output_update(self, t: float) -> None:
         """
-        Compute y[k] = C x[k] + D u[k] from current state and input.
+        Compute y[k] = C x[k] from current state and input.
         """
-        u = self.inputs["u"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
-
-        u = np.asarray(u).reshape(self.B.shape[1], 1)
         x = self.state["x"]
 
-        self.outputs["y"] = self.C @ x + self.D @ u
+        self.outputs["y"] = self.C @ x
         self.outputs["x"] = x.copy()
 
     # ----------------------------------------------------------------------

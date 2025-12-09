@@ -8,13 +8,13 @@ from pySimBlocks.blocks.operators.discrete_derivator import DiscreteDerivator
 
 
 # ------------------------------------------------------------
-def run_sim(src_block, der_block, dt=0.1, T=0.3):
+def run_sim(src_block, der_block, dt=0.1, T=0.3, verbose=False):
     m = Model()
     m.add_block(src_block)
     m.add_block(der_block)
     m.connect(src_block.name, "out", der_block.name, "in")
 
-    sim = Simulator(m, dt=dt)
+    sim = Simulator(m, dt=dt, verbose=verbose)
     logs = sim.run(T=T, variables_to_log=[f"{der_block.name}.outputs.out"])
     return logs[f"{der_block.name}.outputs.out"]
 
@@ -59,8 +59,7 @@ def test_derivator_initial_output():
     D = DiscreteDerivator("D", initial_output=[[5.0]])
     src = Step("src", start_time=0.0, value_before=[[0.]], value_after=[[1.]])
 
-    logs = run_sim(src, D, dt=0.1, T=0.1)
-    print(logs)
+    logs = run_sim(src, D, dt=0.1, T=0.1, verbose=False)
 
     assert np.allclose(logs[0], [[5.0]])
 

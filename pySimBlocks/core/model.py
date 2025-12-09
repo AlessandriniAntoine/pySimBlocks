@@ -35,7 +35,8 @@ class Model:
         self.connections: List[Connection] = []
 
         # Internally stored execution order (computed on build)
-        self._execution_order: List[Block] = []
+        self._output_execution_order: List[Block] = []
+        self._state_execution_order: List[Block] = []
 
     # ----------------------------------------------------------------------
     # BLOCK REGISTRATION
@@ -72,107 +73,100 @@ class Model:
     # ----------------------------------------------------------------------
     def build_execution_order(self):
         """
-        Build execution order following Simulink-like scheduling:
-
-            1) Memory blocks (stateful)       → no direct feedthrough
-            2) Sources (no state, no inputs)  → no direct feedthrough
-            3) Combinational blocks           → direct feedthrough (topo sort)
-
-        State update order = only stateful blocks (topo sorted if needed).
+        Build Simulink-like execution order based solely on direct-feedthrough
+        causal dependencies (Simulink PDF p.7).
         """
 
         blocks = self.blocks
         names = list(blocks.keys())
 
-        # ------------------------------
-        # CATEGORY A: stateful blocks
-        # ------------------------------
-        stateful = []
-        for n in names:
-            blk = blocks[n]
-            if len(blk.state) > 0:
-                stateful.append(n)
+        vprint = print if self.verbose else (lambda *a, **k: None)
 
-        # topo sort inside stateful if needed
-        Gs = {n: [] for n in stateful}
-        indeg_s = {n: 0 for n in stateful}
-        for (src, dst) in self.connections:
-            s, _ = src
-            d, _ = dst
-            if s in stateful and d in stateful:
-                Gs[s].append(d)
-                indeg_s[d] += 1
+        vprint("\n================= BUILD EXECUTION ORDER =================")
+        vprint(f"Blocks in model: {names}")
 
-        q = [n for n in stateful if indeg_s[n] == 0]
-        state_order = []
-        indeg_tmp = indeg_s.copy()
+        # ------------------------------------------------------------
+        # STEP 1 — Build dependency graph
+        # ------------------------------------------------------------
+        vprint("\n--- STEP 1: CONNECTION ANALYSIS (direct-feedthrough rules) ---")
 
-        while q:
-            n = q.pop(0)
-            state_order.append(n)
-            for v in Gs[n]:
-                indeg_tmp[v] -= 1
-                if indeg_tmp[v] == 0:
-                    q.append(v)
-
-        # -----------------------------------
-        # CATEGORY B: source blocks
-        # -----------------------------------
-        sources = [n for n in names if blocks[n].is_source]
-
-        # -----------------------------------
-        # CATEGORY C: direct-feedthrough blocks
-        # -----------------------------------
-        combinational = [
-            n for n in names
-            if blocks[n].direct_feedthrough and not blocks[n].is_source
-        ]
-
-        # topo sort combinational-only subgraph
-        Gc = {n: [] for n in combinational}
-        indeg_c = {n: 0 for n in combinational}
+        graph = {name: [] for name in names}
+        indegree = {name: 0 for name in names}
 
         for (src, dst) in self.connections:
-            s, _ = src
-            d, _ = dst
-            if s in combinational and d in combinational:
-                Gc[s].append(d)
-                indeg_c[d] += 1
+            src_block, src_port = src
+            dst_block, dst_port = dst
 
-        q = [n for n in combinational if indeg_c[n] == 0]
-        comb_order = []
-        indeg_tmp2 = indeg_c.copy()
+            A = blocks[src_block]
+            B = blocks[dst_block]
 
-        while q:
-            n = q.pop(0)
-            comb_order.append(n)
-            for v in Gc[n]:
-                indeg_tmp2[v] -= 1
-                if indeg_tmp2[v] == 0:
-                    q.append(v)
+            if B.direct_feedthrough:
+                graph[src_block].append(dst_block)
+                indegree[dst_block] += 1
+                vprint(f"  DEPENDENCY: {src_block}.{src_port} → {dst_block}.{dst_port} "
+                       f"(direct-feedthrough)")
+            else:
+                vprint(f"  NO DEPENDENCY: {src_block}.{src_port} → {dst_block}.{dst_port} "
+                       f"(destination NOT direct-feedthrough)")
 
-        # ------------------------------
-        # FINAL OUTPUT UPDATE ORDER
-        # ------------------------------
-        output_order = state_order + sources + comb_order
+        # Show resulting graph
+        vprint("\nGraph adjacency list:")
+        for k, v in graph.items():
+            vprint(f"  {k}: {v}")
 
-        if self.verbose:
-            print("===== BUILD EXECUTION ORDER =====")
-            print("Blocks:", names)
-            print("Stateful:", state_order)
-            print("Sources:", sources)
-            print("Combinational:", comb_order)
-            print("OUTPUT ORDER:", output_order)
-            print("STATE ORDER :", state_order)
-            print("=================================\n")
+        vprint("\nInitial indegree:")
+        for k, v in indegree.items():
+            vprint(f"  {k}: {v}")
 
-        self.output_update_order = [blocks[n] for n in output_order]
-        self.state_update_order  = [blocks[n] for n in state_order]
+        # ------------------------------------------------------------
+        # STEP 2 — Kahn topological sort
+        # ------------------------------------------------------------
+        vprint("\n--- STEP 2: TOPOLOGICAL SORT ---")
 
-        return self.output_update_order, self.state_update_order
+        from collections import deque
+        ready = deque([b for b in names if indegree[b] == 0])
+
+        vprint(f"Initial READY queue: {list(ready)}")
+
+        execution_order = []
+
+        while ready:
+            current = ready.popleft()
+            execution_order.append(current)
+
+            vprint(f"\n==> EXECUTE: '{current}'")
+
+            # Decrease indegree for successors
+            for succ in graph[current]:
+                indegree[succ] -= 1
+                vprint(f"    indegree[{succ}] → {indegree[succ]}")
+                if indegree[succ] == 0:
+                    ready.append(succ)
+                    vprint(f"    '{succ}' added to READY")
+
+        # ------------------------------------------------------------
+        # STEP 3 — Detect algebraic loops
+        # ------------------------------------------------------------
+        if len(execution_order) != len(names):
+            vprint("\n!!! ALGEBRAIC LOOP DETECTED !!!")
+            raise RuntimeError(
+                "Algebraic loop detected: direct-feedthrough cycle exists."
+            )
+
+        # ------------------------------------------------------------
+        # STEP 4 — Final result
+        # ------------------------------------------------------------
+        vprint("\n--- FINAL SIMULINK-LIKE EXECUTION ORDER ---")
+        for i, b in enumerate(execution_order, 1):
+            vprint(f"  {i}. {b}")
+        vprint("========================================================\n")
+
+        # Final storage
+        self._output_execution_order = [blocks[n] for n in execution_order]
+        self._state_execution_order = [blocks[n] for n in execution_order if len(blocks[n].state) > 0]
 
 
-
+        return self._output_execution_order, self._state_execution_order
 
     # ----------------------------------------------------------------------
     # HELPERS FOR THE SIMULATOR
@@ -185,7 +179,7 @@ class Model:
             if src[0] == block_name:
                 yield (src, dst)
 
-    def execution_order(self) -> List[Block]:
-        if not self._execution_order:
+    def execution_order(self):
+        if not self._output_execution_order:
             return self.build_execution_order()
-        return self._execution_order
+        return self._output_execution_order, self._state_execution_order

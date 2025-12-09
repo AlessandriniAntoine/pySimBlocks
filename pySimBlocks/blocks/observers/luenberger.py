@@ -10,6 +10,7 @@ class Luenberger(Block):
         Implements:
             x_hat[k+1] = A x_hat[k] + B u[k] + L * (y[k] - C x_hat[k])
             y_hat[k]   = C x_hat[k]
+        Currently no matrix D to avoid algebric loop
 
     Parameters:
         name: str
@@ -22,8 +23,6 @@ class Luenberger(Block):
             Output matrix.
         L: matrix (n,p)
             Observer gain matrix.
-        D: matrix (p,m) (optional)
-            Feedthrough matrix (default = zeros).
         x0: array (n,1) (optional)
             Initial estimated state (default = zeros).
 
@@ -49,7 +48,6 @@ class Luenberger(Block):
         B: np.ndarray,
         C: np.ndarray,
         L: np.ndarray,
-        D: np.ndarray | None = None,
         x0: np.ndarray | None = None,
     ):
         super().__init__(name)
@@ -78,16 +76,6 @@ class Luenberger(Block):
 
         if self.L.shape[1] != self.C.shape[0]:
             raise ValueError("L must have the same number of columns as rows of C.")
-
-        m = self.B.shape[1]
-        p = self.C.shape[0]
-
-        if D is None:
-            self.D = np.zeros((p, m))
-        else:
-            self.D = np.asarray(D)
-            if self.D.shape != (p, m):
-                raise ValueError("D must have shape (p, m) with p = rows(C), m = cols(B).")
 
         # ------------------------------------------------------------------
         # Initial state x0
@@ -124,14 +112,7 @@ class Luenberger(Block):
         for the initial output (but NOT for the subsequent steps).
         """
         x_hat = self.state["x_hat"]
-        u = self.inputs["u"]
-
-        if u is not None:
-            u = np.asarray(u).reshape(self.B.shape[1], 1)
-            self.outputs["y_hat"] = self.C @ x_hat + self.D @ u
-        else:
-            # At init, we just take u = 0 if nothing is connected yet.
-            self.outputs["y_hat"] = self.C @ x_hat
+        self.outputs["y_hat"] = self.C @ x_hat
 
         # Keep next_state consistent (no state change at t0)
         self.outputs["x_hat"] = x_hat.copy()
@@ -144,14 +125,9 @@ class Luenberger(Block):
         """
         Compute y[k] = C x[k] + D u[k] from current state and input.
         """
-        u = self.inputs["u"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
-
-        u = np.asarray(u).reshape(self.B.shape[1], 1)
         x_hat = self.state["x_hat"]
 
-        self.outputs["y_hat"] = self.C @ x_hat + self.D @ u
+        self.outputs["y_hat"] = self.C @ x_hat
         self.outputs["x_hat"] = x_hat.copy()
 
     # ----------------------------------------------------------------------
