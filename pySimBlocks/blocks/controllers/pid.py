@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from pySimBlocks.core.block import Block
 
 
@@ -28,6 +29,9 @@ class Pid(Block):
     Parameters:
         name: str
             Block name.
+
+        controller: str (optional)
+                    One of {"P","I","PI","PD","PID"}. (default="PID")
 
         Kp: float | list | array (optional)
             Proportional gain (scalar-like). (Default = 0.)
@@ -62,12 +66,24 @@ class Pid(Block):
 
     # ---------------------------------------------------------------------
     def __init__(self,
-                 name: str,
+                 name: str, controller:str = "PID",
                  Kp=0.0, Ki=0.0, Kd=0.0,
                  u_min=None, u_max=None,
                  integration_method:str = 'euler forward'):
 
         super().__init__(name)
+
+        # -------------------------
+        # Validate controller type
+        # -------------------------
+        controller = controller.upper()
+        allowed_types = {"P", "I", "PI", "PD", "PID"}
+        if controller not in allowed_types:
+            raise ValueError(
+                f"[{name}] Invalid controller type '{controller}'. "
+                f"Allowed: {allowed_types}"
+            )
+        self.controller = controller
 
         # -------------------------------
         # 1) Validate and normalize gains
@@ -75,6 +91,11 @@ class Pid(Block):
         self.Kp = self._normalize_and_check_gain(Kp, "Kp")
         self.Ki = self._normalize_and_check_gain(Ki, "Ki")
         self.Kd = self._normalize_and_check_gain(Kd, "Kd")
+
+        # -------------------------
+        # Validate required gains
+        # -------------------------
+        self._validate_gains()
 
         # -------------------------------
         # 2) Validate saturation bounds
@@ -105,6 +126,10 @@ class Pid(Block):
                 f"[{self.name}] Unsupported method '{self.integration_method}'. "
                 f"Allowed: {allowed}"
             )
+
+        # specify feedthrough
+        if self.controller == "I" and self.integration_method == "euler forward":
+            self.direct_feedthrough = False
 
         # -------------------------------
         # 3) Declare ports
@@ -168,6 +193,25 @@ class Pid(Block):
         raise ValueError(
             f"[{self.name}] Parameter '{name}' must be scalar-like. Received shape {arr.shape}."
         )
+
+    def _validate_gains(self):
+        if self.controller in {"P", "PI", "PID", "PD"} and self.Kp == 0:
+            warnings.warn(
+                f"[{self.name}] Kp=0 while controller '{self.controller}' includes a P term.",
+                UserWarning
+            )
+
+        if self.controller in {"I", "PI", "PID"} and self.Ki == 0:
+            warnings.warn(
+                f"[{self.name}] Ki=0 while controller '{self.controller}' includes a I term.",
+                UserWarning
+            )
+
+        if self.controller in {"PD", "PID"} and self.Kd == 0:
+            warnings.warn(
+                f"[{self.name}] Kd=0 while controller '{self.controller}' includes a D term.",
+                UserWarning
+            )
 
     # =====================================================================
     # Initialization

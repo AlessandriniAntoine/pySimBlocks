@@ -149,6 +149,9 @@ pid:
     ports:
     - u
   parameters:
+  - name: controller
+    optional: true
+    type: str
   - name: Kp
     optional: true
     type: float | list | array
