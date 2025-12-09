@@ -79,6 +79,8 @@ class SofaSystem(Block):
         Dynamic — specified by output_keys.
     """
 
+    direct_feedthrough = False
+
     def __init__(self,
         name: str,
         scene_file: str,

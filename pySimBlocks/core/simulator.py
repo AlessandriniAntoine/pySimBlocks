@@ -35,7 +35,7 @@ class Simulator:
         self.model.verbose = verbose
 
         # blocks in valid causal order
-        self.execution_order: List[Block] = model.execution_order()
+        self.output_order, self.state_order = model.build_execution_order()
 
         # logs: dict[var_name -> list[np.ndarray]]
         self.logs: Dict[str, List[np.ndarray]] = {"time": []}
@@ -47,7 +47,7 @@ class Simulator:
         self.t = float(t0)
 
         # Initialisation bloc par bloc + propagation
-        for block in self.execution_order:
+        for block in self.output_order:
             try:
                 block.initialize(self.t)
                 self._propagate_all()
@@ -64,7 +64,7 @@ class Simulator:
         """
         Propagate all outputs to downstream inputs (like Simulink)
         """
-        for block in self.execution_order:
+        for block in self.output_order:
             for (src, dst) in self.model.downstream_of(block.name):
                 src_block, src_port = src
                 dst_block, dst_port = dst
@@ -98,16 +98,23 @@ class Simulator:
     # ONE SIMULATION STEP
     # ----------------------------------------------------------------------
     def step(self):
-        # --- PHASE 1 : output_update + propagation immédiate ---
-        for block in self.execution_order:
+        # -------------------------
+        # PHASE 1: OUTPUT UPDATE
+        # -------------------------
+        for block in self.output_order:
             block.output_update(self.t)
             self._propagate_all()
 
-        # --- PHASE 2 : mise à jour des états ---
-        for block in self.execution_order:
+        # -------------------------
+        # PHASE 2: STATE UPDATE
+        # -------------------------
+        for block in self.state_order:
             block.state_update(self.t, self.dt)
 
-        for block in self.execution_order:
+        # -------------------------
+        # COMMIT
+        # -------------------------
+        for block in self.state_order:
             block.commit_state()
 
         self.t += self.dt

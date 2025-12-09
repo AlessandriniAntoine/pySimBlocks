@@ -32,6 +32,8 @@ class Delay(Block):
             Delayed output signal y[k] = u[k - N].
     """
 
+    direct_feedthrough = False
+
     def __init__(self, name: str, num_delays: int = 1, initial_output=None):
         super().__init__(name)
 

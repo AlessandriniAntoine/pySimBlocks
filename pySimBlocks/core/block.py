@@ -19,6 +19,9 @@ class Block(ABC):
                 - current inputs u[k]
     """
 
+    direct_feedthrough = True
+    is_source = False
+
     def __init__(self, name: str):
         self.name = name
 

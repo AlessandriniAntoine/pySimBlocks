@@ -41,12 +41,15 @@ class DiscreteIntegrator(Block):
             Current integrated state x[k].
     """
 
+    direct_feedthrough = False
+
     def __init__(self,
         name: str,
         initial_state=None,
         method: str = "euler forward"
     ):
         super().__init__(name)
+        self.initial_state = initial_state
 
         # --------------------------- validate method
         self.method = method.lower()
@@ -83,105 +86,54 @@ class DiscreteIntegrator(Block):
 
 
     # ------------------------------------------------------------------
-    def initialize(self, t0: float):
-        """
-        Initialize state x[0] and output.
-
-        Rules:
-        - If initial_state provided → use it
-        - Else if input available → infer dimension and set x[0] = zeros
-        - Else output stays None until dimension known
-        """
-        x = self.state["x"]
-        u = self.inputs["in"]
-
-        if x is not None:
-            # Fully initialized
-            self.outputs["out"] = x.copy()
-            self.next_state["x"] = x.copy()
-            return
-
-        # Input already present → infer dimension
-        if u is not None:
-            u = np.asarray(u)
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
-                )
-            u = u.reshape(-1, 1)
-
-            self.state["x"] = np.zeros_like(u)
-            self.outputs["out"] = self.state["x"].copy()
-            self.next_state["x"] = self.state["x"].copy()
-            return
-
-        # Dimension unknown → output not ready
-        self.outputs["out"] = None
-
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float):
-        x = self.state["x"]
-        if x is None:
-            raise RuntimeError(f"[{self.name}] State not initialized.")
-
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' not set.")
-
-        # Euler forward simply outputs x[k]
-        if self.method == "euler forward":
-            self.outputs["out"] = x.copy()
-
-        # Euler backward outputs x[k] + dt * u[k]
+    def initialize(self, t0):
+        # Do NOT determine dimension here.
+        # Just prepare the structure.
+        if self.initial_state is not None:
+            x0 = np.asarray(self.initial_state).reshape(-1, 1)
+            self.state["x"] = x0
+            self.next_state["x"] = x0.copy()
+            self.outputs["out"] = x0
         else:
-            u = np.asarray(u)
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
-                )
-            u = u.reshape(-1, 1)
-
-            if u.shape != x.shape:
-                raise ValueError(
-                    f"[{self.name}] Input has shape {u.shape}, but state has shape {x.shape}."
-                )
-
-            self.outputs["out"] = x + self._dt * u
+            # Lazy initialization:
+            self.state["x"] = None
+            self.next_state["x"] = None
+            self.outputs["out"] = None  # will be set when first state is created
 
 
     # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        """
-        Update internal state:
-            Euler forward  : x[k+1] = x[k] + dt * u[k]
-            Euler backward : x[k+1] = x[k] + dt * u[k]
-            (same formula, difference is only in output_update)
-        """
+    def output_update(self, t):
+        x = self.state["x"]
+
+        if x is None:
+            # No state yet: output zero vector matching input dimension once known
+            u = self.inputs["in"]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] Input not set during lazy output.")
+            u = np.asarray(u).reshape(-1, 1)
+            y = np.zeros_like(u)
+            self.outputs["out"] = y
+            return
+
+        self.outputs["out"] = x
+
+
+    # ------------------------------------------------------------------
+    def state_update(self, t, dt):
         u = self.inputs["in"]
         if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' not set.")
+            raise RuntimeError(f"[{self.name}] Input not set during state_update.")
 
-        u = np.asarray(u)
-        if u.ndim != 2 or u.shape[1] != 1:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
-            )
-        u = u.reshape(-1, 1)
+        u = np.asarray(u).reshape(-1, 1)
+
+        # Lazy initialization of state
+        if self.state["x"] is None:
+            x0 = np.zeros_like(u)
+            self.state["x"] = x0
+            self.next_state["x"] = x0.copy()
 
         x = self.state["x"]
 
-        if x is not None:
-            if u.shape != x.shape:
-                raise ValueError(
-                    f"[{self.name}] Input has dimension {u.shape}, "
-                    f"but state has dimension {x.shape}."
-                )
-
-        # 3) Late initialization ONLY if x was truly never set
-        if x is None:
-            # Late dimension inference
-            x = np.zeros_like(u)
-
-        self._dt = dt
-        self.next_state["x"] = x + dt * u
+        # Compute next state
+        x_next = x + dt * u
+        self.next_state["x"] = x_next

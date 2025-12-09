@@ -40,6 +40,8 @@ class Luenberger(Block):
             Estimated output C x̂[k] + D u[k].
     """
 
+    direct_feedthrough = False
+
     def __init__(
         self,
         name: str,

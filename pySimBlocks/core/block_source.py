@@ -10,6 +10,10 @@ class BlockSource(Block):
         - no state update by default
     """
 
+
+    direct_feedthrough = False
+    is_source = True
+
     def __init__(self, name: str):
         super().__init__(name)
 

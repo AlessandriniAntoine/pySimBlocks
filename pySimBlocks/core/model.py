@@ -72,161 +72,107 @@ class Model:
     # ----------------------------------------------------------------------
     def build_execution_order(self):
         """
-        Build execution order respecting Simulink semantics:
+        Build execution order following Simulink-like scheduling:
 
-            RULE 1 : Combinational graph G_stateless contains ONLY stateless→stateless.
-            RULE 2 : Stable topological sort of G_stateless.
-            RULE 3 : Build full causal graph G_all (all blocks, with all edges).
-            RULE 4 : Insert stateful blocks AFTER all their producers from G_all.
+            1) Memory blocks (stateful)       → no direct feedthrough
+            2) Sources (no state, no inputs)  → no direct feedthrough
+            3) Combinational blocks           → direct feedthrough (topo sort)
+
+        State update order = only stateful blocks (topo sorted if needed).
         """
 
         blocks = self.blocks
-        names = list(blocks.keys())  # stable priority = order of addition
+        names = list(blocks.keys())
 
-        if self.verbose:
-            print("\n===== BUILD EXECUTION ORDER =====")
-            print("Block list:", names)
+        # ------------------------------
+        # CATEGORY A: stateful blocks
+        # ------------------------------
+        stateful = []
+        for n in names:
+            blk = blocks[n]
+            if len(blk.state) > 0:
+                stateful.append(n)
 
-        # ------------------------------------------------------------
-        # Identify stateless vs stateful
-        # ------------------------------------------------------------
-        stateless = {n for n in names if len(blocks[n].state) == 0}
-        stateful  = {n for n in names if len(blocks[n].state) != 0}
+        # topo sort inside stateful if needed
+        Gs = {n: [] for n in stateful}
+        indeg_s = {n: 0 for n in stateful}
+        for (src, dst) in self.connections:
+            s, _ = src
+            d, _ = dst
+            if s in stateful and d in stateful:
+                Gs[s].append(d)
+                indeg_s[d] += 1
 
-        if self.verbose:
-            print("STATELESS:", stateless)
-            print("STATEFUL :", stateful)
+        q = [n for n in stateful if indeg_s[n] == 0]
+        state_order = []
+        indeg_tmp = indeg_s.copy()
 
-        # ------------------------------------------------------------
-        # RULE 1 — Build combinational graph G_stateless
-        # ------------------------------------------------------------
-        G_stateless = {n: [] for n in names}
-        indegree = {n: 0 for n in names}
+        while q:
+            n = q.pop(0)
+            state_order.append(n)
+            for v in Gs[n]:
+                indeg_tmp[v] -= 1
+                if indeg_tmp[v] == 0:
+                    q.append(v)
+
+        # -----------------------------------
+        # CATEGORY B: source blocks
+        # -----------------------------------
+        sources = [n for n in names if blocks[n].is_source]
+
+        # -----------------------------------
+        # CATEGORY C: direct-feedthrough blocks
+        # -----------------------------------
+        combinational = [
+            n for n in names
+            if blocks[n].direct_feedthrough and not blocks[n].is_source
+        ]
+
+        # topo sort combinational-only subgraph
+        Gc = {n: [] for n in combinational}
+        indeg_c = {n: 0 for n in combinational}
 
         for (src, dst) in self.connections:
-            src_block, _ = src
-            dst_block, _ = dst
+            s, _ = src
+            d, _ = dst
+            if s in combinational and d in combinational:
+                Gc[s].append(d)
+                indeg_c[d] += 1
 
-            if src_block in stateless and dst_block in stateless:
-                G_stateless[src_block].append(dst_block)
-                indegree[dst_block] += 1
+        q = [n for n in combinational if indeg_c[n] == 0]
+        comb_order = []
+        indeg_tmp2 = indeg_c.copy()
 
-        if self.verbose:
-            print("\nG_stateless (only stateless→stateless):")
-            for k in names:
-                print(f"  {k}: {G_stateless[k]}")
-            print("INDEGREE:", indegree)
+        while q:
+            n = q.pop(0)
+            comb_order.append(n)
+            for v in Gc[n]:
+                indeg_tmp2[v] -= 1
+                if indeg_tmp2[v] == 0:
+                    q.append(v)
 
-        # ------------------------------------------------------------
-        # RULE 2 — Topological sort of G_stateless (stable)
-        # ------------------------------------------------------------
-        queue = [n for n in names if indegree[n] == 0]
-        queue.sort(key=lambda x: names.index(x))
-
-        topo_stateless = []
-        indeg = indegree.copy()
-
-        while queue:
-            node = queue.pop(0)
-            topo_stateless.append(node)
-
-            for neigh in G_stateless[node]:
-                indeg[neigh] -= 1
-                if indeg[neigh] == 0:
-                    queue.append(neigh)
-
-            queue.sort(key=lambda x: names.index(x))
+        # ------------------------------
+        # FINAL OUTPUT UPDATE ORDER
+        # ------------------------------
+        output_order = state_order + sources + comb_order
 
         if self.verbose:
-            print("\nTopological order from G_stateless:")
-            print("  topo_stateless:", topo_stateless)
+            print("===== BUILD EXECUTION ORDER =====")
+            print("Blocks:", names)
+            print("Stateful:", state_order)
+            print("Sources:", sources)
+            print("Combinational:", comb_order)
+            print("OUTPUT ORDER:", output_order)
+            print("STATE ORDER :", state_order)
+            print("=================================\n")
 
-        # STAT CHECK
-        # (stateless nodes will be reordered later; stateful temporarily appear here
-        #  but will be repositioned using RULE 4)
-        # ------------------------------------------------------------
+        self.output_update_order = [blocks[n] for n in output_order]
+        self.state_update_order  = [blocks[n] for n in state_order]
 
-        # ------------------------------------------------------------
-        # RULE 3 — Build causal graph G_all
-        #
-        # Full graph including stateful and stateless; used to position stateful.
-        # ------------------------------------------------------------
-        G_all = {n: [] for n in names}
-        preds = {n: set() for n in names}
-
-        for (src, dst) in self.connections:
-            src_block, _ = src
-            dst_block, _ = dst
-
-            # ALL edges matter for causal ordering
-            G_all[src_block].append(dst_block)
-            preds[dst_block].add(src_block)
-
-        if self.verbose:
-            print("\nG_all (full causal graph):")
-            for k in names:
-                print(f"  {k}: {G_all[k]}")
-
-            print("\nPredecessors (for stateful positioning):")
-            for k in names:
-                print(f"  {k}: {preds[k]}")
-
-        # ------------------------------------------------------------
-        # RULE 4 — Build final order:
-        #
-        # 1. Start with the stateless topo order, but KEEP ONLY STATELESS there.
-        # 2. Insert stateful blocks after ALL their predecessors (from G_all).
-        # ------------------------------------------------------------
-        stateless_order = [n for n in topo_stateless if n in stateless]
-        final_order = stateless_order.copy()
-
-        if self.verbose:
-            print("\nInitial stateless order:", stateless_order)
-
-        # ------------------------------------------------------------
-        # RULE 4 — Insert stateful blocks AFTER all their producers
-        # ------------------------------------------------------------
-        remaining = list(stateful)
-
-        if self.verbose:
-            print("\nStateful insertion order resolution...")
-
-        while remaining:
-            placed_one = False
-
-            for sf in list(remaining):
-                producers = preds[sf]
-
-                # Are ALL producers already in final_order ?
-                if all(p in final_order for p in producers):
-                    if len(producers) == 0:
-                        insert_pos = 0
-                    else:
-                        positions = [final_order.index(p) for p in producers]
-                        insert_pos = max(positions) + 1
-
-                    if self.verbose:
-                        print(f"Placing stateful block '{sf}' after producers {producers}")
-                        print(f" -> insert at {insert_pos}")
-
-                    final_order.insert(insert_pos, sf)
-                    remaining.remove(sf)
-                    placed_one = True
-                    break
-
-            if not placed_one:
-                raise RuntimeError(
-                    "Cannot place stateful blocks (cyclic dependency among stateful blocks)."
-                )
+        return self.output_update_order, self.state_update_order
 
 
-        if self.verbose:
-            print("\nFINAL EXECUTION ORDER:", final_order)
-            print("===== END BUILD =====\n")
 
-        # Save
-        self._execution_order = [blocks[n] for n in final_order]
-        return self._execution_order
 
     # ----------------------------------------------------------------------
     # HELPERS FOR THE SIMULATOR

@@ -35,6 +35,7 @@ class LinearStateSpace(Block):
         y: array (p,1)
             Output vector y[k].
     """
+    direct_feedthrough = False
 
     def __init__(
         self,
