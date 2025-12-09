@@ -11,7 +11,7 @@ logs = sim.run(T=T, variables_to_log=[
 print('Simulation complete.')
 
 length = len(next(iter(logs.values())))
-time = np.arange(0, T, dt)[:length]
+time = np.array(logs['time'])
 
 plt.figure()
 step_outputs_out = np.array(logs['step.outputs.out']).reshape(length, -1)
