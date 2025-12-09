@@ -94,9 +94,6 @@ linear_state_space:
   - name: C
     optional: false
     type: matrix (p,n)
-  - name: D
-    optional: true
-    type: matrix (p,m)
   - name: x0
     optional: true
     type: array (n,1)
@@ -125,9 +122,6 @@ luenberger:
   - name: L
     optional: false
     type: matrix (n,p)
-  - name: D
-    optional: true
-    type: matrix (p,m)
   - name: x0
     optional: true
     type: array (n,1)
@@ -155,24 +149,24 @@ pid:
     ports:
     - u
   parameters:
-  - name: controller_type
-    optional: false
-    type: str
   - name: Kp
     optional: true
-    type: array (m,n)
+    type: float | list | array
   - name: Ki
     optional: true
-    type: array (m,n)
+    type: float | list | array
   - name: Kd
     optional: true
-    type: array (m,n)
+    type: float | list | array
   - name: u_min
     optional: true
-    type: array (m,1)
+    type: float | array-like
   - name: u_max
     optional: true
-    type: array (m,1)
+    type: float | array-like
+  - name: integration_method
+    optional: true
+    type: str
 ramp:
   category: sources
   inputs:
@@ -284,7 +278,7 @@ sum:
     type: int
   - name: signs
     optional: true
-    type: list[int]
+    type: list[int] | array (1,)
 white_noise:
   category: sources
   inputs:

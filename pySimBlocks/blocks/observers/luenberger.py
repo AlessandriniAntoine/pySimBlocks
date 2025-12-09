@@ -147,6 +147,6 @@ class Luenberger(Block):
         u = np.asarray(u).reshape(self.B.shape[1], 1)
         y = np.asarray(y).reshape(self.C.shape[0], 1)
         x_hat = self.state["x_hat"]
-        y_hat = self.C @ x_hat + self.D @ u
+        y_hat = self.C @ x_hat
 
         self.next_state["x_hat"] = self.A @ x_hat + self.B @ u + self.L @ (y - y_hat)
