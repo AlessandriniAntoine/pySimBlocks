@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks.systems import SofaSystem
+from pySimBlocks.blocks.systems import SofaPlant
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
@@ -11,7 +11,7 @@ from pySimBlocks.blocks.controllers import Pid
 
 def main():
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'finger', 'Finger.py')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Finger.py')
 
     # --- Create Blocks ---
     step = Step(
@@ -24,11 +24,11 @@ def main():
     error = Sum(name="error", num_inputs=2, signs=[1, -1])
     pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
 
-    sofa_block = SofaSystem(
+    sofa_block = SofaPlant(
         name="sofa_finger",
         scene_file=path,
         input_keys=["cable"],
-        output_keys=["tip", "measure"],
+        output_keys=["measure"],
     )
 
     # --- Build the model ---
@@ -65,9 +65,23 @@ def main():
     y = np.array(logs["sofa_finger.outputs.measure"]).reshape(length, -1)
     u = np.array(logs["pid.outputs.u"]).reshape(length, -1)
 
+    # gui data
+    data_gui = np.load("data_gui.npz")
+    t_gui = data_gui["time"]
+    r_gui = data_gui["reference"]
+    y_gui = data_gui["measure"]
+    u_gui = data_gui["command"]
+
+    print(f"t error: {np.linalg.norm(t - t_gui)}")
+    print(f"r error: {np.linalg.norm(r - r_gui)}")
+    print(f"y error: {np.linalg.norm(y - y_gui)}")
+    print(f"u error: {np.linalg.norm(u - u_gui)}")
+
     plt.figure()
-    plt.step(t, r, 'r--', label="Reference")
-    plt.step(t, y[:, 0], 'b--', label=f"Measure")
+    plt.step(t, r, '--r', label="r (Inline)")
+    plt.step(t, y[:, 0], '--b', label=f"y (Inline)")
+    plt.step(t_gui, r_gui, ':r', label="r (GUI)")
+    plt.step(t_gui, y_gui[:, 0], ':b', label=f"y (GUI)")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")
@@ -75,7 +89,8 @@ def main():
     plt.title("Finger Tip Position Over Time")
 
     plt.figure()
-    plt.step(t, u[:, 0], 'g--', label="Control Signal")
+    plt.step(t, u[:, 0], '--r', label="u (Inline)")
+    plt.step(t_gui, u_gui[:, 0], ':b', label="u (Gui)")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")

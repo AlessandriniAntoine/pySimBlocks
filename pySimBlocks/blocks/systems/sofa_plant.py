@@ -33,6 +33,8 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
     initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
     conn.send(initial)
 
+    Sofa.Simulation.reset(root)
+
     # 2. Main loop
     while True:
         msg = conn.recv()
@@ -54,13 +56,19 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
     conn.close()
 
 
-class SofaSystem(Block):
+class SofaPlant(Block):
     """
-    SOFA system block.
+    SOFA-based dynamic plant.
 
     Description:
-        Computes:
-            out(t) = SOFA_simulation_step(in(t))
+        Executes a full SOFA simulation (in a worker process) as a dynamic
+        system driven by pySimBlocks. At each step, inputs are sent to SOFA,
+        the scene advances by one time increment, and updated outputs are
+        returned.
+        out(t) = SOFA_simulation_step(in(t))
+
+        Unlike SofaIO (pure I/O bridge embedded inside a SOFA controller),
+        this block *runs* the SOFA simulation itself.
 
     Parameters:
         name: str
