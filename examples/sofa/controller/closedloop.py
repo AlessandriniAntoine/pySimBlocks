@@ -22,7 +22,7 @@ def main():
     )
 
     error = Sum(name="error", num_inputs=2, signs=[1, -1])
-    pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
+    pid = Pid("pid", Kp=0.3, Ki=0.8, controller="PI")
 
     sofa_block = SofaPlant(
         name="sofa_finger",
@@ -47,7 +47,7 @@ def main():
     sim = Simulator(model, dt=dt)
 
     # --- Run simulation ---
-    T = 5.0
+    T = 5.
     logs = sim.run(
         T=T,
         variables_to_log=[
@@ -80,8 +80,8 @@ def main():
     plt.figure()
     plt.step(t, r, '--r', label="r (Inline)")
     plt.step(t, y[:, 0], '--b', label=f"y (Inline)")
-    plt.step(t_gui, r_gui, ':r', label="r (GUI)")
-    plt.step(t_gui, y_gui[:, 0], ':b', label=f"y (GUI)")
+    plt.step(t_gui, r_gui, ':m', label="r (GUI)")
+    plt.step(t_gui, y_gui[:, 0], ':g', label=f"y (GUI)")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")
@@ -89,8 +89,8 @@ def main():
     plt.title("Finger Tip Position Over Time")
 
     plt.figure()
-    plt.step(t, u[:, 0], '--r', label="u (Inline)")
-    plt.step(t_gui, u_gui[:, 0], ':b', label="u (Gui)")
+    plt.step(t, u[:, 0], '--b', label="u (Inline)")
+    plt.step(t_gui, u_gui[:, 0], ':g', label="u (Gui)")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")

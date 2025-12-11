@@ -1,6 +1,5 @@
 from multiprocessing import Process, Pipe
 import numpy as np
-import importlib.util
 from pySimBlocks.core.block import Block
 
 
@@ -26,14 +25,10 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
     dt = float(root.dt.value)
 
-    # First animate
-    Sofa.Simulation.animate(root, dt)
-
     # Send initial outputs
+    controller.get_outputs()
     initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
     conn.send(initial)
-
-    Sofa.Simulation.reset(root)
 
     # 2. Main loop
     while True:
@@ -44,7 +39,9 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
             for key, val in msg["inputs"].items():
                 controller.inputs[key] = val
 
+            controller.set_inputs()
             Sofa.Simulation.animate(root, dt)
+            controller.get_outputs()
 
             outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
                        for k in output_keys}
@@ -88,6 +85,7 @@ class SofaPlant(Block):
     """
 
     direct_feedthrough = False
+    need_first = True
 
     def __init__(self,
         name: str,
@@ -103,14 +101,15 @@ class SofaPlant(Block):
 
         for k in input_keys:
             self.inputs[k] = None
+            self.next_outputs = {}
         for k in output_keys:
             self.outputs[k] = None
+            self.state[k] = None
+            self.next_state[k] = None
 
         self.process = None
         self.conn = None
 
-        self.state["internal"] = 0
-        self.next_state["interna"] = 0
 
 
     def initialize(self, t0: float):
@@ -131,6 +130,8 @@ class SofaPlant(Block):
 
         for k in self.output_keys:
             self.outputs[k] = initial_outputs[k]
+            self.state[k] = initial_outputs[k]
+            self.next_state[k] = initial_outputs[k]
 
 
     def output_update(self, t: float):
@@ -139,7 +140,8 @@ class SofaPlant(Block):
         This block retrieves outputs from an external SOFA worker process,
         so no computation is required here.
         """
-        pass
+        for key in self.output_keys:
+            self.outputs[key] = self.state[key]
 
 
     def state_update(self, t: float, dt: float):
@@ -160,9 +162,7 @@ class SofaPlant(Block):
         outputs = self.conn.recv()
 
         for k in self.output_keys:
-            self.outputs[k] = outputs[k]
-
-        self.next_state["internal"] = self.state["internal"] + 1
+            self.next_state[k] = outputs[k]
 
 
     def finalize(self):

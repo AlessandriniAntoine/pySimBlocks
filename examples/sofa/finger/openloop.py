@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks.systems import SofaSystem
+from pySimBlocks.blocks.systems import SofaPlant
 from pySimBlocks.blocks.sources import Step
 
 
 def main():
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'finger', 'Finger.py')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Finger.py')
 
 
     # --- Create Blocks ---
@@ -20,7 +20,7 @@ def main():
         start_time=0.5,
     )
 
-    sofa_block = SofaSystem(
+    sofa_block = SofaPlant(
         name="sofa_finger",
         scene_file=path,
         input_keys=["cable"],

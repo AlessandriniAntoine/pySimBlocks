@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks.systems import SofaSystem
+from pySimBlocks.blocks.systems import SofaPlant
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
@@ -11,14 +11,14 @@ from pySimBlocks.blocks.controllers import Pid
 
 def main():
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'finger', 'Finger.py')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Finger.py')
 
     # --- Create Blocks ---
     step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=0.4)
     error = Sum(name="error", num_inputs=2, signs=[1, -1])
     pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
 
-    sofa_block = SofaSystem(
+    sofa_block = SofaPlant(
         name="sofa_finger",
         scene_file=path,
         input_keys=["cable"],
@@ -38,7 +38,7 @@ def main():
 
     # --- Create the simulator ---
     dt = 0.01
-    sim = Simulator(model, dt=dt)
+    sim = Simulator(model, dt=dt, verbose=False)
 
     # --- Run simulation ---
     T = 5.0

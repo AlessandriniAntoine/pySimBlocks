@@ -1,9 +1,9 @@
 from pySimBlocks.blocks.systems.linear_state_space import LinearStateSpace
-from pySimBlocks.blocks.systems.sofa_i_o import SofaIO
-from pySimBlocks.blocks.systems.sofa_plant import SofaPlant
+from pySimBlocks.blocks.systems.sofa import SofaExchangeIO
+from pySimBlocks.blocks.systems.sofa import SofaPlant
 
 __all__ = [
     "LinearStateSpace",
-    "SofaIO",
+    "SofaExchanceIO",
     "SofaPlant",
 ]

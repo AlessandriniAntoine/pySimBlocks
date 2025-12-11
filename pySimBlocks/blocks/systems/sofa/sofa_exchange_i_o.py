@@ -1,7 +1,7 @@
 import numpy as np
 from pySimBlocks.core.block import Block
 
-class SofaIO(Block):
+class SofaExchangeIO(Block):
     """
     Interface block for embedding a pySimBlocks model inside a SOFA controller.
 

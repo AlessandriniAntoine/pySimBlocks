@@ -5,7 +5,6 @@ import numpy as np
 import Sofa
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(specific_path) # Si jamais besoin de fichier externe
 path = os.path.join(dir_path, 'mesh')
 
 

@@ -1,66 +1,47 @@
 import numpy as np
 import Sofa
 
-from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks.systems import SofaIO
+from pySimBlocks import Model
+from pySimBlocks.blocks.systems import SofaExchangeIO
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
+from pySimBlocks.blocks.systems.sofa import SofaControllerGui
 
+class FingerController(SofaControllerGui):
 
-class FingerController(Sofa.Core.Controller):
-
-    def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
+    def __init__(self, root, actuator, mo, tip_index=121, verbose=True, name="FingerController"):
         super().__init__(name=name)
 
         self.root = root
-        self.actuator = actuator
         self.mo = mo
+        self.actuator = actuator
         self.tip_index = tip_index
+        self.verbose = True
+
+        # Inputs & outputs dictionaries A METTRE AVANT SETUP_SIM
+        self.inputs = { "cable": None }
+        self.outputs = { "tip": None, "measure": None }
 
         # --- Create the simulator ---
         self.build_model()
-        self.sim = Simulator(self.model, dt=self.root.dt.value)
-        self.sim.initialize()
+        self.setup_sim(self.root.dt.value)
 
-        # Inputs & outputs dictionaries
-        self.inputs = { "cable": None }
-        self.outputs = { "measure": None }
-
-
-        self.step_index = 0
-
-
-    def build_model(self):
-        # pysimblock controller:
-        self.step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=0.4)
-        self.error = Sum(name="error", num_inputs=2, signs=[1, -1])
-        self.pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
-
-        self.sofa_block = SofaIO(name="sofa_io", input_keys=["cable"], output_keys=["measure"])
-
-        # --- Build the model ---
-        self.model = Model(name="sofa_finger_controller")
-        for block in [self.step, self.error, self.pid, self.sofa_block]:
-            self.model.add_block(block)
-
-        self.model.connect("step", "out", "error", "in1")
-        self.model.connect("sofa_io", "measure", "error", "in2")
-        self.model.connect("error", "out", "pid", "e")
-        self.model.connect("pid", "u", "sofa_io", "cable")
-
-        self.variables_to_log = ["step.outputs.out", "pid.outputs.u", "sofa_io.outputs.measure"]
-
-    def update_output(self):
-        # TO BE COMPLETED BY THE USER
+    # ========================================================
+    # Mandatory function
+    # ========================================================
+    def get_outputs(self):
         tip = self.mo.position[self.tip_index].copy()
-        y = np.asarray(tip[1].reshape(-1, 1))
-        self.outputs["measure"] = y
+        self.outputs["tip"] = np.asarray(tip).reshape(-1, 1)
+        self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)
 
     def set_inputs(self):
-        # TO BE COMPLETED BY THE USER
+        # 1. READ INPUT -------------------------------------
         val = self.inputs["cable"]
+
+        # Safe default for first initialization call
         if val is None:
+            # ↓↓↓ Valeur par défaut pour l’initialisation
             val = 0.0
 
         # Convert input to Sofa format
@@ -74,29 +55,33 @@ class FingerController(Sofa.Core.Controller):
         # Apply to actuator
         self.actuator.value = processed
 
+    def build_model(self):
+        # pysimblock controller:
+        self.step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=0.4)
+        self.error = Sum(name="error", num_inputs=2, signs=[1, -1])
+        self.pid = Pid("pid", Kp=0.3, Ki=0.8, controller="PI")
+
+        self.sofa_block = SofaExchangeIO(name="sofa_io", input_keys=["cable"], output_keys=["measure"])
+
+        # --- Build the model ---
+        self.model = Model(name="sofa_finger_controller")
+        for block in [self.step, self.error, self.pid, self.sofa_block]:
+            self.model.add_block(block)
+
+        self.model.connect("step", "out", "error", "in1")
+        self.model.connect("sofa_io", "measure", "error", "in2")
+        self.model.connect("error", "out", "pid", "e")
+        self.model.connect("pid", "u", "sofa_io", "cable")
+
+        self.variables_to_log = ["step.outputs.out", "pid.outputs.u", "sofa_io.outputs.measure"]
+
+    # ========================================================
+    # Optional function
+    # ========================================================
     def print_logs(self):
-        print(f"\nStep: {self.step_index}")
-        for variable in self.variables_to_log:
-            print(f"{variable}: {self.sim.logs[variable][-1]}")
 
 
-    def onAnimateBeginEvent(self, event):
-        # update output of SOFA
-        self.update_output()
-        for keys, val in self.outputs.items():
-            self.sofa_block.outputs[keys] = val
-
-    def onAnimateEndEvent(self, event):
-        self.sim.step()
-        self.sim._log(self.variables_to_log)
-
-        for key, val in self.sofa_block.inputs.items():
-            self.inputs[key] = val
-
-        self.set_inputs()
-        self.print_logs()
-
-
+    def save(self):
         if np.isclose(self.sim.logs["time"][-1], 5.):
             logs = self.sim.logs
             length = len(logs["time"])
@@ -106,5 +91,3 @@ class FingerController(Sofa.Core.Controller):
                 command=np.array(self.sim.logs["pid.outputs.u"]).reshape(length, -1),
                 measure=np.array(self.sim.logs["sofa_io.outputs.measure"]).reshape(length, -1)
         )
-
-        self.step_index += 1

@@ -1,8 +1,8 @@
 import numpy as np
+from pySimBlocks.blocks.systems.sofa import SofaControllerBase
 import Sofa
 
-
-class FingerController(Sofa.Core.Controller):
+class FingerController(SofaControllerBase):
 
     def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
         super().__init__(name=name)
@@ -13,10 +13,15 @@ class FingerController(Sofa.Core.Controller):
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }
-        self.outputs = { "measure": None }
+        self.outputs = { "tip": None, "measure": None }
 
 
-    def onAnimateBeginEvent(self, event):
+    def get_outputs(self):
+        tip = self.mo.position[self.tip_index].copy()
+        self.outputs["tip"] = np.asarray(tip).reshape(-1, 1)
+        self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)
+
+    def set_inputs(self):
         # 1. READ INPUT -------------------------------------
         val = self.inputs["cable"]
 
@@ -35,7 +40,3 @@ class FingerController(Sofa.Core.Controller):
 
         # Apply to actuator
         self.actuator.value = processed
-
-        # 2. COMPUTE OUTPUT ---------------------------------
-        tip = self.mo.position[self.tip_index].copy()
-        self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)  # Y coordinate as measurement
