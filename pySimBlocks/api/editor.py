@@ -1,3 +1,5 @@
+import os
+import sys
 import streamlit as st
 import numpy as np
 from fractions import Fraction
@@ -14,6 +16,16 @@ from pySimBlocks.api.ui_project_export import render_project_export
 from pySimBlocks.api.ui_run_sim import render_run_sim
 from pySimBlocks.api.ui_load_yaml import render_load_yaml
 
+# --------------------------------------------------
+# Project directory from CLI
+# --------------------------------------------------
+if len(sys.argv) > 1:
+    project_dir = os.path.abspath(sys.argv[1])
+else:
+    project_dir = os.getcwd()
+
+if "project_dir" not in st.session_state:
+    st.session_state["project_dir"] = project_dir
 
 # ============================================================
 # Initialize session state
