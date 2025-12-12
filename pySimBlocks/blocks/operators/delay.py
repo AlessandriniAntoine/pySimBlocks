@@ -17,11 +17,10 @@ class Delay(Block):
             Number of discrete delays N ≥ 1. (default = 1)
 
         initial_output: float | array-like (n,) | array (n,1) (optional)
-            Initial buffer fill value.
+            Initial buffer fill value. (default = None)
             If None:
                 - If input is known at initialize → buffer = u[0]
                 - Otherwise dimension stays unknown until first step
-            (default = None)
 
     Inputs:
         in: array (n,1)

@@ -20,8 +20,8 @@ class SofaExchangeIO(Block):
             Names of externally provided input signals.
         output_keys: list of str
             Names of output signals to be consumed by SOFA.
-        controller_file: str
-            Path to the controller file. Only for automatic generation.
+        scene_file: str
+            Path to the scene file. Only for automatic generation.
 
     Inputs:
         Dynamic — specified by input_keys.
@@ -33,7 +33,7 @@ class SofaExchangeIO(Block):
     direct_feedthrough = False   # necessary: outputs depend immediately on pySimBlocks inputs
     is_source = False
 
-    def __init__(self, name: str, input_keys: list[str], output_keys: list[str], controller_file:str=""):
+    def __init__(self, name: str, input_keys: list[str], output_keys: list[str], scene_file:str=""):
         super().__init__(name)
 
         self.input_keys = input_keys

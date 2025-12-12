@@ -175,9 +175,6 @@ pid:
   - name: integration_method
     optional: true
     type: str
-  - name: Supported
-    optional: false
-    type: ''
 ramp:
   category: sources
   inputs:
@@ -245,7 +242,7 @@ sofa_exchange_i_o:
   - name: output_keys
     optional: false
     type: list of str
-  - name: controller_file
+  - name: scene_file
     optional: false
     type: str
 sofa_plant:

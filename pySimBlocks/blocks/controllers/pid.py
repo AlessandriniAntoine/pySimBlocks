@@ -50,9 +50,9 @@ class Pid(Block):
 
         integration_method: str (optional)
             Integration method. (default = 'euler forward')
-            Supported:
-                - 'euler forward'
-                - 'euler backward'
+            Currently supported:
+                - euler forward
+                - euler backward
 
     Inputs:
         e: array (1,1)

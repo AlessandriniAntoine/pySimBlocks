@@ -228,18 +228,8 @@ def generate_sofa_controller(blocks, connections, simulation, dry_run=False):
 
     # 2. Si path explicite fourni par --sofa, override
     # Cas SofaPlant → détection automatique
-    if sofa_block["type"].lower() == "sofa_plant":
-        scene_file = Path(sofa_block["scene_file"])
-        controller_file = detect_controller_file_from_scene(scene_file)
-
-    # Cas SofaExchangeIO → nécessite un champ YAML
-    else:
-        if "controller_file" not in sofa_block:
-            raise RuntimeError(
-                "SofaExchangeIO block requires a `controller_file:` entry "
-                "to enable automatic controller generation."
-            )
-        controller_file = Path(sofa_block["controller_file"])
+    scene_file = Path(sofa_block["scene_file"])
+    controller_file = detect_controller_file_from_scene(scene_file)
 
     blocks = [normalize_block_for_controller(b) for b in blocks]
 

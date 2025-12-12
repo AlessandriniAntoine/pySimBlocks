@@ -12,6 +12,7 @@ def project_export(yaml_data, export_mode):
         return
 
     os.makedirs(project_dir, exist_ok=True)
+    save_yaml_content(yaml_data, verbose=False)
 
     # détecter blocs sofa
     sofa_blocks = [b for b in yaml_data["blocks"]
@@ -30,10 +31,6 @@ def project_export(yaml_data, export_mode):
     # CASE 2 — SofaExchangeIO → only controller
     # ======================================================================
     if sofa_block["type"].lower() == "sofa_exchange_i_o" or export_mode=="controller-only":
-
-        # YAML d'abord
-        with open(os.path.join(project_dir, "project.yaml"), "w") as f:
-            f.write(yaml.dump(yaml_data, sort_keys=False))
 
         # puis génération controller
         generate_sofa_controller(
@@ -72,9 +69,6 @@ def pySimBloc_export(yaml_data):
 
     os.makedirs(project_dir, exist_ok=True)
 
-    with open(os.path.join(project_dir, "project.yaml"), "w") as f:
-        f.write(yaml.dump(yaml_data, sort_keys=False))
-
     with open(os.path.join(project_dir, "parameters_auto.py"), "w") as f:
         f.write(param_str)
 
@@ -86,7 +80,7 @@ def pySimBloc_export(yaml_data):
 
 
 
-def save_yaml_content(yaml_data):
+def save_yaml_content(yaml_data, verbose=True):
     project_dir = st.session_state.get("project_dir", None)
     if not project_dir:
         st.error("Please set a project directory first.")
@@ -97,4 +91,5 @@ def save_yaml_content(yaml_data):
     with open(os.path.join(project_dir, "project.yaml"), "w") as f:
         f.write(yaml.dump(yaml_data, sort_keys=False))
 
-    st.success(f"Exported to {project_dir}")
+    if verbose:
+        st.success(f"Exported to {project_dir}")
