@@ -29,10 +29,11 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         - variables_to_log: list of signal to log
     """
 
-    SOFA_MASTER = True
-
     def __init__(self, name="SofaControllerGui"):
         super().__init__(name=name)
+
+        self.IS_READY = False
+        self.SOFA_MASTER = True
 
         # MUST be filled by child controllers
         self.inputs  = {}
@@ -40,11 +41,27 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.variables_to_log = []
         self.verbose = False
 
+        self.dt = None
         self.sim = None
+        self.step_index = 0
 
     # ----------------------------------------------------------------------
-    # Mandatory          ---------------------------------------------------
+    # Common             ---------------------------------------------------
     # ----------------------------------------------------------------------
+    def prepare_scene(self):
+        """
+        Optional initialization hook executed before pySimBlocks starts.
+
+        Purpose:
+            - wait for any preparation condition (fixed number of steps,
+            convergence, stabilization, etc.),
+            - optionally record initial measurements or offsets.
+
+        The user must set `self.IS_READY = True` when the scene is ready to start
+        the pySimBlocks control loop.
+        """
+        self.IS_READY = True
+
     def set_inputs(self):
         """
         Apply inputs from pySimBlocks to SOFA components.
@@ -60,11 +77,12 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         raise NotImplementedError("get_outputs() must be implemented by subclass.")
 
     # ----------------------------------------------------------------------
-    # Not mandatory but still need to be defined by the user. --------------
+    # Specific but still need to be defined by the user. --------------
     # ----------------------------------------------------------------------
     def build_model(self):
         """
         Define the internal pySimBlocks controller model.
+        Mandatory if purpose to be used in Sofa Simulation (SOFA_MASTER)
 
         Must create:
             - self.model
@@ -75,46 +93,16 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
     def save(self):
         """
-        Optional: save logged data at the end of the simulation.
-        To be implented with saving condition.
+        Optional: executed at each control step.
+        Override this method to save logs or export custom data.
+        The default implementation does nothing.
         """
-        raise NotImplementedError("save() must be implemented by subclass.")
-    # ----------------------------------------------------------------------
-    # Specific functions ---------------------------------------------------
-    # ----------------------------------------------------------------------
-    def initialize_pysimblocks(self):
-        """Called once SOFA is initialized AND if SOFA is the master."""
-        self.build_model()
-        self.setup_sim(self.root.dt.value)
+        pass
 
 
-    def setup_sim(self, dt):
-        """
-        Initialize the internal pySimBlocks simulator.
-
-        Parameters
-        ----------
-        dt : float
-            Simulation time step (must match SOFA's dt).
-        verbose : bool
-            Enable or disable controller logging.
-        """
-        self.sim = Simulator(self.model, dt=dt, verbose=self.verbose)
-        self.sim.initialize()
-        self.step_index = 0
-
-    # non mandatory
-    def print_logs(self):
-        """
-        Optional: print selected logged variables at each control step.
-        Already implemented
-        """
-        print(f"\nStep: {self.step_index}")
-        for variable in self.variables_to_log:
-            print(f"{variable}: {self.sim.logs[variable][-1]}")
 
     # ----------------------------------------------------------------------
-    # SOFA event callback ---------------------------------------------------
+    # SOFA event callback --------------------------------------------------
     # ----------------------------------------------------------------------
     def onAnimateBeginEvent(self, event):
         """
@@ -129,21 +117,75 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         if self.SOFA_MASTER:
             if self.sim is None:
-                self.initialize_pysimblocks()
+                self._prepare_pysimblocks()
 
-            self.get_outputs()
-            for keys, val in self.outputs.items():
-                self.sofa_block.outputs[keys] = val
+            if not self.IS_READY:
+                self.prepare_scene()
 
-            self.sim.step()
-            self.sim._log(self.variables_to_log)
+            if self.IS_READY:
+                self.get_outputs()
+                for keys, val in self.outputs.items():
+                    self._sofa_block.outputs[keys] = val
 
-            for key, val in self.sofa_block.inputs.items():
-                self.inputs[key] = val
-            self.set_inputs()
+                self.sim.step()
+                self.sim._log(self.variables_to_log)
 
-            if self.verbose:
-                self.print_logs()
+                for key, val in self._sofa_block.inputs.items():
+                    self.inputs[key] = val
+                self.set_inputs()
 
-            self.save()
-            self.step_index += 1
+                if self.verbose:
+                    self._print_logs()
+
+                self.save()
+                self.sim_index += 1
+
+        self.step_index += 1
+
+    # ----------------------------------------------------------------------
+    # Internal methods -----------------------------------------------------
+    # ----------------------------------------------------------------------
+    def _prepare_pysimblocks(self):
+        """
+        Called once SOFA is initialized AND if SOFA is the master.
+        Initialize the pysimblock struture.
+        """
+        if self.dt is None:
+            raise ValueError("Sample time dt Must be set at initialization.")
+        self.build_model()
+        self._detect_sofa_exchange_block()
+        self.sim = Simulator(self.model, dt=self.dt, verbose=self.verbose)
+        self.sim.initialize()
+        self.sim_index = 0
+
+    def _print_logs(self):
+        """
+        Optional: print selected logged variables at each control step.
+        Already implemented
+        """
+        print(f"\nStep: {self.sim_index}")
+        for variable in self.variables_to_log:
+            print(f"{variable}: {self.sim.logs[variable][-1]}")
+
+    def _detect_sofa_exchange_block(self):
+        """
+        Detect the SofaExchangeIO block inside self.model.
+        Must be called after build_model().
+        """
+        from pySimBlocks.blocks.systems.sofa.sofa_exchange_i_o import SofaExchangeIO
+
+        candidates = [blk for blk in self.model.blocks.values() if isinstance(blk, SofaExchangeIO)]
+
+        if len(candidates) == 0:
+            raise RuntimeError(
+                "No SofaExchangeIO block found in the model. "
+                "The controller must include exactly one SOFA exchange block."
+            )
+
+        if len(candidates) > 1:
+            raise RuntimeError(
+                f"Multiple SofaExchangeIO blocks found ({len(candidates)}). "
+                "Only one SOFA IO block is allowed."
+            )
+
+        self._sofa_block = candidates[0]

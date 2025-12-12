@@ -94,7 +94,7 @@ def createScene(rootNode):
                     pullPoint=[0.0, 12.5, 2.5])
     cable.addObject('BarycentricMapping')
 
-    controller = FingerController(rootNode, cable.aCableActuator, finger.tetras)
+    controller = FingerController(root=rootNode, actuator=cable.aCableActuator, mo=finger.tetras)
     finger.addObject(controller)
 
     ##########################################

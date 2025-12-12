@@ -26,6 +26,12 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
     dt = float(root.dt.value)
 
+    while not controller.IS_READY:
+        controller.prepare_scene()
+        if controller.IS_READY:
+            break
+        Sofa.Simulation.animate(root, dt)
+
     # Send initial outputs
     controller.get_outputs()
     initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}

@@ -13,21 +13,31 @@ class FingerController(SofaPysimBlocksController):
     def __init__(self, root, actuator, mo, tip_index=121, verbose=True, name="FingerController"):
         super().__init__(name=name)
 
-        self.root = root
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
         self.verbose = verbose
+        self.dt = root.dt.value
 
         # Inputs & outputs dictionaries A METTRE AVANT SETUP_SIM
         self.inputs = { "cable": None }
         self.outputs = { "tip": None, "measure": None }
 
+        self.last_tip = 0
+
     # ========================================================
-    # Mandatory function
+    # Commun functions
     # ========================================================
+
+    def prepare_scene(self):
+        current_tip = self.mo.position[self.tip_index].copy()
+        if np.linalg.norm(current_tip - self.last_tip) < 1e-2:
+            self.initial_tip = current_tip
+            self.IS_READY = True
+        self.last_tip = current_tip
+
     def get_outputs(self):
-        tip = self.mo.position[self.tip_index].copy()
+        tip = self.mo.position[self.tip_index].copy() - self.initial_tip
         self.outputs["tip"] = np.asarray(tip).reshape(-1, 1)
         self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)
 
@@ -52,8 +62,19 @@ class FingerController(SofaPysimBlocksController):
         self.actuator.value = processed
 
 
+    def save(self):
+        if np.isclose(self.sim.logs["time"][-1], 5.):
+            logs = self.sim.logs
+            length = len(logs["time"])
+            np.savez("data_gui.npz",
+                time=np.array(self.sim.logs["time"]).reshape(length, -1),
+                reference=np.array(self.sim.logs["step.outputs.out"]).reshape(length, -1),
+                command=np.array(self.sim.logs["pid.outputs.u"]).reshape(length, -1),
+                measure=np.array(self.sim.logs["sofa_io.outputs.measure"]).reshape(length, -1)
+        )
+
     # ========================================================
-    # Optional function
+    # specific functions
     # ========================================================
     def build_model(self):
         # pysimblock controller:
@@ -74,15 +95,3 @@ class FingerController(SofaPysimBlocksController):
         self.model.connect("pid", "u", "sofa_io", "cable")
 
         self.variables_to_log = ["step.outputs.out", "pid.outputs.u", "sofa_io.outputs.measure"]
-
-
-    def save(self):
-        if np.isclose(self.sim.logs["time"][-1], 5.):
-            logs = self.sim.logs
-            length = len(logs["time"])
-            np.savez("data_gui.npz",
-                time=np.array(self.sim.logs["time"]).reshape(length, -1),
-                reference=np.array(self.sim.logs["step.outputs.out"]).reshape(length, -1),
-                command=np.array(self.sim.logs["pid.outputs.u"]).reshape(length, -1),
-                measure=np.array(self.sim.logs["sofa_io.outputs.measure"]).reshape(length, -1)
-        )
