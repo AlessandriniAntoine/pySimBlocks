@@ -2,20 +2,57 @@ import os
 import sys
 import yaml
 import streamlit as st
-import numpy as np
-from fractions import Fraction
 
-from pySimBlocks.api.helpers import load_registry, auto_detect_yaml
+from pySimBlocks.api.codegen import generate_yaml_content
+
 from pySimBlocks.api.ui_diagram import render_diagram
-from pySimBlocks.api.ui_blocks import render_block_form, render_block_list
-from pySimBlocks.api.ui_connections import render_connections
-from pySimBlocks.api.ui_plots import render_plots
-from pySimBlocks.api.ui_yaml import render_yaml_export
-from pySimBlocks.api.ui_codegen import render_generated_code, generate_code
 from pySimBlocks.api.ui_workspace import render_workspace
-from pySimBlocks.api.ui_project_export import render_project_export
-from pySimBlocks.api.ui_run_sim import render_run_sim, render_results
-from pySimBlocks.api.ui_load_yaml import render_load_yaml
+from pySimBlocks.api.ui_action import render_action
+from pySimBlocks.api.ui_project_settings import render_project_settings
+from pySimBlocks.api.ui_blocks import render_blocks
+from pySimBlocks.api.ui_connections import render_connections
+from pySimBlocks.api.ui_simulation_settings import render_simulation_settings
+from pySimBlocks.api.ui_plots_definition import render_plots_definition
+from pySimBlocks.api.ui_run_sim import render_results
+from pySimBlocks.api.ui_codegen import render_generated_code
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+path_dir = os.path.dirname(os.path.abspath(__file__))
+REGISTRY_PATH = "pySimBlocks_blocks_registry.yaml"
+REGISTRY_PATH = os.path.join(path_dir, REGISTRY_PATH)
+
+def load_registry():
+    with open(REGISTRY_PATH, "r") as f:
+        return yaml.safe_load(f)
+
+# -------- Automatic detection of YAML IN FOLDER --------
+def auto_detect_yaml(project_dir):
+    preferred = [
+        "project.yaml",
+        "project.yml",
+        "model.yaml",
+        "model.yml",
+    ]
+
+    # 1) preferred names
+    for name in preferred:
+        path = os.path.join(project_dir, name)
+        if os.path.isfile(path):
+            return path
+
+    # 2) fallback: unique yaml
+    yamls = [
+        f for f in os.listdir(project_dir)
+        if f.endswith((".yaml", ".yml"))
+    ]
+
+    if len(yamls) == 1:
+        return os.path.join(project_dir, yamls[0])
+
+    return None
 
 # --------------------------------------------------
 # Project directory from CLI
@@ -33,6 +70,7 @@ if "project_dir" not in st.session_state:
 # Initialize session state
 # ============================================================
 default_session_keys = {
+    "yaml_data": None,
     "blocks": [],
     "connections": [],
     "plots": [],
@@ -45,7 +83,6 @@ default_session_keys = {
     "generated_model": None,
     "generated_run": None,
     "project_dir": None,
-    "generated": False,
     "simulation_logs": None,
     "simulation_done": False,
 }
@@ -88,32 +125,10 @@ if "auto_yaml_loaded" not in st.session_state:
 # UI layout
 # ============================================================
 with st.sidebar:
-
-    # 1) Load project
-    st.header("Load project")
-    render_load_yaml(registry)
-
+    render_action()
     st.markdown("---")
-
-    # 2) Project folder
-    st.header("Project folder")
-    folder = st.text_input("Project directory", st.session_state["project_dir"] or "")
-    if st.button("Set directory"):
-        if folder:
-            st.session_state["project_dir"] = folder
-            st.success(f"Project directory set to: {folder}")
-            st.rerun()
-
-    st.markdown("---")
-
-    # 3) Live diagram
-    st.header("Diagram")
     render_diagram(st.session_state["blocks"], st.session_state["connections"])
-
     st.markdown("---")
-
-    # 4) Workspace
-    st.header("Workspace")
     render_workspace()
 
 
@@ -122,70 +137,25 @@ with st.sidebar:
 # ============================================================
 st.title("pySimBlocks Editor")
 
-
-render_block_form(registry, categories, st.session_state["blocks"])
-render_block_list(st.session_state["blocks"])
+render_project_settings(registry)
+st.markdown("---")
+render_blocks(registry, categories, st.session_state["blocks"])
+st.markdown("---")
 render_connections(st.session_state["blocks"], st.session_state["connections"])
-
-st.header("Simulation Settings")
-dt_raw = st.text_input("dt", value=st.session_state.get("dt_raw", "0.01"))
-T_raw  = st.text_input("T",  value=st.session_state.get("T_raw", "2.0"))
-
-def parse_value(expr):
-    expr = expr.strip()
-
-    try:
-        return float(Fraction(expr))
-    except Exception:
-        pass
-    try:
-        return float(eval(expr, {"__builtins__": {}}, {"np": np}))
-    except Exception:
-        st.error(f"Cannot parse value: {expr}")
-        return None
+st.markdown("---")
+dt, T = render_simulation_settings()
+st.markdown("---")
+logs = render_plots_definition(st.session_state["plots"])
 
 
-dt = parse_value(dt_raw)
-T = parse_value(T_raw)
-
-signals = [
-    f"{b['name']}.outputs.{p}"
-    for b in st.session_state["blocks"]
-    for p in b["computed_outputs"]
-]
-
-logs = st.multiselect("Signals to log", signals, default=st.session_state.get("logs_loaded", []))
-
-render_plots(st.session_state["plots"], logs)
-
-yaml_data = render_yaml_export(
+generate_yaml_content(
     st.session_state["blocks"],
     st.session_state["connections"],
     dt, T, logs,
     st.session_state["plots"]
 )
 
-
-# ============================================================
-# CODE GENERATION
-# ============================================================
-# generated = render_codegen(yaml_data)
-
-st.header("Actions")
-col1, col2, col3 = st.columns(3)
-with col1:
-    if st.button("Display Python Files"):
-        generate_code(yaml_data)
-
-with col2:
-    if st.button("Run Simulation"):
-        render_run_sim(yaml_data)
-
-with col3:
-    if st.button("Export to folder"):
-        render_project_export(yaml_data)
-
 if st.session_state.get("generated", False):
 
-    render_results(yaml_data)
+    render_results()
     render_generated_code()

@@ -2,10 +2,10 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from pySimBlocks.api.ui_codegen import generate_code
+from pySimBlocks.api.codegen import generate_python_content
 
 
-def render_run_sim(yaml_data):
+def run_simulation(yaml_data):
 
     project_dir = st.session_state.get("project_dir", None)
     if not project_dir:
@@ -19,7 +19,7 @@ def render_run_sim(yaml_data):
     env = {}
     try:
 
-        generate_code(yaml_data)
+        generate_python_content(yaml_data)
         param_str = st.session_state["generated_param"]
         model_str = st.session_state["generated_model"]
 
@@ -57,9 +57,11 @@ def render_run_sim(yaml_data):
 
 
 
-def render_results(yaml_data):
+def render_results():
     if not st.session_state.get("simulation_done", False):
         return
+
+    yaml_data = st.session_state.get("yaml_data", None)
 
     if st.session_state.get("results_outdated", False):
         st.warning("Results may be outdated. Run the simulation to update them.")
@@ -70,6 +72,7 @@ def render_results(yaml_data):
 
     time = np.array(logs["time"])
 
+    st.markdown("---")
     st.header("Results")
 
     if "plot" in yaml_data:

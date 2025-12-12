@@ -2,6 +2,7 @@ import graphviz as gv
 import streamlit as st
 
 def render_diagram(blocks, connections):
+    st.header("Diagram")
     dot = gv.Digraph()
 
     for b in blocks:

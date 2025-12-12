@@ -1,6 +1,5 @@
 import streamlit as st
-from pySimBlocks.api.helpers import parse_array
-
+import numpy as np
 
 # ============================================================
 # Helpers
@@ -20,6 +19,32 @@ def clear_param_state(prefix="param_"):
     for key in list(st.session_state.keys()):
         if key.startswith(prefix):
             del st.session_state[key]
+
+def parse_array(text):
+    if text is None or text.strip() == "":
+        return None
+    text = text.strip()
+
+    # simple list
+    if "," in text and "[" not in text and ";" not in text:
+        try:
+            return [float(x.strip()) for x in text.split(",")]
+        except:
+            pass
+
+    # python literal
+    try:
+        val = eval(text, {"__builtins__":{}})
+        return np.array(val).tolist()
+    except:
+        pass
+
+    # semicolon matrix
+    if ";" in text:
+        rows = text.split(";")
+        return [list(map(float, r.split(","))) for r in rows]
+
+    return text
 
 
 # ============================================================
@@ -297,3 +322,10 @@ def render_block_form(block_registry, categories, blocks):
         st.session_state["clear_params_next"] = True
         st.session_state["clear_block_name_next"] = True
         st.rerun()
+
+# ============================================================
+# Main UI section
+# ============================================================
+def render_blocks(block_registry, categories, blocks):
+    render_block_form(block_registry, categories, blocks)
+    render_block_list(blocks)

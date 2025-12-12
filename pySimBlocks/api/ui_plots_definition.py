@@ -1,7 +1,14 @@
 import streamlit as st
 
-def render_plots(plots, signals_logged):
-    st.header("Plots")
+def render_plots_definition(plots):
+    signals = [
+        f"{b['name']}.outputs.{p}"
+        for b in st.session_state["blocks"]
+        for p in b["computed_outputs"]
+    ]
+    signals_logged = st.multiselect("Signals to log", signals, default=st.session_state.get("logs_loaded", []))
+
+    st.header("Plots Definition")
 
     # EDIT
     if st.session_state["edit_plot_index"] is not None:
@@ -48,3 +55,5 @@ def render_plots(plots, signals_logged):
             if cols[2].button("Delete", key=f"del_plot_{i}"):
                 plots.pop(i)
                 st.rerun()
+
+    return signals_logged

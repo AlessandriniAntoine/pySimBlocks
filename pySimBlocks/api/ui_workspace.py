@@ -5,6 +5,7 @@ import types
 import os
 
 def render_workspace():
+    st.header("Workspace")
 
     ws = st.session_state["workspace"]
 
