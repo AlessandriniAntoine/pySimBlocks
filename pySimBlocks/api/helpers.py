@@ -47,3 +47,30 @@ def parse_array(text):
         return [list(map(float, r.split(","))) for r in rows]
 
     return text
+
+
+# -------- Automatic detection of YAML IN FOLDER --------
+def auto_detect_yaml(project_dir):
+    preferred = [
+        "project.yaml",
+        "project.yml",
+        "model.yaml",
+        "model.yml",
+    ]
+
+    # 1) preferred names
+    for name in preferred:
+        path = os.path.join(project_dir, name)
+        if os.path.isfile(path):
+            return path
+
+    # 2) fallback: unique yaml
+    yamls = [
+        f for f in os.listdir(project_dir)
+        if f.endswith((".yaml", ".yml"))
+    ]
+
+    if len(yamls) == 1:
+        return os.path.join(project_dir, yamls[0])
+
+    return None

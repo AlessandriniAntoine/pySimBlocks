@@ -1,10 +1,11 @@
 import os
 import sys
+import yaml
 import streamlit as st
 import numpy as np
 from fractions import Fraction
 
-from pySimBlocks.api.helpers import load_registry
+from pySimBlocks.api.helpers import load_registry, auto_detect_yaml
 from pySimBlocks.api.ui_diagram import render_diagram
 from pySimBlocks.api.ui_blocks import render_block_form, render_block_list
 from pySimBlocks.api.ui_connections import render_connections
@@ -26,6 +27,7 @@ else:
 
 if "project_dir" not in st.session_state:
     st.session_state["project_dir"] = project_dir
+
 
 # ============================================================
 # Initialize session state
@@ -56,6 +58,28 @@ for key, default in default_session_keys.items():
 registry = load_registry()
 categories = sorted({v["category"] for v in registry.values()})
 
+
+# ============================================================
+# auto load yaml if in folder
+# ============================================================
+if "project_dir" not in st.session_state:
+    st.session_state["project_dir"] = project_dir
+
+if "auto_yaml_loaded" not in st.session_state:
+    yaml_path = auto_detect_yaml(project_dir)
+
+    if yaml_path is not None:
+        try:
+            with open(yaml_path, "r") as f:
+                data = yaml.safe_load(f)
+
+            st.session_state["pending_yaml"] = data
+            st.session_state["auto_yaml_loaded"] = True
+            st.info(f"Loaded project: {os.path.basename(yaml_path)}")
+            st.rerun()
+
+        except Exception as e:
+            st.warning(f"Found YAML but failed to load it: {e}")
 
 # ============================================================
 # UI layout
