@@ -1,6 +1,8 @@
 import streamlit as st
 import numpy as np
 
+from pySimBlocks.api.cleanup_logs_plot import cleanup_logs_and_plots
+
 # ============================================================
 # Helpers
 # ============================================================
@@ -74,6 +76,7 @@ def render_block_list(blocks):
                     if c[0] != name and c[2] != name
                 ]
                 blocks.pop(i)
+                cleanup_logs_and_plots()
                 st.rerun()
 
 

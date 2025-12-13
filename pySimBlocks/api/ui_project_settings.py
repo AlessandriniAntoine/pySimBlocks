@@ -2,6 +2,8 @@ import streamlit as st
 import yaml
 import uuid
 
+from pySimBlocks.api.cleanup_logs_plot import cleanup_logs_and_plots
+
 def render_project_settings(registry):
     st.header("Project Settings")
 
@@ -122,6 +124,7 @@ def render_load_yaml(registry):
         # CRITICAL: regen file_uploader key so it resets
         st.session_state["yaml_uploader_key"] = str(uuid.uuid4())
 
+        cleanup_logs_and_plots()
         st.rerun()
         return True
 
@@ -147,6 +150,7 @@ def render_load_yaml(registry):
             st.session_state["pending_yaml"] = data
 
             # force rerun
+            cleanup_logs_and_plots()
             st.rerun()
 
         except Exception as e:
