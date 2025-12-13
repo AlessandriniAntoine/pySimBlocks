@@ -8,5 +8,11 @@ rate_limiter_rising_slope = 1.0
 rate_limiter_falling_slope = -1
 rate_limiter_initial_output = np.array([[0.0]])
 
-dt = 0.1
+dead_zone_lower_bound = -0.5
+dead_zone_upper_bound = 0.3
+
+sinusoidal_amplitude = 1.0
+sinusoidal_frequency = 3.0
+
+dt = 0.01
 T = 2.0

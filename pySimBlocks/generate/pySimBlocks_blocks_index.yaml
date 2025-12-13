@@ -10,6 +10,9 @@ observers:
     class: Luenberger
     module: pySimBlocks.blocks.observers.luenberger
 operators:
+  dead_zone:
+    class: DeadZone
+    module: pySimBlocks.blocks.operators.dead_zone
   delay:
     class: Delay
     module: pySimBlocks.blocks.operators.delay

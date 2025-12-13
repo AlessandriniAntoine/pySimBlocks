@@ -11,6 +11,23 @@ constant:
   - name: value
     optional: false
     type: float | array-like (n,) | array (n,1)
+dead_zone:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+    dynamic: false
+    ports:
+    - out
+  parameters:
+  - name: lower_bound
+    optional: false
+    type: float | array-like (n,) | array (n,1)
+  - name: upper_bound
+    optional: false
+    type: float | array-like (n,) | array (n,1)
 delay:
   category: operators
   inputs:
@@ -206,10 +223,10 @@ rate_limiter:
     - out
   parameters:
   - name: rising_slope
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: falling_slope
-    optional: false
+    optional: true
     type: float | array-like (n,) | array (n,1)
   - name: initial_output
     optional: true
@@ -227,10 +244,10 @@ saturation:
   parameters:
   - name: u_min
     optional: true
-    type: float | array-like (n,) | array (n,1) | None
+    type: float | array-like (n,) | array (n,1)
   - name: u_max
     optional: true
-    type: float | array-like (n,) | array (n,1) | None
+    type: float | array-like (n,) | array (n,1)
 sinusoidal:
   category: sources
   inputs:

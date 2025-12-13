@@ -11,16 +11,33 @@ blocks:
   rising_slope: 1.0
   falling_slope: -1
   initial_output: [[0.0]]
+- name: dead_zone
+  from: operators
+  type: dead_zone
+  lower_bound: -0.5
+  upper_bound: 0.3
+- name: sinusoidal
+  from: sources
+  type: sinusoidal
+  amplitude: 1.0
+  frequency: 3.0
 connections:
 - [ramp.out, rate_limiter.in]
+- [sinusoidal.out, dead_zone.in]
 simulation:
-  dt: 0.1
+  dt: 0.01
   T: 2.0
   log:
   - ramp.outputs.out
   - rate_limiter.outputs.out
+  - dead_zone.outputs.out
+  - sinusoidal.outputs.out
 plot:
 - title: Rate
   log:
   - ramp.outputs.out
   - rate_limiter.outputs.out
+- title: Dead Zone
+  log:
+  - sinusoidal.outputs.out
+  - dead_zone.outputs.out
