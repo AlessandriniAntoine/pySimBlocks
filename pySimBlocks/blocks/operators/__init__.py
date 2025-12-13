@@ -7,6 +7,7 @@ from pySimBlocks.blocks.operators.mux import Mux
 from pySimBlocks.blocks.operators.rate_limiter import RateLimiter
 from pySimBlocks.blocks.operators.saturation import Saturation
 from pySimBlocks.blocks.operators.sum import Sum
+from pySimBlocks.blocks.operators.zero_order_hold import ZeroOrderHold
 
 __all__ = [
     "DeadZone",
@@ -17,5 +18,6 @@ __all__ = [
     "Mux",
     "RateLimiter",
     "Saturation",
-    "Sum"
+    "Sum",
+    "ZeroOrderHold"
 ]

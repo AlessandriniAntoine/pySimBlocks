@@ -8,7 +8,7 @@ blocks:
 - name: rate_limiter
   from: operators
   type: rate_limiter
-  rising_slope: 1.0
+  rising_slope: 7.90634
   falling_slope: -1
   initial_output: [[0.0]]
 - name: dead_zone
@@ -25,8 +25,8 @@ connections:
 - [ramp.out, rate_limiter.in]
 - [sinusoidal.out, dead_zone.in]
 simulation:
-  dt: 0.01
-  T: 2.0
+  dt: 0.016666666666666666
+  T: 0.5
   log:
   - ramp.outputs.out
   - rate_limiter.outputs.out
