@@ -7,27 +7,27 @@ class RateLimiter(Block):
     Discrete-time rate limiter.
 
     Description:
-        Limits the rate of change of the output signal between two consecutive
-        time steps. Rising and falling slopes can be specified independently.
-        Initial_output defines y[-1]. If omitted, y[-1] = u(0).
+        Limits the rate of change of the output signal:
 
-        Discrete rate limiter:
-            delta = u[k] - y[k-1]
-            y[k] = y[k-1] + clip(delta, -falling_slope*dt, rising_slope*dt)
+            Δu = u[k] - y[k-1]
+            y[k] = y[k-1] + clip(Δu, falling_slope * dt, rising_slope * dt)
+
+        Absence of rate limitation in one direction is represented by
+        an infinite slope in that direction.
 
     Parameters:
         name: str
             Block name.
 
-        rising_slope: float | array-like (n,) | array (n,1)
-            Maximum allowed positive rate of change (units per second).
+        rising_slope: float | array-like (n,) | array (n,1) (optional)
+            Maximum allowed positive rate (>= 0). (Default = +inf)
 
-        falling_slope: float | array-like (n,) | array (n,1)
-            Maximum allowed negative rate of change (units per second).
+        falling_slope: float | array-like (n,) | array (n,1) (optional)
+            Maximum allowed negative rate (<= 0). (Default = -inf)
 
         initial_output: float | array-like (n,) | array (n,1) (optional)
-            Initial output value y[0].
-            If not provided, the first input value is used. (default = None)
+            Initial output y[-1].
+            If omitted, y[-1] = u(0).
 
     Inputs:
         in: array (n,1)
@@ -38,10 +38,13 @@ class RateLimiter(Block):
             Rate-limited output signal y[k].
     """
 
+    direct_feedthrough = True
+
+    # ------------------------------------------------------------------
     def __init__(self,
                  name: str,
-                 rising_slope,
-                 falling_slope,
+                 rising_slope=np.inf,
+                 falling_slope=-np.inf,
                  initial_output=None):
 
         super().__init__(name)
@@ -49,7 +52,6 @@ class RateLimiter(Block):
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        # Normalize slopes to column vectors
         self.rising_slope = self._to_column("rising_slope", rising_slope)
         self.falling_slope = self._to_column("falling_slope", falling_slope)
 
@@ -58,19 +60,14 @@ class RateLimiter(Block):
         if np.any(self.falling_slope > 0):
             raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
 
-        # Optional initial output
         self.initial_output = None
         if initial_output is not None:
             self.initial_output = self._to_column("initial_output", initial_output)
 
-        # Internal state
         self.state["y"] = None
         self.next_state["y"] = None
+        self._dt = 0.0
 
-        self._dt = 0.
-
-    # ------------------------------------------------------------------
-    # Utilities
     # ------------------------------------------------------------------
     def _to_column(self, name, value):
         arr = np.asarray(value)
@@ -83,29 +80,23 @@ class RateLimiter(Block):
             return arr
         else:
             raise ValueError(
-                f"[{self.name}] '{name}' must be scalar or vector, got shape {arr.shape}."
+                f"[{self.name}] {name} must be scalar or column vector (n,1), "
+                f"got shape {arr.shape}."
             )
 
     def _broadcast(self, ref, target):
-        """
-        Broadcast scalar (1,1) to match ref dimension if needed.
-        """
         if target.shape[0] == 1 and ref.shape[0] > 1:
             return np.full_like(ref, target.item())
         return target
 
     # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
     def initialize(self, t0: float):
         u = self.inputs["in"]
-
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
         u = self._to_column("input", u)
 
-        # Broadcast slopes to input dimension
         self.rising_slope = self._broadcast(u, self.rising_slope)
         self.falling_slope = self._broadcast(u, self.falling_slope)
 
@@ -117,7 +108,7 @@ class RateLimiter(Block):
         self.state["y"] = y0
         self.outputs["out"] = y0
 
-
+    # ------------------------------------------------------------------
     def output_update(self, t: float):
         u = self.inputs["in"]
         if u is None:
@@ -127,20 +118,13 @@ class RateLimiter(Block):
         y_prev = self.state["y"]
 
         du = u - y_prev
+        du_min = self.falling_slope * self._dt
+        du_max = self.rising_slope * self._dt
 
-        max_up = self.rising_slope * self._dt
-        max_down = self.falling_slope * self._dt
+        du_limited = np.clip(du, du_min, du_max)
+        self.outputs["out"] = y_prev + du_limited
 
-        du_limited = np.where(
-            du > 0,
-            np.minimum(du, max_up),
-            np.maximum(du, max_down),
-        )
-
-        y = y_prev + du_limited
-        self.outputs["out"] = y
-
-
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         self._dt = dt
         self.next_state["y"] = self.outputs["out"]

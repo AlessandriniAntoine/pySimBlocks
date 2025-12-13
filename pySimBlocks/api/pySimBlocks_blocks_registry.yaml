@@ -214,6 +214,23 @@ rate_limiter:
   - name: initial_output
     optional: true
     type: float | array-like (n,) | array (n,1)
+saturation:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+    dynamic: false
+    ports:
+    - out
+  parameters:
+  - name: u_min
+    optional: true
+    type: float | array-like (n,) | array (n,1) | None
+  - name: u_max
+    optional: true
+    type: float | array-like (n,) | array (n,1) | None
 sinusoidal:
   category: sources
   inputs:
