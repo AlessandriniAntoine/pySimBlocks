@@ -21,7 +21,7 @@ class Sinusoidal(BlockSource):
             Offset added to each output. (default = 0.0)
         phase: float | array-like (n,) | array (n,1) (optional)
             Phase shift φ_i (rad). (default = 0.0)
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

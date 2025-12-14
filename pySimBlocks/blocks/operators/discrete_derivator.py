@@ -22,7 +22,7 @@ class DiscreteDerivator(Block):
         initial_output: float | array-like (n,) | array (n,1) (optional)
             Value of y[0]. (default = zero vector)
 
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

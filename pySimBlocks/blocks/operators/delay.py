@@ -22,7 +22,7 @@ class Delay(Block):
                 - If input is known at initialize → buffer = u[0]
                 - Otherwise dimension stays unknown until first step
 
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

@@ -45,6 +45,9 @@ delay:
   - name: initial_output
     optional: true
     type: float | array-like (n,) | array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 discrete_derivator:
   category: operators
   inputs:
@@ -59,6 +62,9 @@ discrete_derivator:
   - name: initial_output
     optional: true
     type: float | array-like (n,) | array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 discrete_integrator:
   category: operators
   inputs:
@@ -79,6 +85,9 @@ discrete_integrator:
   - name: Supported
     optional: false
     type: ''
+  - name: sample_time
+    optional: true
+    type: float | None
 gain:
   category: operators
   inputs:
@@ -117,6 +126,9 @@ linear_state_space:
   - name: x0
     optional: true
     type: array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 luenberger:
   category: observers
   inputs:
@@ -145,6 +157,9 @@ luenberger:
   - name: x0
     optional: true
     type: array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 mux:
   category: operators
   inputs:
@@ -192,6 +207,9 @@ pid:
   - name: integration_method
     optional: true
     type: str
+  - name: sample_time
+    optional: true
+    type: float | None
 ramp:
   category: sources
   inputs:
@@ -211,6 +229,9 @@ ramp:
   - name: offset
     optional: true
     type: float | array-like (n,) | array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 rate_limiter:
   category: operators
   inputs:
@@ -231,6 +252,9 @@ rate_limiter:
   - name: initial_output
     optional: true
     type: float | array-like (n,) | array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 saturation:
   category: operators
   inputs:
@@ -270,6 +294,9 @@ sinusoidal:
   - name: phase
     optional: true
     type: float | array-like (n,) | array (n,1)
+  - name: sample_time
+    optional: true
+    type: float | None
 sofa_controller:
   category: systems
   inputs:
@@ -299,6 +326,9 @@ sofa_exchange_i_o:
   - name: scene_file
     optional: false
     type: str
+  - name: sample_time
+    optional: true
+    type: float | None
 sofa_plant:
   category: systems
   inputs:
@@ -319,6 +349,9 @@ sofa_plant:
   - name: output_keys
     optional: false
     type: list of str
+  - name: sample_time
+    optional: true
+    type: float | None
 state_feedback:
   category: controllers
   inputs:
@@ -337,6 +370,9 @@ state_feedback:
   - name: G
     optional: false
     type: matrix (m,p)
+  - name: sample_time
+    optional: true
+    type: float | None
 step:
   category: sources
   inputs:
@@ -356,6 +392,9 @@ step:
   - name: start_time
     optional: false
     type: float
+  - name: sample_time
+    optional: true
+    type: float | None
 sum:
   category: operators
   inputs:
@@ -392,3 +431,20 @@ white_noise:
   - name: seed
     optional: true
     type: int
+  - name: sample_time
+    optional: true
+    type: float | None
+zero_order_hold:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+    dynamic: false
+    ports:
+    - out
+  parameters:
+  - name: sample_time
+    optional: false
+    type: float

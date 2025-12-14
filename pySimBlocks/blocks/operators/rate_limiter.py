@@ -29,7 +29,7 @@ class RateLimiter(Block):
             Initial output y[-1].
             If omitted, y[-1] = u(0).
 
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

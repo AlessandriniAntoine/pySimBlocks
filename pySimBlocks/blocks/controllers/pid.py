@@ -54,7 +54,7 @@ class Pid(Block):
                 - euler forward
                 - euler backward
 
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

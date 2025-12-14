@@ -37,6 +37,9 @@ operators:
   sum:
     class: Sum
     module: pySimBlocks.blocks.operators.sum
+  zero_order_hold:
+    class: ZeroOrderHold
+    module: pySimBlocks.blocks.operators.zero_order_hold
 sources:
   constant:
     class: Constant

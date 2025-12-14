@@ -83,7 +83,7 @@ class SofaPlant(Block):
             List of input keys for the SOFA controller.
         output_keys: list of str
             List of output keys for the SOFA controller.
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

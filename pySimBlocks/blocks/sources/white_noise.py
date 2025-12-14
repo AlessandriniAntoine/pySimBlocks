@@ -19,7 +19,7 @@ class WhiteNoise(BlockSource):
             Standard deviation for each dimension. Must be >= 0. (default = 1.0)
         seed: int (optional)
             Random seed for reproducibility. (default = None)
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

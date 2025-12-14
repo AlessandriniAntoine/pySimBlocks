@@ -19,7 +19,7 @@ class Ramp(BlockSource):
             Time at which each ramp starts. (default = 0.0).
         offset: float | array-like (n,) | array (n,1) (optional)
             Value before the ramp starts (default = zeros).
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

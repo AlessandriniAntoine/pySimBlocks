@@ -25,7 +25,7 @@ class Luenberger(Block):
             Observer gain matrix.
         x0: array (n,1) (optional)
             Initial estimated state (default = zeros).
-        sample_time: float (optional)
+        sample_time: float | None (optional)
                 Block sample time (default = None)
 
     Inputs:

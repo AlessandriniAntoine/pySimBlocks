@@ -172,10 +172,10 @@ class Simulator:
             self.step()
             self._log(variables_to_log)
 
-            # if self.verbose:
-            #     print(f"\nTime: {self.t}/{T}")
-            #     for variable in variables_to_log:
-            #         print(f"{variable}: {self.logs[variable][-1]}")
+            if self.verbose:
+                print(f"\nTime: {self.t}/{T}")
+                for variable in variables_to_log:
+                    print(f"{variable}: {self.logs[variable][-1]}")
 
 
 

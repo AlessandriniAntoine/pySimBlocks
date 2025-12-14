@@ -23,7 +23,7 @@ class LinearStateSpace(Block):
             Output matrix.
         x0: array (n,1) (optional)
             Initial state vector (default = zeros).
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

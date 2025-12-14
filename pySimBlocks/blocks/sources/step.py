@@ -20,7 +20,7 @@ class Step(BlockSource):
             Output value after start_time.
         start_time: float
             Switching time.
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:

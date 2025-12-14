@@ -12,7 +12,6 @@ class FixedStepTimeManager:
         eps = 1e-12
         for Ts in sample_times:
             ratio = Ts / self.dt
-            print(f"Ts: {Ts}, dt: {self.dt}, ratio: {ratio}")
             if abs(ratio - round(ratio)) > eps:
                 raise ValueError(
                     f"In fixed-step mode, sample_time={Ts} "

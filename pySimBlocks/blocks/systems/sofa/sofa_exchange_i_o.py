@@ -22,7 +22,7 @@ class SofaExchangeIO(Block):
             Names of output signals to be consumed by SOFA.
         scene_file: str
             Path to the scene file. Only for automatic generation.
-        sample_time: float (optional)
+        sample_time: float | None (optional)
             Block sample time (default = None)
 
     Inputs:
