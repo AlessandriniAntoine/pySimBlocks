@@ -22,6 +22,9 @@ class Delay(Block):
                 - If input is known at initialize → buffer = u[0]
                 - Otherwise dimension stays unknown until first step
 
+        sample_time: float | None (optional)
+            Block sample time (default = None)
+
     Inputs:
         in: array (n,1)
             Input signal u[k].
@@ -33,8 +36,12 @@ class Delay(Block):
 
     direct_feedthrough = False
 
-    def __init__(self, name: str, num_delays: int = 1, initial_output=None):
-        super().__init__(name)
+    def __init__(self,
+            name: str,
+            num_delays: int = 1,
+            initial_output=None,
+            sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         if not isinstance(num_delays, int) or num_delays < 1:
             raise ValueError(f"[{self.name}] num_delays must be >= 1.")

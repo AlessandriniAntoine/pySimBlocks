@@ -25,6 +25,8 @@ class Luenberger(Block):
             Observer gain matrix.
         x0: array (n,1) (optional)
             Initial estimated state (default = zeros).
+        sample_time: float | None (optional)
+                Block sample time (default = None)
 
     Inputs:
         u: array (m,1)
@@ -49,8 +51,9 @@ class Luenberger(Block):
         C: np.ndarray,
         L: np.ndarray,
         x0: np.ndarray | None = None,
+        sample_time:float|None = None
     ):
-        super().__init__(name)
+        super().__init__(name, sample_time)
 
         # ------------------------------------------------------------------
         # Store and check matrices

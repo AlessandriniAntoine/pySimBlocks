@@ -39,9 +39,10 @@ class DeadZone(Block):
     def __init__(self,
                  name: str,
                  lower_bound=0.0,
-                 upper_bound=0.0):
+                 upper_bound=0.0,
+                 sample_time:float|None = None):
 
-        super().__init__(name)
+        super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None

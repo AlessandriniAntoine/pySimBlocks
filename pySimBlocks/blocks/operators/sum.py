@@ -27,8 +27,8 @@ class Sum(Block):
             Weighted sum of all inputs.
     """
 
-    def __init__(self, name: str, num_inputs: int = 2, signs=None):
-        super().__init__(name)
+    def __init__(self, name: str, num_inputs: int = 2, signs=None, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # --- Validate num_inputs / signs -------------------------------------
         if signs is None and num_inputs == 0:

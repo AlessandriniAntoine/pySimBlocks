@@ -20,6 +20,8 @@ class Step(BlockSource):
             Output value after start_time.
         start_time: float
             Switching time.
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         (none)
@@ -29,9 +31,9 @@ class Step(BlockSource):
             Step output vector.
     """
 
-    def __init__(self, name: str, value_before, value_after, start_time):
+    def __init__(self, name: str, value_before, value_after, start_time, sample_time:float|None = None):
 
-        super().__init__(name)
+        super().__init__(name, sample_time)
 
         # --- Validate and normalize values ---
         vb = np.asarray(value_before)

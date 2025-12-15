@@ -19,6 +19,8 @@ class Ramp(BlockSource):
             Time at which each ramp starts. (default = 0.0).
         offset: float | array-like (n,) | array (n,1) (optional)
             Value before the ramp starts (default = zeros).
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         (none)
@@ -28,8 +30,8 @@ class Ramp(BlockSource):
             Ramp output vector.
     """
 
-    def __init__(self, name, slope, start_time=0.0, offset=None):
-        super().__init__(name)
+    def __init__(self, name, slope, start_time=0.0, offset=None, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # --- Validate and normalize parameters ---
         S = self._to_column_vector("slope", np.asarray(slope))

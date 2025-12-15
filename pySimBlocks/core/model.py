@@ -163,10 +163,8 @@ class Model:
 
         # Final storage
         self._output_execution_order = [blocks[n] for n in execution_order]
-        self._state_execution_order = [blocks[n] for n in execution_order if len(blocks[n].state) > 0]
 
-
-        return self._output_execution_order, self._state_execution_order
+        return self._output_execution_order
 
     # ----------------------------------------------------------------------
     # HELPERS FOR THE SIMULATOR
@@ -182,4 +180,25 @@ class Model:
     def execution_order(self):
         if not self._output_execution_order:
             return self.build_execution_order()
-        return self._output_execution_order, self._state_execution_order
+        return self._output_execution_order
+
+
+    def predecessors_of(self, block_name):
+        for (src, dst) in self.connections:
+            if dst[0] == block_name:
+                yield src[0]
+
+
+    def resolve_sample_times(self, dt):
+        """
+        Resolve effective sample times for all blocks.
+
+        Returns:
+            has_explicit_rate (bool): True if at least one block defines a sample_time.
+        """
+
+        for b in self.blocks.values():
+            if b.sample_time is None:
+                b._effective_sample_time = dt
+            else:
+                b._effective_sample_time = b.sample_time

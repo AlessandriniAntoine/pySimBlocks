@@ -14,8 +14,8 @@ class BlockSource(Block):
     direct_feedthrough = False
     is_source = True
 
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, name: str, sample_time: float | None=None):
+        super().__init__(name, sample_time)
 
     # Utility used by all sources
     def _to_column_vector(self, param_name, value):

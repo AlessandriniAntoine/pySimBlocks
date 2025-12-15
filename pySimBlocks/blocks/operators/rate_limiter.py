@@ -29,6 +29,9 @@ class RateLimiter(Block):
             Initial output y[-1].
             If omitted, y[-1] = u(0).
 
+        sample_time: float | None (optional)
+            Block sample time (default = None)
+
     Inputs:
         in: array (n,1)
             Input signal u[k].
@@ -45,9 +48,10 @@ class RateLimiter(Block):
                  name: str,
                  rising_slope=np.inf,
                  falling_slope=-np.inf,
-                 initial_output=None):
+                 initial_output=None,
+                 sample_time:float|None = None):
 
-        super().__init__(name)
+        super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None

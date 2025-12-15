@@ -23,6 +23,8 @@ class LinearStateSpace(Block):
             Output matrix.
         x0: array (n,1) (optional)
             Initial state vector (default = zeros).
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         u: array (m,1)
@@ -43,8 +45,8 @@ class LinearStateSpace(Block):
         B: np.ndarray,
         C: np.ndarray,
         x0: np.ndarray | None = None,
-    ):
-        super().__init__(name)
+        sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # ------------------------------------------------------------------
         # Store and check matrices

@@ -49,6 +49,7 @@ def run_simulation(yaml_data):
 
 
     except Exception as e:
+        print(f"Failed with {e}")
         st.error(f"Simulation failed: {e}")
 
     finally:

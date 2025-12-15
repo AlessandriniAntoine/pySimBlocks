@@ -25,8 +25,8 @@ class Constant(BlockSource):
             Constant output vector.
     """
 
-    def __init__(self, name: str, value):
-        super().__init__(name)
+    def __init__(self, name: str, value, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         if not isinstance(value, (list, tuple, np.ndarray, float, int)):
             raise TypeError(f"[{self.name}] Constant 'value' must be numeric or array-like.")

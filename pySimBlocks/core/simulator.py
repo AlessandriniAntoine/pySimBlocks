@@ -2,7 +2,9 @@ from typing import Dict, List
 import numpy as np
 
 from pySimBlocks.core.model import Model
-from pySimBlocks.core.block import Block
+from pySimBlocks.core.fixed_time_manager import FixedStepTimeManager
+from pySimBlocks.core.scheduler import Scheduler
+from pySimBlocks.core.task import Task
 
 
 class Simulator:
@@ -27,15 +29,46 @@ class Simulator:
         - Algebraic loop detection through the Model's topo ordering.
     """
 
-    def __init__(self, model: Model, dt: float, verbose: bool = False):
+    def __init__(self, model: Model, dt: float, mode: str = "fixed", verbose: bool = False):
         self.model = model
-        self.dt = float(dt)
-        self.t = 0.0
+        self.dt_base = dt
         self.verbose = verbose
         self.model.verbose = verbose
 
-        # blocks in valid causal order
-        self.output_order, self.state_order = model.build_execution_order()
+        self.t_step = 0.
+        self.t = 0.0
+
+        self.output_order = model.build_execution_order()
+        self.model.resolve_sample_times(dt)
+        sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
+
+        # regroup blocks by sample time
+        tasks_by_ts = {}
+        for b in self.model.blocks.values():
+            Ts = b._effective_sample_time
+            tasks_by_ts.setdefault(Ts, []).append(b)
+
+        self.tasks = [
+            Task(Ts, blocks, self.output_order)
+            for Ts, blocks in tasks_by_ts.items()
+        ]
+
+        self.scheduler = Scheduler(self.tasks)
+
+        if mode == "fixed":
+            self.time_manager = FixedStepTimeManager(
+                dt_base=self.dt_base,
+                sample_times=list(set(sample_times))
+            )
+        elif mode == "variable":
+            raise NotImplementedError(
+                "Variable-step simulation is not implemented yet."
+            )
+        else:
+            raise ValueError(
+                f"Unknown simulation mode '{mode}'. "
+                "Supported modes are: 'fixed', 'variable'."
+            )
 
         # logs: dict[var_name -> list[np.ndarray]]
         self.logs: Dict[str, List[np.ndarray]] = {"time": []}
@@ -50,7 +83,7 @@ class Simulator:
         for block in self.output_order:
             try:
                 block.initialize(self.t)
-                self._propagate_all()
+                self._propagate_from(block)
             except Exception as e:
                 raise RuntimeError(
                     f"Error during initialization of block '{block.name}': {e}"
@@ -60,18 +93,17 @@ class Simulator:
     # ----------------------------------------------------------------------
     # PROPAGATION
     # ----------------------------------------------------------------------
-    def _propagate_all(self):
+    def _propagate_from(self, block):
         """
-        Propagate all outputs to downstream inputs (like Simulink)
+        Propagate outputs of `block` to its direct downstream blocks.
         """
-        for block in self.output_order:
-            for (src, dst) in self.model.downstream_of(block.name):
-                src_block, src_port = src
-                dst_block, dst_port = dst
+        for (src, dst) in self.model.downstream_of(block.name):
+            src_block, src_port = src
+            dst_block, dst_port = dst
 
-                value = self.model.blocks[src_block].outputs[src_port]
-                if value is not None:
-                    self.model.blocks[dst_block].inputs[dst_port] = value
+            value = self.model.blocks[src_block].outputs[src_port]
+            if value is not None:
+                self.model.blocks[dst_block].inputs[dst_port] = value
 
     # ----------------------------------------------------------------------
     # LOG
@@ -92,32 +124,38 @@ class Simulator:
                 self.logs[var] = []
             self.logs[var].append(np.copy(value))
 
-        self.logs["time"].append(np.array([self.t - self.dt]))
+        self.logs["time"].append(np.array([self.t_step]))
 
     # ----------------------------------------------------------------------
     # ONE SIMULATION STEP
     # ----------------------------------------------------------------------
     def step(self):
-        # -------------------------
-        # PHASE 1: OUTPUT UPDATE
-        # -------------------------
-        for block in self.output_order:
-            block.output_update(self.t, self.dt)
-            self._propagate_all()
 
-        # -------------------------
-        # PHASE 2: STATE UPDATE
-        # -------------------------
-        for block in self.state_order:
-            block.state_update(self.t, self.dt)
+        dt = self.time_manager.next_dt(self.t)
+        active_tasks = self.scheduler.active_tasks(self.t)
 
-        # -------------------------
-        # COMMIT
-        # -------------------------
-        for block in self.state_order:
-            block.commit_state()
+        # PHASE 1 — outputs
+        for task in active_tasks:
+            for block in task.output_blocks:
+                block.output_update(self.t, dt)
+                self._propagate_from(block)
 
-        self.t += self.dt
+
+        # PHASE 2 — states
+        for task in active_tasks:
+            for block in task.state_blocks:
+                block.state_update(self.t, dt)
+
+        for task in active_tasks:
+            for block in task.state_blocks:
+                block.commit_state()
+
+        for task in active_tasks:
+            task.advance()
+
+        self.t_step = self.t
+        self.t += dt
+
 
     # ----------------------------------------------------------------------
     # RUN MULTIPLE STEPS
@@ -126,18 +164,16 @@ class Simulator:
         if variables_to_log is None:
             variables_to_log = []
 
-        N = int(round(T / self.dt))
-
         # Initialization
         self.initialize(self.t)
 
         # Main loop
-        for k in range(N+1):
+        while self.t <= T+0.3*self.dt_base: # do one more iteration as t is updated at the end of step
             self.step()
             self._log(variables_to_log)
 
             if self.verbose:
-                print(f"\nStep: {k}/{N}")
+                print(f"\nTime: {self.t}/{T}")
                 for variable in variables_to_log:
                     print(f"{variable}: {self.logs[variable][-1]}")
 

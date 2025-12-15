@@ -39,12 +39,7 @@ class ZeroOrderHold(Block):
                  name: str,
                  sample_time: float):
 
-        super().__init__(name)
-
-        if sample_time <= 0:
-            raise ValueError(f"[{self.name}] sample_time must be > 0.")
-
-        self.sample_time = float(sample_time)
+        super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None

@@ -22,6 +22,9 @@ class DiscreteDerivator(Block):
         initial_output: float | array-like (n,) | array (n,1) (optional)
             Value of y[0]. (default = zero vector)
 
+        sample_time: float | None (optional)
+            Block sample time (default = None)
+
     Inputs:
         in: array (n,1)
             Input signal u[k].
@@ -31,8 +34,8 @@ class DiscreteDerivator(Block):
             Estimated derivative y[k].
     """
 
-    def __init__(self, name: str, initial_output=None):
-        super().__init__(name)
+    def __init__(self, name: str, initial_output=None, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None

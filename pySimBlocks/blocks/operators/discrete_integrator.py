@@ -32,6 +32,9 @@ class DiscreteIntegrator(Block):
                 - 'euler forward'
                 - 'euler backward'
 
+        sample_time: float | None (optional)
+            Block sample time (default = None)
+
     Inputs:
         in: array (n,1)
             Signal to integrate.
@@ -44,9 +47,10 @@ class DiscreteIntegrator(Block):
     def __init__(self,
         name: str,
         initial_state=None,
-        method: str = "euler forward"
+        method: str = "euler forward",
+        sample_time:float|None = None
     ):
-        super().__init__(name)
+        super().__init__(name, sample_time)
         self.initial_state = initial_state
 
         # --------------------------- validate method

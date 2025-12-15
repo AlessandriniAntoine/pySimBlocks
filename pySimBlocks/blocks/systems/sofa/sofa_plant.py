@@ -83,6 +83,8 @@ class SofaPlant(Block):
             List of input keys for the SOFA controller.
         output_keys: list of str
             List of output keys for the SOFA controller.
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         Dynamic — specified by input_keys.
@@ -98,9 +100,9 @@ class SofaPlant(Block):
         name: str,
         scene_file: str,
         input_keys: list[str],
-        output_keys: list[str]
-    ):
-        super().__init__(name)
+        output_keys: list[str],
+        sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         self.scene_file = scene_file
         self.input_keys = input_keys

@@ -21,6 +21,8 @@ class Sinusoidal(BlockSource):
             Offset added to each output. (default = 0.0)
         phase: float | array-like (n,) | array (n,1) (optional)
             Phase shift φ_i (rad). (default = 0.0)
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         (none)
@@ -30,8 +32,8 @@ class Sinusoidal(BlockSource):
             Sinusoidal output vector.
     """
 
-    def __init__(self, name, amplitude, frequency, offset=0.0, phase=0.0):
-        super().__init__(name)
+    def __init__(self, name, amplitude, frequency, offset=0.0, phase=0.0, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # Normalize parameters to column vectors
         A = self._to_column_vector("amplitude", np.asarray(amplitude))

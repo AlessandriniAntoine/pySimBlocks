@@ -54,6 +54,9 @@ class Pid(Block):
                 - euler forward
                 - euler backward
 
+        sample_time: float | None (optional)
+            Block sample time (default = None)
+
     Inputs:
         e: array (1,1)
             Error signal.
@@ -69,9 +72,10 @@ class Pid(Block):
                  name: str, controller:str = "PID",
                  Kp=0.0, Ki=0.0, Kd=0.0,
                  u_min=None, u_max=None,
-                 integration_method:str = 'euler forward'):
+                 integration_method:str = 'euler forward',
+                 sample_time:float|None = None):
 
-        super().__init__(name)
+        super().__init__(name, sample_time)
 
         # -------------------------
         # Validate controller type

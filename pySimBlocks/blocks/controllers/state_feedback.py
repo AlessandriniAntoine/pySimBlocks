@@ -17,6 +17,8 @@ class StateFeedback(Block):
             State feedback gain.
         G: matrix (m,p)
             Reference feedforward gain. Default = zero matrix.
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         r: array (p,1)
@@ -30,8 +32,8 @@ class StateFeedback(Block):
     """
 
 
-    def __init__(self, name: str, K: np.ndarray, G: np.ndarray):
-        super().__init__(name)
+    def __init__(self, name: str, K: np.ndarray, G: np.ndarray, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # Store matrices with validation
         self.K = np.asarray(K, dtype=float)

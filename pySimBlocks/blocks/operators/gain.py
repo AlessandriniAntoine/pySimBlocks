@@ -25,8 +25,8 @@ class Gain(Block):
             Output signal K * in.
     """
 
-    def __init__(self, name: str, gain):
-        super().__init__(name)
+    def __init__(self, name: str, gain, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # Normalize K into np.ndarray or scalar
         if np.isscalar(gain):

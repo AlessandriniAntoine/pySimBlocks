@@ -19,6 +19,8 @@ class WhiteNoise(BlockSource):
             Standard deviation for each dimension. Must be >= 0. (default = 1.0)
         seed: int (optional)
             Random seed for reproducibility. (default = None)
+        sample_time: float | None (optional)
+            Block sample time (default = None)
 
     Inputs:
         (none)
@@ -28,8 +30,8 @@ class WhiteNoise(BlockSource):
             Noise vector drawn at each output_update().
     """
 
-    def __init__(self, name: str, mean=0.0, std=1.0, seed:int | None=None):
-        super().__init__(name)
+    def __init__(self, name: str, mean=0.0, std=1.0, seed:int | None=None, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         # Normalize parameters
         M = self._to_column_vector("mean", np.asarray(mean))

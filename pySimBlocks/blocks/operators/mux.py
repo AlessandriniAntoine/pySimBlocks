@@ -36,8 +36,8 @@ class Mux(Block):
         - Mux is stateless.
     """
 
-    def __init__(self, name: str, num_inputs: int = 2):
-        super().__init__(name)
+    def __init__(self, name: str, num_inputs: int = 2, sample_time:float|None = None):
+        super().__init__(name, sample_time)
 
         if not isinstance(num_inputs, int) or num_inputs < 1:
             raise ValueError(f"[{self.name}] num_inputs must be a positive integer.")

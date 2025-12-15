@@ -8,7 +8,7 @@ class Block(ABC):
 
     A block follows two-phase execution:
 
-    1) output_update(t):
+    1) output_update(t, dt):
            Computes outputs y[k] from:
                 - current state x[k]
                 - current inputs u[k]
@@ -22,8 +22,12 @@ class Block(ABC):
     direct_feedthrough = True
     is_source = False
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, sample_time: float | None = None):
         self.name = name
+
+        if sample_time is not None and sample_time <= 0:
+            raise ValueError(f"[{self.name}] sample_time must be > 0.")
+        self.sample_time = sample_time
 
         # Dict[str -> np.ndarray]
         self.inputs = {}    # ports set by the simulator
@@ -34,6 +38,12 @@ class Block(ABC):
         # next_state: x[k+1] (to commit at end of step)
         self.state = {}
         self.next_state = {}
+
+        self._effective_sample_time = 0.
+
+    @property
+    def has_state(self):
+        return bool(self.state) or bool(self.next_state)
 
     @abstractmethod
     def initialize(self, t0: float):

@@ -31,16 +31,20 @@ def project_export(yaml_data, export_mode):
     # CASE 2 — SofaExchangeIO → only controller
     # ======================================================================
     if sofa_block["type"].lower() == "sofa_exchange_i_o" or export_mode=="controller-only":
+        if len(sofa_blocks) != 1:
+            st.error("Cannot have more than one Sofa System for controller generation.")
+            return
+        else:
 
-        # puis génération controller
-        generate_sofa_controller(
-            yaml_data["blocks"],
-            yaml_data["connections"],
-            yaml_data.get("simulation", {}),
-        )
+            # puis génération controller
+            generate_sofa_controller(
+                yaml_data["blocks"],
+                yaml_data["connections"],
+                yaml_data.get("simulation", {}),
+            )
 
-        st.success(f"Exported YAML + Sofa controller to {project_dir}")
-        return
+            st.success(f"Exported YAML + Sofa controller to {project_dir}")
+            return
 
     # ======================================================================
     # CAS 3 — SofaPlant → command line + controller
