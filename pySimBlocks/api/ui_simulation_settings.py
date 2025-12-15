@@ -56,4 +56,12 @@ def render_simulation_settings():
         default=st.session_state.get("logs_loaded", [])
     )
 
+    # --------------------------------------------------
+    # FORCE RERUN IF LOGGED SIGNALS CHANGED
+    # --------------------------------------------------
+    prev = st.session_state.get("logs_loaded", [])
+    if set(signals_logged) != set(prev):
+        st.session_state["logs_loaded"] = list(signals_logged)
+        st.rerun()
+
     return dt, T, signals_logged

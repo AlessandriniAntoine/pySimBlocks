@@ -33,7 +33,7 @@ def _load_scene_in_subprocess(scene_path, conn):
     # """
     # Load Sofa Scene in subprocess, get path file from controller.
     # """
-    try:
+    # try:
         scene_dir = os.path.dirname(os.path.abspath(scene_path))
         if scene_dir not in sys.path:
             sys.path.insert(0, scene_dir)
@@ -55,10 +55,11 @@ def _load_scene_in_subprocess(scene_path, conn):
 
         conn.send(controller_file)
 
-    except Exception:
-        conn.send(None)
+    # except Exception as e:
+    #     print(f"Error {e}")
+    #     conn.send(None)
 
-    finally:
+    # finally:
         conn.close()
 
 
@@ -66,6 +67,7 @@ def detect_controller_file_from_scene(scene_file):
     """
     Automatically get controller path from scene.
     """
+    print("scene file: ", scene_file, type(scene_file))
     parent_conn, child_conn = Pipe()
 
     p = Process(target=_load_scene_in_subprocess, args=(scene_file, child_conn))
@@ -228,7 +230,7 @@ def generate_sofa_controller(blocks, connections, simulation, dry_run=False):
 
     # 2. Si path explicite fourni par --sofa, override
     # Cas SofaPlant → détection automatique
-    scene_file = Path(sofa_block["scene_file"])
+    scene_file = Path(str(sofa_block["scene_file"]))
     controller_file = detect_controller_file_from_scene(scene_file)
 
     blocks = [normalize_block_for_controller(b) for b in blocks]
