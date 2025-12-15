@@ -171,7 +171,9 @@ def compute_block_instance(block_registry, block_type, category, name, params):
 
     for k, v in params.items():
 
-        # workspace reference
+        # --------------------------------------------------
+        # Workspace reference (=var)
+        # --------------------------------------------------
         if isinstance(v, str) and v.strip().startswith("="):
             varname = v.strip()[1:].strip()
             if varname not in ws:
@@ -183,26 +185,40 @@ def compute_block_instance(block_registry, block_type, category, name, params):
             parsed[k] = val
             continue
 
-        # array or matrix
+        # --------------------------------------------------
+        # Array or matrix literal
+        # --------------------------------------------------
         if isinstance(v, str) and any(s in v for s in ["[", ",", ";"]):
             parsed[k] = parse_array(v)
             continue
 
-        # numeric auto-detection
+        # --------------------------------------------------
+        # Numeric literals ONLY (int / float literals)
+        # --------------------------------------------------
         if isinstance(v, str):
             txt = v.strip()
+
+            # integer literal
             if txt.isdigit() or (txt.startswith("-") and txt[1:].isdigit()):
                 parsed[k] = int(txt)
                 continue
-            try:
-                parsed[k] = float(txt)
-                continue
-            except:
-                pass
 
+            # float literal ONLY (no expressions!)
+            if "." in txt or "e" in txt.lower():
+                try:
+                    parsed[k] = float(txt)
+                    continue
+                except ValueError:
+                    pass
+
+        # --------------------------------------------------
+        # Expression or fallback → keep as-is
+        # --------------------------------------------------
         parsed[k] = v
 
-    # Gestion static-dynamic inputs
+    # --------------------------------------------------
+    # Inputs
+    # --------------------------------------------------
     reg_in = reg["inputs"]
 
     if reg_in["dynamic"] == "indexed":
@@ -213,10 +229,12 @@ def compute_block_instance(block_registry, block_type, category, name, params):
         key_param = reg_in["parameter"]
         inputs = parsed[key_param]
 
-    else:  # static
+    else:
         inputs = reg_in["ports"]
 
-    # Gestion static-dynamic outputs
+    # --------------------------------------------------
+    # Outputs
+    # --------------------------------------------------
     reg_out = reg["outputs"]
 
     if reg_out["dynamic"] == "indexed":
@@ -230,7 +248,9 @@ def compute_block_instance(block_registry, block_type, category, name, params):
     else:
         outputs = reg_out["ports"]
 
-    # name generation
+    # --------------------------------------------------
+    # Name generation
+    # --------------------------------------------------
     final_name = name.strip() or block_type
     existing = [b["name"] for b in st.session_state["blocks"]]
 
@@ -248,6 +268,7 @@ def compute_block_instance(block_registry, block_type, category, name, params):
         "computed_inputs": inputs,
         "computed_outputs": outputs,
     }
+
 
 
 # ============================================================

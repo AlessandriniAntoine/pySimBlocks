@@ -1,21 +1,10 @@
-
 def python_array(x):
     """Convert list → np.array code."""
     return f"np.array({repr(x)})"
 
-
 def generate_parameters(blocks, simulation):
     """
     Generate the parameters_auto.py file content.
-
-    Parameters
-    ----------
-    blocks : list[dict]
-    simulation : dict
-
-    Returns
-    -------
-    list[str]  (file content)
     """
 
     lines = ["import numpy as np\n"]
@@ -32,13 +21,19 @@ def generate_parameters(blocks, simulation):
 
             varname = f"{name}_{key}"
 
-            # Lists become numpy arrays
+            # Lists → numpy arrays
             if isinstance(value, list):
-                lines.append(f"{varname} = {python_array(value)}")
+                lines.append(f"{varname} = np.array({repr(value)})")
+
+            # Expressions (strings) → write as Python expression
+            elif isinstance(value, str):
+                lines.append(f"{varname} = {value}")
+
+            # Numeric / others
             else:
                 lines.append(f"{varname} = {repr(value)}")
 
-        lines.append("")  # blank line between blocks
+        lines.append("")
 
     # ------------------------------------------------------------
     # 2. Simulation parameters
@@ -46,7 +41,14 @@ def generate_parameters(blocks, simulation):
     dt = simulation.get("dt")
     T = simulation.get("T")
 
-    lines.append(f"dt = {dt}")
-    lines.append(f"T = {T}")
+    if isinstance(dt, str):
+        lines.append(f"dt = {dt}")
+    else:
+        lines.append(f"dt = {repr(dt)}")
+
+    if isinstance(T, str):
+        lines.append(f"T = {T}")
+    else:
+        lines.append(f"T = {repr(T)}")
 
     return lines

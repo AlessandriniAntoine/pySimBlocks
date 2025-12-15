@@ -1,8 +1,8 @@
-from model import sim, T, dt
 import numpy as np
 import matplotlib.pyplot as plt
+from model import simulator, T, dt
 
-logs = sim.run(T=T, variables_to_log=[
+logs = simulator.run(T=T, variables_to_log=[
     'C.outputs.out',
     'delay.outputs.out',
     'step.outputs.out',
@@ -12,7 +12,7 @@ logs = sim.run(T=T, variables_to_log=[
 print('Simulation complete.')
 
 length = len(next(iter(logs.values())))
-time = np.arange(0, T, dt)[:length]
+time = np.array(logs['time'])
 
 plt.figure()
 plant_outputs_x = np.array(logs['plant.outputs.x']).reshape(length, -1)

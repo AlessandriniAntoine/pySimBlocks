@@ -20,6 +20,7 @@ plant_A = np.array([[0.9, 0.4], [0.0, 0.97]])
 plant_B = np.array([[0.0], [1.0]])
 plant_C = np.array([[1.0, 0.0]])
 plant_x0 = np.array([[0.0], [0.0]])
+plant_sample_time = 1/15
 
-dt = 0.01
+dt = 1/30
 T = 10.0

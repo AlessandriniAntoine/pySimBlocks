@@ -168,7 +168,7 @@ class Simulator:
         self.initialize(self.t)
 
         # Main loop
-        while self.t <= T:
+        while self.t <= T+0.3*self.dt_base: # do one more iteration as t is updated at the end of step
             self.step()
             self._log(variables_to_log)
 
