@@ -103,8 +103,12 @@ def inject_yaml_paths_into_controller(
                 f'super().__init__(name=name)\n        {replacement}'
             )
 
-    src = replace_or_add("model_yaml", model_yaml.name)
-    src = replace_or_add("parameters_yaml", parameters_yaml.name)
+    controller_dir = controller_file.parent
+    rel_model = os.path.relpath(model_yaml, controller_dir)
+    rel_param = os.path.relpath(parameters_yaml, controller_dir)
+
+    src = replace_or_add("model_yaml", rel_model)
+    src = replace_or_add("parameters_yaml", rel_param)
 
     controller_file.write_text(src)
 
