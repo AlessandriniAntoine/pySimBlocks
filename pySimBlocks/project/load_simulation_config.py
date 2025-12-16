@@ -74,11 +74,16 @@ def _check_no_external_refs(obj):
 # ---------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------
-def build_parameters(
+def load_simulation_config(
     parameters_yaml: str | Path
 ) -> Tuple[SimulationConfig, ModelConfig]:
     """
-    Build SimulationConfig and ModelConfig from parameters.yaml.
+    Load the configuration required to run a simulation.
+    If a plot config is needed, use: load_project_config
+
+    This function parses:
+      - simulation configuration,
+      - model numerical parameters,
 
     Parameters:
         parameters_yaml: path to parameters.yaml

@@ -1,41 +1,21 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from pySimBlocks.project.build_parameters import build_parameters
+from pySimBlocks.project.load_project_config import load_project_config
 from pySimBlocks.core.model import Model
 from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.project.plot_from_config import plot_from_config
 
-sim_cfg, model_cfg = build_parameters("parameters.yaml")
+# Load configs
+sim_cfg, model_cfg, plot_cfg = load_project_config("parameters.yaml")
 
+# Build model
 model = Model(
     name="closed_loop",
     model_yaml="model.yaml",
     model_cfg=model_cfg
 )
 
+# Create simulator
 sim = Simulator(model, sim_cfg)
 
+# Run
 logs = sim.run()
-
-length = len(logs["ref.outputs.out"])
-t = np.array(logs["time"])
-r = np.array(logs["ref.outputs.out"]).reshape(length, -1)
-y = np.array(logs["plant.outputs.y"]).reshape(length, -1)
-u = np.array(logs["pid.outputs.u"]).reshape(length, -1)
-
-# -------------------------------------------------------
-# 6. Plot the result
-# -------------------------------------------------------
-plt.figure()
-plt.step(t, r, "--r", label="r[k] (step)", where="post")
-plt.step(t, y, "--b", label="y[k] (plant)", where="post")
-plt.xlabel("Time [s]")
-plt.grid(True)
-plt.legend()
-
-plt.figure()
-plt.step(t, u, "--b", label="u[k] (step)", where="post")
-plt.xlabel("Time [s]")
-plt.grid(True)
-plt.legend()
-
-plt.show()
+plot_from_config(logs, plot_cfg)

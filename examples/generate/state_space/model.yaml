@@ -2,37 +2,26 @@ blocks:
   - name: ref
     from: sources
     type: step
-    value_before: [0]
-    value_after: [1]
-    start_time: 0.5
-
-  - name: B
-    from: operators
-    type: gain
-    gain: [[1.0]]
 
   - name: sum
     from: operators
     type: sum
-    signs: [1, 1]
-
-  - name: delay
-    from: operators
-    type: delay
-    initial_output: [0]
 
   - name: A
     from: operators
     type: gain
-    gain: [[0.9]]
+
+  - name: B
+    from: operators
+    type: gain
+
+  - name: delay
+    from: operators
+    type: delay
 
   - name: plant
     from: systems
     type: linear_state_space
-    A: [[0.9]]
-    B: [[1]]
-    C: [[1]]
-    x0: [[0]]
 
 connections:
   - [ref.out, B.in]
@@ -41,18 +30,3 @@ connections:
   - [sum.out, delay.in]
   - [delay.out, A.in]
   - [ref.out, plant.u]
-
-simulation:
-  dt: 0.1
-  T: 3.0
-  log:
-    - delay.outputs.out
-    - ref.outputs.out
-    - plant.outputs.x
-
-plot:
-  - title: System response
-    log:
-      - delay.outputs.out
-      - plant.outputs.x
-      - ref.outputs.out

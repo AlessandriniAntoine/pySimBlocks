@@ -64,3 +64,26 @@ class ModelConfig:
             raise ValueError(
                 f"Parameters defined for unknown blocks: {sorted(unknown)}"
             )
+
+
+@dataclass
+class PlotConfig:
+    """
+    Plot configuration.
+
+    Describes how logged signals should be visualized.
+    This object contains NO plotting logic.
+    """
+
+    plots: List[Dict[str, Any]]
+
+    def validate(self) -> None:
+        for i, plot in enumerate(self.plots):
+            if "signals" not in plot:
+                raise ValueError(
+                    f"Plot #{i} is missing required field 'signals'"
+                )
+            if not isinstance(plot["signals"], list):
+                raise ValueError(
+                    f"'signals' in plot #{i} must be a list"
+                )

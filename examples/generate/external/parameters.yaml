@@ -1,8 +1,9 @@
 simulation:
   dt: 0.01
-  T: 2.0
-  t0: 0.0
+  T: 3.0
   solver: fixed
+
+external: parameters.py
 
 blocks:
   ref:
@@ -10,18 +11,32 @@ blocks:
     value_after: [[1.0]]
     start_time: 0.5
 
+  error:
+    num_inputs: 2
+    signs: [1., -1]
+
+  pid:
+    controller: PI
+    Kp: "@Kp"
+    Ki: "@Ki"
+
   plant:
-    A: [[0.9]]
-    B: [[1.0]]
+    A: [[0.95]]
+    B: [[0.5]]
     C: [[1.0]]
     x0: [[0.0]]
 
 logging:
   - ref.outputs.out
   - plant.outputs.y
+  - pid.outputs.u
 
 plots:
-  - title: Open Chain
+  - title: Ref vs Output
     signals:
       - ref.outputs.out
       - plant.outputs.y
+
+  - title: Command
+    signals:
+      - pid.outputs.u

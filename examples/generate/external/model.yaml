@@ -1,0 +1,22 @@
+blocks:
+  - name: ref
+    from: sources
+    type: step
+
+  - name: error
+    from: operators
+    type: sum
+
+  - name: pid
+    from: controllers
+    type: pid
+
+  - name: plant
+    from: systems
+    type: linear_state_space
+
+connections:
+  - [ref.out, error.in1]
+  - [plant.y, error.in2]
+  - [error.out, pid.e]
+  - [pid.u, plant.u]
