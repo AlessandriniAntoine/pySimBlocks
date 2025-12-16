@@ -1,5 +1,6 @@
 from pySimBlocks import Simulator
 import Sofa
+from pySimBlocks.core.config import SimulationConfig
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
     """
@@ -154,7 +155,8 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             raise ValueError("Sample time dt Must be set at initialization.")
         self.build_model()
         self._detect_sofa_exchange_block()
-        self.sim = Simulator(self.model, dt=self.dt, verbose=self.verbose)
+        self.sim_cfg = SimulationConfig(self.dt, 1.)
+        self.sim = Simulator(self.model, self.sim_cfg, verbose=self.verbose)
         self.sim.initialize()
         self.sim_index = 0
 
