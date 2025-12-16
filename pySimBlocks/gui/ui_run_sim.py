@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from pySimBlocks.api.codegen import generate_python_content
+from pySimBlocks.gui.codegen import generate_python_content
 
 
 def run_simulation(yaml_data):

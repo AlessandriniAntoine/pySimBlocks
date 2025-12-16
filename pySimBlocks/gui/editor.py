@@ -3,18 +3,18 @@ import sys
 import yaml
 import streamlit as st
 
-from pySimBlocks.api.codegen import generate_yaml_content
+from pySimBlocks.gui.codegen import generate_yaml_content
 
-from pySimBlocks.api.ui_diagram import render_diagram
-from pySimBlocks.api.ui_workspace import render_workspace
-from pySimBlocks.api.ui_action import render_action
-from pySimBlocks.api.ui_project_settings import render_project_settings
-from pySimBlocks.api.ui_blocks import render_blocks
-from pySimBlocks.api.ui_connections import render_connections
-from pySimBlocks.api.ui_simulation_settings import render_simulation_settings
-from pySimBlocks.api.ui_plots_definition import render_plots_definition
-from pySimBlocks.api.ui_run_sim import render_results
-from pySimBlocks.api.ui_codegen import render_generated_code
+from pySimBlocks.gui.ui_diagram import render_diagram
+from pySimBlocks.gui.ui_workspace import render_workspace
+from pySimBlocks.gui.ui_action import render_action
+from pySimBlocks.gui.ui_project_settings import render_project_settings
+from pySimBlocks.gui.ui_blocks import render_blocks
+from pySimBlocks.gui.ui_connections import render_connections
+from pySimBlocks.gui.ui_simulation_settings import render_simulation_settings
+from pySimBlocks.gui.ui_plots_definition import render_plots_definition
+from pySimBlocks.gui.ui_run_sim import render_results
+from pySimBlocks.gui.ui_codegen import render_generated_code
 
 
 # ============================================================

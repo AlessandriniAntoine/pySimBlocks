@@ -1,7 +1,7 @@
 import streamlit as st
 import yaml
 import os
-from pySimBlocks.api.codegen import generate_python_content
+from pySimBlocks.gui.codegen import generate_python_content
 from pySimBlocks.generate.generate_sofa_controller import generate_sofa_controller
 
 

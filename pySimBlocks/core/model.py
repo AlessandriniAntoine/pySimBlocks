@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Dict, List, Tuple
 from pySimBlocks.core.block import Block
+from pySimBlocks.core.config import ModelConfig
 
 
 # A connection is:
@@ -24,22 +26,33 @@ class Model:
         exactly like Simulink does for algebraic loops.
     """
 
-    def __init__(self, name: str = "model", verbose: bool = False):
+    def __init__(
+            self,
+            name: str = "model",
+            model_yaml: str | Path | None = None,
+            model_cfg: ModelConfig | None = None,
+            verbose: bool = False,
+        ):
         self.name = name
         self.verbose = verbose
 
-        # Dict[str -> Block]
         self.blocks: Dict[str, Block] = {}
-
-        # List of connections (src, dst)
         self.connections: List[Connection] = []
 
-        # Internally stored execution order (computed on build)
         self._output_execution_order: List[Block] = []
         self._state_execution_order: List[Block] = []
 
+        if model_yaml is not None:
+            if model_cfg is not None and not isinstance(model_cfg, ModelConfig):
+                raise TypeError("model_cfg must be a ModelConfig")
+
+            from pySimBlocks.project.build_model import build_model
+            build_model(self, Path(model_yaml), model_cfg)
+            if model_cfg is not None:
+                model_cfg.validate(list(self.blocks.keys()))
+
     # ----------------------------------------------------------------------
-    # BLOCK REGISTRATION
+    # Public methods
     # ----------------------------------------------------------------------
     def add_block(self, block: Block) -> Block:
         if block.name in self.blocks:
@@ -48,9 +61,7 @@ class Model:
         self.blocks[block.name] = block
         return block
 
-    # ----------------------------------------------------------------------
-    # CONNECTIONS
-    # ----------------------------------------------------------------------
+
     def connect(self, src_block: str, src_port: str,
                       dst_block: str, dst_port: str) -> None:
         """
@@ -60,17 +71,21 @@ class Model:
             blocks[dst_block].inputs[dst_port]
         """
         if src_block not in self.blocks:
-            raise ValueError(f"Unknown source block '{src_block}'.")
+            raise ValueError(
+                    f"Unknown source block '{src_block}'. "
+                    f"Known blocks: {list(self.blocks.keys())}"
+                )
         if dst_block not in self.blocks:
-            raise ValueError(f"Unknown destination block '{dst_block}'.")
+            raise ValueError(
+                    f"Unknown destination block '{dst_block}'. "
+                    f"Known blocks: {list(self.blocks.keys())}"
+                )
 
         self.connections.append(
             ((src_block, src_port), (dst_block, dst_port))
         )
 
-    # ----------------------------------------------------------------------
-    # BUILD EXECUTION ORDER
-    # ----------------------------------------------------------------------
+
     def build_execution_order(self):
         """
         Build Simulink-like execution order based solely on direct-feedthrough
@@ -85,9 +100,7 @@ class Model:
         vprint("\n================= BUILD EXECUTION ORDER =================")
         vprint(f"Blocks in model: {names}")
 
-        # ------------------------------------------------------------
         # STEP 1 — Build dependency graph
-        # ------------------------------------------------------------
         vprint("\n--- STEP 1: CONNECTION ANALYSIS (direct-feedthrough rules) ---")
 
         graph = {name: [] for name in names}
@@ -118,9 +131,7 @@ class Model:
         for k, v in indegree.items():
             vprint(f"  {k}: {v}")
 
-        # ------------------------------------------------------------
         # STEP 2 — Kahn topological sort
-        # ------------------------------------------------------------
         vprint("\n--- STEP 2: TOPOLOGICAL SORT ---")
 
         from collections import deque
@@ -144,18 +155,14 @@ class Model:
                     ready.append(succ)
                     vprint(f"    '{succ}' added to READY")
 
-        # ------------------------------------------------------------
         # STEP 3 — Detect algebraic loops
-        # ------------------------------------------------------------
         if len(execution_order) != len(names):
             vprint("\n!!! ALGEBRAIC LOOP DETECTED !!!")
             raise RuntimeError(
                 "Algebraic loop detected: direct-feedthrough cycle exists."
             )
 
-        # ------------------------------------------------------------
         # STEP 4 — Final result
-        # ------------------------------------------------------------
         vprint("\n--- FINAL SIMULINK-LIKE EXECUTION ORDER ---")
         for i, b in enumerate(execution_order, 1):
             vprint(f"  {i}. {b}")

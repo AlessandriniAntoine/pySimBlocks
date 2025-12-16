@@ -2,7 +2,7 @@ import streamlit as st
 import yaml
 import uuid
 
-from pySimBlocks.api.cleanup_logs_plot import cleanup_logs_and_plots
+from pySimBlocks.gui.cleanup_logs_plot import cleanup_logs_and_plots
 
 def render_project_settings(registry):
     st.header("Project Settings")

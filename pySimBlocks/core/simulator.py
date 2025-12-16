@@ -1,6 +1,7 @@
 from typing import Dict, List
 import numpy as np
 
+from pySimBlocks.core.config import SimulationConfig
 from pySimBlocks.core.model import Model
 from pySimBlocks.core.fixed_time_manager import FixedStepTimeManager
 from pySimBlocks.core.scheduler import Scheduler
@@ -29,17 +30,29 @@ class Simulator:
         - Algebraic loop detection through the Model's topo ordering.
     """
 
-    def __init__(self, model: Model, dt: float, mode: str = "fixed", verbose: bool = False):
+    def __init__(
+        self,
+        model: Model,
+        sim_cfg: SimulationConfig,
+        verbose: bool = False,
+    ):
+
         self.model = model
-        self.dt_base = dt
+        self.sim_cfg = sim_cfg
         self.verbose = verbose
         self.model.verbose = verbose
 
-        self.t_step = 0.
-        self.t = 0.0
+        self.sim_cfg.validate()
+        self._compile()
 
-        self.output_order = model.build_execution_order()
-        self.model.resolve_sample_times(dt)
+        self.logs: Dict[str, List[np.ndarray]] = {"time": []}
+
+    # ----------------------------------------------------------------------
+    # COMPILE
+    # ----------------------------------------------------------------------
+    def _compile(self):
+        self.output_order = self.model.build_execution_order()
+        self.model.resolve_sample_times(self.sim_cfg.dt)
         sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
 
         # regroup blocks by sample time
@@ -55,29 +68,28 @@ class Simulator:
 
         self.scheduler = Scheduler(self.tasks)
 
-        if mode == "fixed":
+        if self.sim_cfg.solver == "fixed":
             self.time_manager = FixedStepTimeManager(
-                dt_base=self.dt_base,
+                dt_base=self.sim_cfg.dt,
                 sample_times=list(set(sample_times))
             )
-        elif mode == "variable":
+        elif self.sim_cfg.solver == "variable":
             raise NotImplementedError(
                 "Variable-step simulation is not implemented yet."
             )
         else:
             raise ValueError(
-                f"Unknown simulation mode '{mode}'. "
+                f"Unknown simulation mode '{self.sim_cfg.solver}'. "
                 "Supported modes are: 'fixed', 'variable'."
             )
-
-        # logs: dict[var_name -> list[np.ndarray]]
-        self.logs: Dict[str, List[np.ndarray]] = {"time": []}
 
     # ----------------------------------------------------------------------
     # INITIALIZATION
     # ----------------------------------------------------------------------
     def initialize(self, t0: float = 0.0):
         self.t = float(t0)
+        self.t_step = float(t0)
+        self.logs = {"time": []}
 
         # Initialisation bloc par bloc + propagation
         for block in self.output_order:
@@ -160,21 +172,26 @@ class Simulator:
     # ----------------------------------------------------------------------
     # RUN MULTIPLE STEPS
     # ----------------------------------------------------------------------
-    def run(self, T: float, variables_to_log=None):
-        if variables_to_log is None:
-            variables_to_log = []
+    def run(
+        self,
+        T: float | None = None,
+        t0: float | None = None,
+        logging: list[str] | None = None,
+    ):
+        T_run = T if T is not None else self.sim_cfg.T
+        t0_run = t0 if t0 is not None else self.sim_cfg.t0
+        logging_run = logging if logging is not None else self.sim_cfg.logging
 
-        # Initialization
-        self.initialize(self.t)
+        self.initialize(t0_run)
 
         # Main loop
-        while self.t <= T+0.3*self.dt_base: # do one more iteration as t is updated at the end of step
+        while self.t <= T_run +0.3*self.sim_cfg.dt: # do one more iteration as t is updated at the end of step
             self.step()
-            self._log(variables_to_log)
+            self._log(logging_run)
 
             if self.verbose:
-                print(f"\nTime: {self.t}/{T}")
-                for variable in variables_to_log:
+                print(f"\nTime: {self.t_step}/{T_run}")
+                for variable in logging_run:
                     print(f"{variable}: {self.logs[variable][-1]}")
 
 

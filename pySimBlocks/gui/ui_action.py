@@ -1,8 +1,8 @@
 import streamlit as st
-from pySimBlocks.api.codegen import generate_python_content
-from pySimBlocks.api.ui_run_sim import run_simulation
-from pySimBlocks.api.project_export import project_export, save_yaml_content
-from pySimBlocks.api.run_sofa import sofa_launcher_ui
+from pySimBlocks.gui.codegen import generate_python_content
+from pySimBlocks.gui.ui_run_sim import run_simulation
+from pySimBlocks.gui.project_export import project_export, save_yaml_content
+from pySimBlocks.gui.run_sofa import sofa_launcher_ui
 
 
 def render_action():
