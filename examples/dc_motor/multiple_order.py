@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pySimBlocks import Model, Simulator
+
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.systems import LinearStateSpace
 from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
@@ -59,10 +60,10 @@ def main():
         model.connect("sum", "out", "motor", "u")
 
         # Simulator
-        sim = Simulator(model, dt, verbose=False)
+        sim_cfg = SimulationConfig(dt, T)
+        sim = Simulator(model, sim_cfg, verbose=False)
 
-        logs = sim.run(T,
-            variables_to_log=[
+        logs = sim.run(logging=[
                 "ref.outputs.out",
                 "motor.outputs.y",
                 "sum.outputs.out"

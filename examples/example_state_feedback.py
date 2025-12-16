@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import control as ct
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import  Step
 from pySimBlocks.blocks.controllers import  StateFeedback
 from pySimBlocks.blocks.systems import  LinearStateSpace
@@ -49,13 +49,12 @@ def main():
 
     # --- 4. Create the simulator ---
     dt = 0.01  # 10 ms
-    sim = Simulator(model, dt=dt)
+    T = 2.0  # 2 seconds
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
 
     # --- 5. Run simulation ---
-    T = 2.0  # 2 seconds
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "ref.outputs.out",
             "controller.outputs.u",
             "plant.outputs.x",
@@ -74,8 +73,8 @@ def main():
     u = np.array(logs["controller.outputs.u"]).reshape(length, -1)
 
     plt.figure()
-    plt.plot(t, r, label="ref (step)")
-    plt.plot(t, y, label="y (plant output)")
+    plt.step(t, r, label="ref (step)", where="post")
+    plt.step(t, y, label="y (plant output)", where="post")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")
@@ -83,15 +82,15 @@ def main():
 
 
     plt.figure()
-    plt.plot(t, u, label="u = gain(ref)")
+    plt.step(t, u, label="u = gain(ref)", where="post")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")
     plt.title("Control input")
 
     plt.figure()
-    plt.plot(t, x[:, 0], label="x1 (state 1)")
-    plt.plot(t, x[:, 1], label="x2 (state 2)")
+    plt.step(t, x[:, 0], label="x1 (state 1)", where="post")
+    plt.step(t, x[:, 1], label="x2 (state 2)", where="post")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")

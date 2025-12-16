@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Gain, Sum
 
@@ -44,14 +44,14 @@ def main():
     # 3. Create the simulator
     # -------------------------------------------------------
     dt = 0.1
-    sim = Simulator(model, dt=dt)
+    T = 2.0
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
 
     # -------------------------------------------------------
     # 4. Run the simulation for 2 seconds
     # -------------------------------------------------------
-    logs = sim.run(
-        T=2.0,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "r1.outputs.out",
             "r2.outputs.out",
             "g.outputs.out",
@@ -79,10 +79,10 @@ def main():
     # 6. Plot the result
     # -------------------------------------------------------
     plt.figure()
-    plt.plot(t, r1, "--b", label="r1[k] (step)")
-    plt.plot(t, r2, "--r", label="r2[k] (step)")
-    plt.plot(t, g, "--g", label="g[k] (gain)")
-    plt.plot(t, s, "--m", label="s[k] (sum)")
+    plt.step(t, r1, "--b", label="r1[k] (step)", where="post")
+    plt.step(t, r2, "--r", label="r2[k] (step)", where="post")
+    plt.step(t, g, "--g", label="g[k] (gain)", where="post")
+    plt.step(t, s, "--m", label="s[k] (sum)", where="post")
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
     plt.grid(True)
