@@ -10,12 +10,12 @@ blocks:
     gain: [[1.0, 0.0]]
   sum:
     signs:
-    - 1.0
-    - 1.0
+      - 1.0
+      - 1.0
     num_inputs: 2
   step:
     value_before: [[0.0]]
-    value_after: [[1.0]]
+    value_after: [[3.0]]
     start_time: 0.5
   plant:
     A: [[0.9, 0.4], [0.0, 0.97]]
@@ -26,20 +26,20 @@ blocks:
     num_delays: 1
     initial_output: [[0.0], [0.0]]
 logging:
-- C.outputs.out
-- delay.outputs.out
-- step.outputs.out
-- plant.outputs.x
-- plant.outputs.y
-plots:
-- title: States
-  signals:
-  - plant.outputs.x
-  - delay.outputs.out
-- title: Outputs
-  signals:
   - C.outputs.out
-  - plant.outputs.y
-- title: Command
-  signals:
+  - delay.outputs.out
   - step.outputs.out
+  - plant.outputs.x
+  - plant.outputs.y
+plots:
+  - title: States
+    signals:
+      - plant.outputs.x
+      - delay.outputs.out
+  - title: Outputs
+    signals:
+      - C.outputs.out
+      - plant.outputs.y
+  - title: Command
+    signals:
+      - step.outputs.out

@@ -4,16 +4,18 @@ import matplotlib.pyplot as plt
 
 
 def render_plot_results():
-    if st.session_state.get("simulation_done", False):
+    if not st.session_state.get("simulation_done"):
         return
 
-    st.header("Results")
     logs = st.session_state.get("simulation_logs")
     if logs is None:
         return
 
+    st.header("Results")
+
     time = np.array(logs["time"])
     plot_data = st.session_state.get("parameters_yaml", {}).get("plots", [])
+
     for fig in plot_data:
         with st.expander(fig["title"]):
             fig_handle = plt.figure()
