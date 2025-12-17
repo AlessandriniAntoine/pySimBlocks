@@ -57,7 +57,7 @@ def find_block_classes(filepath):
 
 def generate_blocks_index():
     blocks_dir = Path(__file__).resolve().parents[1] / "blocks"
-    output_path = Path(__file__).resolve().parents[1] / "generate" / "pySimBlocks_blocks_index.yaml"
+    output_path = Path(__file__).resolve().parents[1] / "project" / "pySimBlocks_blocks_index.yaml"
 
     index = {}
 

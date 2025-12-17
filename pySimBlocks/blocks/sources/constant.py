@@ -3,27 +3,32 @@ from pySimBlocks.core.block_source import BlockSource
 
 
 class Constant(BlockSource):
-
     """
-    Constant signal source.
+    Constant signal source block.
 
-    Description:
-        Computes:
-            out(t) = value
+    Summary:
+        Generates a constant output signal with a fixed value over time.
+        The output does not depend on time or any input signal.
 
-    Parameters:
-        name: str
-            Block name.
-        value: float | array-like (n,) | array (n,1)
+    Parameters (overview):
+        value : float or array-like
             Constant output value.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        (none)
+    I/O:
+        Inputs:
+            (none)
+        Outputs:
+            out : constant output signal.
 
-    Outputs:
-        out: array (n,1)
-            Constant output vector.
+    Notes:
+        - The block has no internal state.
+        - The output value is held constant for the entire simulation.
+        - If value is scalar, the output is a (1,1) signal.
+        - If value is vector-valued, it is converted to a column vector.
     """
+
 
     def __init__(self, name: str, value, sample_time:float|None = None):
         super().__init__(name, sample_time)

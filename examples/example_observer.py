@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Constant
 from pySimBlocks.blocks.systems import LinearStateSpace
 from pySimBlocks.blocks.observers import Luenberger
@@ -41,12 +41,11 @@ def main():
     model.connect("plant", "y", "observer", "y")
 
     dt = 0.1
-    sim = Simulator(model, dt=dt)
-
     T = 10.
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
+
+    logs = sim.run(logging=[
             "plant.outputs.x",
             "observer.outputs.x_hat",
         ]
@@ -64,8 +63,8 @@ def main():
 
 
     plt.figure()
-    plt.plot(t, x_true, label="True State x")
-    plt.plot(t, x_hat, label="Estimated State x_hat", linestyle='--')
+    plt.step(t, x_true, "--r", label="True State x", where="post")
+    plt.step(t, x_hat, '--b', label="Estimated State x_hat", where="post")
     plt.xlabel("Time [s]")
     plt.ylabel("State Value")
     plt.title("Luenberger Observer State Estimation")

@@ -4,35 +4,34 @@ from pySimBlocks.core.block import Block
 
 class Delay(Block):
     """
-    N-step discrete delay.
+    N-step discrete delay block.
 
-    Description:
-        out[k] = in[k - N]
+    Summary:
+        Outputs a delayed version of the input signal by a fixed number of
+        discrete time steps.
 
-    Parameters:
-        name: str
-            Block name.
+    Parameters (overview):
+        num_delays : int
+            Number of discrete delays N (N ≥ 1).
+        initial_output : scalar or vector, optional
+            Initial value used to fill the delay buffer.
+        sample_time : float, optional
+            Block execution period.
 
-        num_delays: int (optional)
-            Number of discrete delays N ≥ 1. (default = 1)
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Delayed output signal.
 
-        initial_output: float | array-like (n,) | array (n,1) (optional)
-            Initial buffer fill value. (default = None)
-            If None:
-                - If input is known at initialize → buffer = u[0]
-                - Otherwise dimension stays unknown until first step
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        in: array (n,1)
-            Input signal u[k].
-
-    Outputs:
-        out: array (n,1)
-            Delayed output signal y[k] = u[k - N].
+    Notes:
+        - Stateful block.
+        - No direct feedthrough.
+        - Output at time k is the input at time k − N.
+        - Buffer dimension is inferred from the first available input if not
+          explicitly initialized.
     """
+
 
     direct_feedthrough = False
 

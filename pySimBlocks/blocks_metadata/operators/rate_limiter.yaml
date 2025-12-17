@@ -1,0 +1,56 @@
+name: RateLimiter
+category: operators
+type: rate_limiter
+
+summary: >
+  Discrete-time rate limiter block.
+
+description: >
+  Limits the rate of change of the output signal according to:
+  $$
+  \Delta u = u[k] - y[k-1]
+  $$
+  $$
+  y[k] = y[k-1] + \mathrm{clip}(\Delta u,\; s^{-} dt,\; s^{+} dt)
+  $$
+  where $s^{+}$ is the rising slope and $s^{-}$ is the falling slope.
+
+parameters:
+  rising_slope:
+    type: scalar | vector
+    required: false
+
+  falling_slope:
+    type: scalar | vector
+    required: false
+
+  initial_output:
+    type: scalar | vector
+    required: false
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Rate-limited output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: true

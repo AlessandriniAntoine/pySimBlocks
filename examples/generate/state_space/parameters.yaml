@@ -1,0 +1,41 @@
+simulation:
+  dt: 0.01
+  T: 3.0
+  solver: fixed
+
+blocks:
+  ref:
+    value_before: [[0.0]]
+    value_after: [[1.0]]
+    start_time: 0.5
+
+  A:
+    gain: [[0.9]]
+
+  B:
+    gain: [[1.]]
+
+  sum:
+    num_inputs: 2
+    signs: [1., 1.]
+
+  delay:
+    initial_output: [[0.]]
+
+  plant:
+    A: [[0.9]]
+    B: [[1.]]
+    C: [[1.0]]
+    x0: [[0.0]]
+
+logging:
+  - ref.outputs.out
+  - plant.outputs.x
+  - delay.outputs.out
+
+plots:
+  - title: System response
+    signals:
+      - delay.outputs.out
+      - plant.outputs.x
+      - ref.outputs.out

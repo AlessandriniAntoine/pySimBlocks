@@ -1,0 +1,56 @@
+name: DiscreteIntegrator
+category: operators
+type: discrete_integrator
+
+summary: >
+  Discrete-time integrator block.
+
+description: >
+  Implements a discrete-time integration of the input signal.
+  The state evolves according to:
+  $$
+  x[k+1] = x[k] + dt \, u[k]
+  $$
+  with output:
+  $$
+  y[k] = x[k]
+  $$
+  for forward Euler integration.
+
+parameters:
+  initial_state:
+    type: scalar | vector
+    required: false
+
+  method:
+    type: enum
+    required: false
+    default: euler forward
+    enum: [euler forward, euler backward]
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal to integrate.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Integrated output signal.
+
+execution:
+  direct_feedthrough: conditional
+  has_state: true

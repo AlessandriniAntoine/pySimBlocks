@@ -4,45 +4,34 @@ from pySimBlocks.core.block import Block
 
 class DiscreteIntegrator(Block):
     """
-    Discrete-time integrator.
+    Discrete-time integrator block.
 
-    Description:
-        Implements:
-            x[k+1] = x[k] + dt * in[k]
-            out[k] = x[k]
+    Summary:
+        Integrates an input signal over time using a discrete-time numerical
+        integration scheme.
 
-        Supported integration method:
-            - 'euler forward'
-            - 'euler backward'
-        (default = 'euler forward')
+    Parameters (overview):
+        initial_state : scalar or vector, optional
+            Initial value of the integrated state.
+        method : str
+            Numerical integration method.
+        sample_time : float, optional
+            Block execution period.
 
-    Parameters:
-        name: str
-            Block name.
+    I/O:
+        Inputs:
+            in : Signal to integrate.
+        Outputs:
+            out : Integrated signal.
 
-        initial_state: float | array-like (n,) | array (n,1) (optional)
-            Initial value of the integrated state x[0]. (default = zeros)
-            If None:
-                - If input is known at initialization → x[0] = zeros of the same dimension
-                - Otherwise dimension is inferred at the first step
-
-        method: str (optional)
-            Integration method. (default = 'euler forward')
-            Supported:
-                - 'euler forward'
-                - 'euler backward'
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        in: array (n,1)
-            Signal to integrate.
-
-    Outputs:
-        out: array (n,1)
-            Current integrated state x[k].
+    Notes:
+        - Stateful block.
+        - Direct feedthrough depends on the integration method.
+        - Uses forward or backward Euler integration.
+        - State dimension is inferred lazily from the first input if not
+          explicitly initialized.
     """
+
 
     def __init__(self,
         name: str,

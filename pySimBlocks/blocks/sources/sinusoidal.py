@@ -4,33 +4,37 @@ from pySimBlocks.core.block_source import BlockSource
 
 class Sinusoidal(BlockSource):
     """
-    Multi-dimensional sinusoidal signal source.
+    Multi-dimensional sinusoidal signal source block.
 
-    Description:
-        Computes:
-            out_i(t) = A_i * sin(2π f_i t + φ_i) + offset_i
+    Summary:
+        Generates sinusoidal signals with configurable amplitude, frequency,
+        phase and offset for each output dimension.
 
-    Parameters:
-        name: str
-            Block name.
-        amplitude: float | array-like (n,) | array (n,1)
-            Amplitude A_i.
-        frequency: float | array-like (n,) | array (n,1)
-            Frequency f_i (Hz).
-        offset: float | array-like (n,) | array (n,1) (optional)
-            Offset added to each output. (default = 0.0)
-        phase: float | array-like (n,) | array (n,1) (optional)
-            Phase shift φ_i (rad). (default = 0.0)
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    Parameters (overview):
+        amplitude : float or array-like
+            Sinusoidal amplitude.
+        frequency : float or array-like
+            Sinusoidal frequency in Hertz.
+        phase : float or array-like, optional
+            Phase shift in radians.
+        offset : float or array-like, optional
+            Constant offset added to the signal.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        (none)
+    I/O:
+        Inputs:
+            (none)
+        Outputs:
+            out : sinusoidal output signal.
 
-    Outputs:
-        out: array (n,1)
-            Sinusoidal output vector.
+    Notes:
+        - The block has no internal state.
+        - Parameters may be scalar or vector-valued.
+        - Scalar parameters are broadcast to all output dimensions.
+        - Each output dimension may have its own frequency and phase.
     """
+
 
     def __init__(self, name, amplitude, frequency, offset=0.0, phase=0.0, sample_time:float|None = None):
         super().__init__(name, sample_time)

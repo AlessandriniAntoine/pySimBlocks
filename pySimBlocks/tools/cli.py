@@ -5,10 +5,10 @@ Usage:
     pysimblocks-update
 """
 
-from pySimBlocks.tools.generate_blocks_metadata import generate_blocks_metadata
+from pySimBlocks.tools.generate_blocks_index import generate_blocks_index
 
 
 def main():
-    print("Running pySimBlocks metadata update...")
-    generate_blocks_metadata()
+    print("Running pySimBlocks index update...")
+    generate_blocks_index()
     print("pySimBlocks update complete.")

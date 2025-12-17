@@ -4,38 +4,38 @@ from pySimBlocks.core.block import Block
 
 class LinearStateSpace(Block):
     """
-    Discrete-time linear state-space system.
+    Discrete-time linear state-space system block.
 
-    Description:
-        Implements:
-            x[k+1] = A x[k] + B u[k]
-            y[k]   = C x[k]
-        Currently no matrix D to avoid algebric loop
+    Summary:
+        Implements a discrete-time linear state-space system without direct
+        feedthrough, defined by state and output equations.
 
-    Parameters:
-        name: str
-            Block name.
-        A: matrix (n,n)
+    Parameters (overview):
+        A : array-like
             State transition matrix.
-        B: matrix (n,m)
+        B : array-like
             Input matrix.
-        C: matrix (p,n)
+        C : array-like
             Output matrix.
-        x0: array (n,1) (optional)
-            Initial state vector (default = zeros).
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+        x0 : array-like, optional
+            Initial state vector.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        u: array (m,1)
-            Input vector u[k].
+    I/O:
+        Inputs:
+            u : input vector.
+        Outputs:
+            y : output vector.
+            x : state vector.
 
-    Outputs:
-        x: array (n,1)
-            Current state vector x[k].
-        y: array (p,1)
-            Output vector y[k].
+    Notes:
+        - The system is strictly proper (no direct feedthrough).
+        - The block has internal state.
+        - Matrix D is intentionally not supported to avoid algebraic loops.
+        - The state is updated once per simulation step.
     """
+
     direct_feedthrough = False
 
     def __init__(

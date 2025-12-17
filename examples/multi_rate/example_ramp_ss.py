@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Ramp
 from pySimBlocks.blocks.systems import LinearStateSpace
 
@@ -58,19 +58,13 @@ def main():
     # ------------------------------------------------------------
     # Simulator
     # ------------------------------------------------------------
-    sim = Simulator(
-        model=model,
-        dt=dt,
-        mode="fixed",
-        verbose=True
-    )
+    sim_cfg = SimulationConfig(dt, T, solver="fixed")
+    sim = Simulator(model, sim_cfg, verbose=True)
 
     # ------------------------------------------------------------
     # Run simulation
     # ------------------------------------------------------------
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "ramp.outputs.out",
             "plant.outputs.y"
         ]
@@ -82,10 +76,6 @@ def main():
     t = np.array(logs["time"]).flatten()
     ramp_out = np.vstack(logs["ramp.outputs.out"])
     plant_out = np.vstack(logs["plant.outputs.y"])
-
-    print(t)
-    print(ramp_out.flatten())
-    print(plant_out.flatten())
 
     plt.figure()
     plt.step(t, ramp_out, label="Ramp input", where="post")

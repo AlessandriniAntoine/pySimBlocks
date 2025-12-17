@@ -1,0 +1,54 @@
+name: Sinusoidal
+category: sources
+type: sinusoidal
+
+summary: >
+  Multi-dimensional sinusoidal signal source.
+
+description: >
+  Generates a sinusoidal signal defined by:
+  $$
+  y_i(t) = A_i \sin(2\pi f_i t + \varphi_i) + o_i
+  $$
+
+parameters:
+  amplitude:
+    type: vector
+    required: true
+    description: Sinusoidal amplitude.
+
+  frequency:
+    type: vector
+    required: true
+    description: Sinusoidal frequency in Hertz.
+
+  phase:
+    type: vector
+    required: false
+    description: Phase shift in radians.
+
+  offset:
+    type: vector
+    required: false
+    description: Constant offset added to the signal.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs: []
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Sinusoidal output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

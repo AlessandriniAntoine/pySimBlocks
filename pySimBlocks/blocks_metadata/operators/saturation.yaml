@@ -1,0 +1,49 @@
+name: Saturation
+category: operators
+type: saturation
+
+summary: >
+  Discrete-time saturation operator.
+
+description: >
+  Applies element-wise saturation to the input signal:
+  $$
+  y[k] = \mathrm{clip}(u[k], u_{\min}, u_{\max})
+  $$
+  where $u_{\min}$ and $u_{\max}$ define the lower and upper bounds.
+
+parameters:
+  u_min:
+    type: scalar | vector
+    required: false
+
+  u_max:
+    type: scalar | vector
+    required: false
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Saturated output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

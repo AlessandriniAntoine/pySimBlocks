@@ -5,66 +5,44 @@ from pySimBlocks.core.block import Block
 
 class Pid(Block):
     """
-    Single-input single-output discrete PID controller (Simulink-like).
+    Discrete-time PID controller block.
 
-    Description:
-        Implements the standard discrete PID law in parallel form:
+    Summary:
+        Implements a single-input single-output discrete PID controller,
+        similar to the Simulink PID block. The controller computes a control
+        command from an error signal using proportional, integral and/or
+        derivative actions, depending on the selected control mode.
 
-            u[k] = Kp * e[k]
-                 + Ki * x_i[k]
-                 + Kd * (e[k] - e[k-1]) / dt
+    Parameters (overview):
+        controller : str
+            Control mode. One of {"P", "PI", "PD", "PID"}.
+        Kp : float
+            Proportional gain.
+        Ki : float
+            Integral gain.
+        Kd : float
+            Derivative gain.
+        u_min : float, optional
+            Minimum output saturation.
+        u_max : float, optional
+            Maximum output saturation.
+        sample_time : float, optional
+            Controller sampling period.
 
-        with integral update:
+    I/O:
+        Inputs:
+            e : error signal.
+        Outputs:
+            u : control command.
 
-            x_i[k+1] = x_i[k] + e[k] * dt
-
-        This block is strictly SISO. Each gain (Kp, Ki, Kd) must be a scalar,
-        provided either as:
-            - a float,
-            - a list of length 1,
-            - a numpy array of shape (1,) or (1,1).
-
-        Any other dimension raises an explicit ValueError.
-
-    Parameters:
-        name: str
-            Block name.
-
-        controller: str (optional)
-                    One of {"P","I","PI","PD","PID"}. (default="PID")
-
-        Kp: float | list | array (optional)
-            Proportional gain (scalar-like). (Default = 0.)
-
-        Ki: float | list | array (optional)
-            Integral gain (scalar-like). (Default = 0.)
-
-        Kd: float | list | array (optional)
-            Derivative gain (scalar-like). (Default = 0.)
-
-        u_min: float | array-like (optional)
-            Minimum output saturation (scalar). (Default: no saturation.)
-
-        u_max: float | array-like (optional)
-            Maximum output saturation (scalar). (Default: no saturation.)
-
-        integration_method: str (optional)
-            Integration method. (default = 'euler forward')
-            Currently supported:
-                - euler forward
-                - euler backward
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        e: array (1,1)
-            Error signal.
-
-    Outputs:
-        u: array (1,1)
-            Control command.
+    Notes:
+        - The block is strictly SISO.
+        - Integral action introduces internal state.
+        - If a parameter is not provided, the block falls back to its
+          internal default value.
+        - Output saturation is applied only if u_min and/or u_max are defined.
     """
+
 
 
     # ---------------------------------------------------------------------

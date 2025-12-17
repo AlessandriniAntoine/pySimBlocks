@@ -4,32 +4,33 @@ from pySimBlocks.core.block import Block
 
 class StateFeedback(Block):
     """
-    Discrete-time state-feedback controller.
+    Discrete-time state-feedback controller block.
 
-    Description:
-        Implements:
-            u[k] = G * r[k] - K * x[k]
+    Summary:
+        Implements a static discrete-time state-feedback control law
+        combining reference feedforward and state feedback.
 
-    Parameters:
-        name: str
-            Block name.
-        K: matrix (m,n)
-            State feedback gain.
-        G: matrix (m,p)
-            Reference feedforward gain. Default = zero matrix.
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    Parameters (overview):
+        K : array-like
+            State feedback gain matrix.
+        G : array-like
+            Reference feedforward gain matrix.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        r: array (p,1)
-            Reference vector.
-        x: array (n,1)
-            State measurement.
+    I/O:
+        Inputs:
+            r : reference vector.
+            x : state measurement vector.
+        Outputs:
+            u : control input vector.
 
-    Outputs:
-        u: array (m,1)
-            Control input.
+    Notes:
+        - The controller is static and has no internal state.
+        - The control law is evaluated at each simulation step.
+        - Both reference and state inputs must be connected.
     """
+
 
 
     def __init__(self, name: str, K: np.ndarray, G: np.ndarray, sample_time:float|None = None):

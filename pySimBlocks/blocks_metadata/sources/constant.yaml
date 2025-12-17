@@ -1,0 +1,38 @@
+name: Constant
+category: sources
+type: constant
+
+summary: >
+  Constant signal source.
+
+description: >
+  Generates a constant output signal:
+  $$
+  y(t) = c
+  $$
+
+parameters:
+  value:
+    type: scalar | vector
+    required: true
+    description: Constant output value.
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs: []
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Constant output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

@@ -1,0 +1,49 @@
+name: Ramp
+category: sources
+type: ramp
+
+summary: >
+  Multi-dimensional ramp signal source.
+
+description: >
+  Generates a ramp signal defined by:
+  $$
+  y_i(t) = o_i + s_i \max(0, t - t_{0,i})
+  $$
+
+parameters:
+  slope:
+    type: vector
+    required: true
+    description: Ramp slope for each output dimension.
+
+  start_time:
+    type: vector
+    required: false
+    description: Time at which the ramp starts.
+
+  offset:
+    type: vector
+    required: false
+    description: Output value before the ramp starts.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs: []
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Ramp output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

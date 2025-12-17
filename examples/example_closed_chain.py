@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Gain, Sum, Delay
 
@@ -45,14 +45,14 @@ def main():
     # 3. Create the simulator
     # -------------------------------------------------------
     dt = 0.1
-    sim = Simulator(model, dt=dt)
+    T = 2.
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
 
     # -------------------------------------------------------
     # 4. Run the simulation for 2 seconds
     # -------------------------------------------------------
-    logs = sim.run(
-        T=2.0,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "u.outputs.out",
             "delay.outputs.out"
         ]
@@ -66,16 +66,12 @@ def main():
     u = np.array(logs["u.outputs.out"]).reshape(length, -1)
     x = np.array(logs["delay.outputs.out"]).reshape(length, -1)
 
-    print(f"Time: \n{t.flatten()}")
-    print(f"u: \n{u.flatten()}")
-    print(f"x: \n{x.flatten()}")
-
     # -------------------------------------------------------
     # 6. Plot the result
     # -------------------------------------------------------
     plt.figure()
-    plt.plot(t, u, "--b", label="u[k] (step)")
-    plt.plot(t, x, "--r", label="x[k] (delay)")
+    plt.step(t, u, "--b", label="u[k] (step)", where="post")
+    plt.step(t, x, "--r", label="x[k] (delay)", where="post")
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
     plt.grid(True)

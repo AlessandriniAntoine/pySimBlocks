@@ -1,0 +1,51 @@
+name: SofaPlant
+category: systems
+type: sofa_plant
+
+summary: >
+  SOFA-based dynamic plant.
+
+description: >
+  Executes a SOFA simulation in a worker process.
+
+parameters:
+  scene_file:
+    type: string
+    required: true
+
+  input_keys:
+    type: list[string]
+    required: true
+
+  output_keys:
+    type: list[string]
+    required: true
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: sofa_inputs
+      dynamic: true
+      pattern: "{key}"
+      source:
+        type: parameter
+        parameter: input_keys
+      shape: [n, 1]
+      description: SOFA input ports.
+
+  outputs:
+    - name: sofa_outputs
+      dynamic: true
+      pattern: "{key}"
+      source:
+        type: parameter
+        parameter: output_keys
+      shape: [n, 1]
+      description: SOFA output ports.
+
+execution:
+  direct_feedthrough: false
+  has_state: true

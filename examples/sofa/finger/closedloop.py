@@ -2,11 +2,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
 from pySimBlocks.blocks.systems.sofa import SofaPlant
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
+from pySimBlocks.project import plot_from_config
 
 
 def main():
@@ -38,13 +39,12 @@ def main():
 
     # --- Create the simulator ---
     dt = 0.01
-    sim = Simulator(model, dt=dt, verbose=False)
+    T = 5.0
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg, verbose=False)
 
     # --- Run simulation ---
-    T = 5.0
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "step.outputs.out",
             "sofa_finger.outputs.measure",
             "pid.outputs.u"
@@ -52,30 +52,14 @@ def main():
     )
 
     # --- Inspect / print some results ---
-    length = len(logs["step.outputs.out"])
+    plot_cfg = PlotConfig([
+            {'title': 'Ref vs Output',
+            'signals': ['step.outputs.out', 'sofa_finger.outputs.measure']},
+            {'title': 'Command',
+            'signals': ['pid.outputs.u']}
+    ])
+    plot_from_config(logs, plot_cfg)
 
-    t = np.array(logs["time"])
-    r = np.array(logs["step.outputs.out"]).reshape(length, -1)
-    y = np.array(logs["sofa_finger.outputs.measure"]).reshape(length, -1)
-    u = np.array(logs["pid.outputs.u"]).reshape(length, -1)
-
-    plt.figure()
-    plt.step(t, r, 'r--', label="Reference")
-    plt.step(t, y[:, 0], 'b--', label=f"Measure")
-    plt.legend()
-    plt.grid(True)
-    plt.xlabel("Time [s]")
-    plt.ylabel("Tip Position")
-    plt.title("Finger Tip Position Over Time")
-
-    plt.figure()
-    plt.step(t, u[:, 0], 'g--', label="Control Signal")
-    plt.legend()
-    plt.grid(True)
-    plt.xlabel("Time [s]")
-    plt.ylabel("Control Signal")
-    plt.title("Control Signal Over Time")
-    plt.show()
 
 
 if __name__ == '__main__':

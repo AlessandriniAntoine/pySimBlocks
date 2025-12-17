@@ -1,0 +1,59 @@
+name: StateFeedback
+category: controllers
+type: state_feedback
+
+summary: >
+  Discrete-time state-feedback controller.
+
+description: >
+  Implements the static control law:
+  $$
+  u[k] = G r[k] - K x[k]
+  $$
+
+parameters:
+  K:
+    type: matrix
+    required: true
+    description: State feedback gain matrix.
+
+  G:
+    type: matrix
+    required: true
+    description: Reference feedforward gain matrix.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs:
+    - name: reference
+      dynamic: false
+      pattern: r
+      source:
+        type: fixed
+      shape: [p, 1]
+      description: Reference vector.
+
+    - name: state
+      dynamic: false
+      pattern: x
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: State measurement vector.
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: u
+      source:
+        type: fixed
+      shape: [m, 1]
+      description: Control input vector.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

@@ -4,34 +4,33 @@ from pySimBlocks.core.block import Block
 
 class DeadZone(Block):
     """
-    Discrete-time dead zone operator (Simulink-compatible).
+    Discrete-time dead zone operator.
 
-    Description:
-        Generates zero output within a dead zone and shifts the signal
-        outside the dead zone:
+    Summary:
+        Suppresses the input signal within a specified interval around zero
+        and shifts the signal outside this interval.
 
-            y = 0                      if lower_bound <= u <= upper_bound
-            y = u - upper_bound        if u > upper_bound
-            y = u - lower_bound        if u < lower_bound
+    Parameters (overview):
+        lower_bound : scalar or vector
+            Lower bound of the dead zone (must be <= 0).
+        upper_bound : scalar or vector
+            Upper bound of the dead zone (must be >= 0).
+        sample_time : float, optional
+            Block execution period.
 
-    Parameters:
-        name: str
-            Block name.
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Output signal after dead-zone transformation.
 
-        lower_bound: float | array-like (n,) | array (n,1)
-            Start of dead zone (<= 0). (Default = 0.)
-
-        upper_bound: float | array-like (n,) | array (n,1)
-            End of dead zone (>= 0). (Default = 0.)
-
-    Inputs:
-        in: array (n,1)
-            Input signal.
-
-    Outputs:
-        out: array (n,1)
-            Output signal after dead zone.
+    Notes:
+        - Stateless block.
+        - Direct feedthrough.
+        - Bounds are broadcast to match input dimension.
+        - The dead zone must include zero.
     """
+
 
     direct_feedthrough = True
 

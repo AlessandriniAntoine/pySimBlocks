@@ -4,35 +4,32 @@ from pySimBlocks.core.block import Block
 
 class DiscreteDerivator(Block):
     """
-    Discrete-time differentiator.
+    Discrete-time differentiator block.
 
-    Description:
-        Computes the discrete derivative:
-            y[k] = (u[k] - u[k-1]) / dt
+    Summary:
+        Estimates the discrete-time derivative of the input signal using a
+        backward finite difference.
 
-        Note: A forward approximation (u[k+1] - u[k]) / dt cannot be used
-        because future input is not accessible. This block implements a
-        backward difference, matching Simulink's "Derivative" semantics
-        in discrete mode.
+    Parameters (overview):
+        initial_output : scalar or vector, optional
+            Initial derivative value at the first time step.
+        sample_time : float, optional
+            Block execution period.
 
-    Parameters:
-        name: str
-            Block name.
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Estimated discrete-time derivative.
 
-        initial_output: float | array-like (n,) | array (n,1) (optional)
-            Value of y[0]. (default = zero vector)
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        in: array (n,1)
-            Input signal u[k].
-
-    Outputs:
-        out: array (n,1)
-            Estimated derivative y[k].
+    Notes:
+        - Stateful block.
+        - Direct feedthrough.
+        - Uses a backward difference scheme consistent with Simulink discrete
+          Derivative behavior.
+        - Output dimension is inferred from the first valid input.
     """
+
 
     def __init__(self, name: str, initial_output=None, sample_time:float|None = None):
         super().__init__(name, sample_time)

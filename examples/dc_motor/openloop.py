@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.systems import LinearStateSpace
 
@@ -34,13 +34,12 @@ def main():
     model.connect("command", "out", "motor", "u")
 
     # Simulator
-    sim = Simulator(model, dt)
-
-    logs = sim.run(T,
-        variables_to_log=[
-            "command.outputs.out",
-            "motor.outputs.y",
-        ])
+    sim_cfg = SimulationConfig(dt, T, logging=[
+        "command.outputs.out",
+        "motor.outputs.y"
+    ])
+    sim = Simulator(model, sim_cfg)
+    logs = sim.run()
 
     length = len(logs["command.outputs.out"])
     time = np.array(logs["time"])

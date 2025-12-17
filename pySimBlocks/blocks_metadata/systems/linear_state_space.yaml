@@ -1,0 +1,72 @@
+name: LinearStateSpace
+category: systems
+type: linear_state_space
+
+summary: >
+  Discrete-time linear state-space system.
+
+description: >
+  Implements the discrete-time state-space equations:
+  $$
+  x[k+1] = A x[k] + B u[k]
+  $$
+  $$
+  y[k] = C x[k]
+  $$
+
+parameters:
+  A:
+    type: matrix
+    required: true
+    description: State transition matrix.
+
+  B:
+    type: matrix
+    required: true
+    description: Input matrix.
+
+  C:
+    type: matrix
+    required: true
+    description: Output matrix.
+
+  x0:
+    type: vector
+    required: false
+    description: Initial state vector.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs:
+    - name: input
+      dynamic: false
+      pattern: u
+      source:
+        type: fixed
+      shape: [m, 1]
+      description: Input vector.
+
+  outputs:
+    - name: state
+      dynamic: false
+      pattern: x
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: State vector.
+
+    - name: output
+      dynamic: false
+      pattern: y
+      source:
+        type: fixed
+      shape: [p, 1]
+      description: Output vector.
+
+execution:
+  direct_feedthrough: false
+  has_state: true

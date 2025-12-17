@@ -4,32 +4,35 @@ from pySimBlocks.core.block_source import BlockSource
 
 class Step(BlockSource):
     """
-    Step signal source.
+    Step signal source block.
 
-    Description:
-        Computes:
-            out(t) = value_before    if t < start_time
-            out(t) = value_after     if t ≥ start_time
+    Summary:
+        Generates a step signal that switches from an initial value to a final
+        value at a specified time.
 
-    Parameters:
-        name: str
-            Block name.
-        value_before: float | array-like (n,) | array (n,1)
-            Output value before start_time.
-        value_after: float | array-like (n,) | array (n,1)
-            Output value after start_time.
-        start_time: float
-            Switching time.
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    Parameters (overview):
+        value_before : float or array-like
+            Output value before the step time.
+        value_after : float or array-like
+            Output value after the step time.
+        start_time : float
+            Time at which the step occurs.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        (none)
+    I/O:
+        Inputs:
+            (none)
+        Outputs:
+            out : step output signal.
 
-    Outputs:
-        out: array (n,1)
-            Step output vector.
+    Notes:
+        - The block has no internal state.
+        - Scalar parameters are broadcast to all output dimensions.
+        - A small tolerance is used to ensure consistent behavior on discrete
+          time grids.
     """
+
 
     def __init__(self, name: str, value_before, value_after, start_time, sample_time:float|None = None):
 

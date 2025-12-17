@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.systems import LinearStateSpace
 
@@ -38,13 +38,12 @@ def main():
 
     # --- 4. Create the simulator ---
     dt = 0.01  # 10 ms
-    sim = Simulator(model, dt=dt)
+    T = 2.0  # 2 seconds
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
 
     # --- 5. Run simulation ---
-    T = 2.0  # 2 seconds
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "command.outputs.out",
             "plant.outputs.x",
             "plant.outputs.y",
@@ -62,9 +61,9 @@ def main():
 
 
     plt.figure()
-    plt.plot(t, u, label="u (step)")
-    plt.plot(t, x[:, 0], label="x1 (plant)")
-    plt.plot(t, y, label="x2=y (plant)")
+    plt.step(t, u, label="u (step)", where="post")
+    plt.step(t, x[:, 0], label="x1 (plant)", where="post")
+    plt.step(t, y, label="x2=y (plant)", where="post")
     plt.legend()
     plt.grid(True)
     plt.xlabel("Time [s]")

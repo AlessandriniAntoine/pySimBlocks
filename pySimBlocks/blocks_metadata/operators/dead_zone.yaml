@@ -1,0 +1,56 @@
+name: DeadZone
+category: operators
+type: dead_zone
+
+summary: >
+  Discrete-time dead zone operator.
+
+description: >
+  Applies a dead-zone nonlinearity to the input signal:
+  $$
+  y = 0 \quad \text{if } \text{lower\_bound} \le u \le \text{upper\_bound}
+  $$
+  $$
+  y = u - \text{upper\_bound} \quad \text{if } u > \text{upper\_bound}
+  $$
+  $$
+  y = u - \text{lower\_bound} \quad \text{if } u < \text{lower\_bound}
+  $$
+
+parameters:
+  lower_bound:
+    type: scalar | vector
+    required: false
+    default: 0.0
+
+  upper_bound:
+    type: scalar | vector
+    required: false
+    default: 0.0
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Output signal after dead-zone operation.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

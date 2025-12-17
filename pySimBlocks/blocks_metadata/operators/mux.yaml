@@ -1,0 +1,52 @@
+name: Mux
+category: operators
+type: mux
+
+summary: >
+  Vertical signal concatenation block.
+
+description: >
+  Concatenates multiple input column vectors vertically:
+  $$
+  \mathrm{out} =
+  \begin{bmatrix}
+  \mathrm{in}_1 \\
+  \mathrm{in}_2 \\
+  \vdots \\
+  \mathrm{in}_N
+  \end{bmatrix}
+  $$
+
+parameters:
+  num_inputs:
+    type: int
+    required: false
+    default: 2
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: inputs
+      dynamic: true
+      pattern: "in{i}"
+      source:
+        type: parameter
+        parameter: num_inputs
+      shape: [n, 1]
+      description: Input column vectors to concatenate.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [m, 1]
+      description: Vertically concatenated output vector.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

@@ -4,37 +4,32 @@ from pySimBlocks.core.block import Block
 
 class Mux(Block):
     """
-    Vertical signal concatenation (Mux).
+    Vertical signal concatenation block.
 
-    Description:
-        Concatenates multiple column vectors vertically:
+    Summary:
+        Concatenates multiple input column vectors vertically into a single
+        column vector.
 
-            out = [in1;
-                   in2;
-                   ...
-                   inN]
+    Parameters (overview):
+        num_inputs : int
+            Number of input ports to concatenate.
+        sample_time : float, optional
+            Block execution period.
 
-        Each input port expects a column vector (ni,1).
-        The output is (sum_i ni, 1).
-
-    Parameters:
-        name: str
-            Block name.
-        num_inputs: int (optional)
-            Number of input ports to create. (default = 2)
-
-    Inputs:
-        Dynamic — in1, in2, ..., inN.
-            Each must be array (ni,1).
-
-    Outputs:
-        out: array (sum_i ni,1)
-            Vertical concatenation of all inputs.
+    I/O:
+        Inputs:
+            in1, in2, ..., inN : column vectors
+                Defined dynamically by `num_inputs`.
+        Outputs:
+            out : concatenated column vector.
 
     Notes:
-        - Mux does NOT require all inputs to have the same dimension.
-        - Mux is stateless.
+        - Stateless block.
+        - Direct feedthrough.
+        - Input vectors are concatenated vertically without dimension matching
+          constraints between inputs.
     """
+
 
     def __init__(self, name: str, num_inputs: int = 2, sample_time:float|None = None):
         super().__init__(name, sample_time)

@@ -4,42 +4,41 @@ from pySimBlocks.core.block import Block
 
 class Luenberger(Block):
     """
-    Discrete-time Luenberger state observer.
+    Discrete-time Luenberger state observer block.
 
-    Description:
-        Implements:
-            x_hat[k+1] = A x_hat[k] + B u[k] + L * (y[k] - C x_hat[k])
-            y_hat[k]   = C x_hat[k]
-        Currently no matrix D to avoid algebric loop
+    Summary:
+        Implements a discrete-time Luenberger observer that estimates the
+        system state from input and output measurements.
 
-    Parameters:
-        name: str
-            Block name.
-        A: matrix (n,n)
+    Parameters (overview):
+        A : array-like
             System state matrix.
-        B: matrix (n,m)
+        B : array-like
             Input matrix.
-        C: matrix (p,n)
+        C : array-like
             Output matrix.
-        L: matrix (n,p)
+        L : array-like
             Observer gain matrix.
-        x0: array (n,1) (optional)
-            Initial estimated state (default = zeros).
-        sample_time: float | None (optional)
-                Block sample time (default = None)
+        x0 : array-like, optional
+            Initial estimated state.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        u: array (m,1)
-            Control input.
-        y: array (p,1)
-            System output measurement.
+    I/O:
+        Inputs:
+            u : control input.
+            y : measured output.
+        Outputs:
+            x_hat : estimated state.
+            y_hat : estimated output.
 
-    Outputs:
-        x_hat: array (n,1)
-            State estimate.
-        y_hat: array (p,1)
-            Estimated output C x̂[k] + D u[k].
+    Notes:
+        - The observer has internal state.
+        - The block has no direct feedthrough.
+        - Matrix D is intentionally not supported to avoid algebraic loops.
+        - The state estimate is updated once per simulation step.
     """
+
 
     direct_feedthrough = False
 

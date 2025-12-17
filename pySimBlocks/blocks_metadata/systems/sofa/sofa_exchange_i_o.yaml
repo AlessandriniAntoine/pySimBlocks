@@ -1,0 +1,57 @@
+name: SofaExchangeIO
+category: systems
+type: sofa_exchange_i_o
+
+summary: >
+  Interface block for exchanging signals between pySimBlocks and SOFA.
+
+description: >
+  Provides a stateless interface block that exposes dynamic input and output
+  ports to connect a pySimBlocks model with an external SOFA controller.
+  This block does not execute a SOFA simulation.
+
+parameters:
+  input_keys:
+    type: list
+    required: true
+    description: Names of externally provided input signals.
+
+  output_keys:
+    type: list
+    required: true
+    description: Names of output signals to be consumed by SOFA.
+
+  scene_file:
+    type: str
+    required: false
+    description: Path to the SOFA scene file used for automatic generation.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs:
+    - name: sofa_inputs
+      dynamic: true
+      pattern: "{key}"
+      source:
+        type: parameter
+        parameter: input_keys
+      shape: [n, 1]
+      description: Input ports provided by the external SOFA controller.
+
+  outputs:
+    - name: sofa_outputs
+      dynamic: true
+      pattern: "{key}"
+      source:
+        type: parameter
+        parameter: output_keys
+      shape: [n, 1]
+      description: Output ports consumed by the SOFA controller.
+
+execution:
+  direct_feedthrough: false
+  has_state: false

@@ -1,0 +1,40 @@
+simulation:
+  dt: 0.01
+  T: 5.0
+blocks:
+  step:
+    value_before: [[0]]
+    value_after: [[8.0]]
+    start_time: 0.4
+  error:
+    num_inputs: 2
+    signs:
+      - 1.0
+      - -1.0
+  Kp:
+    gain: [[0.3]]
+  Ki:
+    gain: [[0.8]]
+  discrete_integrator:
+    initial_state: [[0]]
+  sum:
+    num_inputs: 2
+  sofa:
+    scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/generate/sofa/sofa_plant/finger/Finger.py
+    input_keys:
+      - cable
+    output_keys:
+      - tip
+      - measure
+logging:
+  - step.outputs.out
+  - sofa.outputs.measure
+  - sum.outputs.out
+plots:
+  - title: Outputs
+    signals:
+      - step.outputs.out
+      - sofa.outputs.measure
+  - title: Command
+    signals:
+      - sum.outputs.out

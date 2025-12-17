@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Ramp
 from pySimBlocks.blocks.operators import Gain
 
@@ -42,19 +42,13 @@ def main():
     # ------------------------------------------------------------
     # Simulator (fixed-step, mono-rate)
     # ------------------------------------------------------------
-    sim = Simulator(
-        model=model,
-        dt=dt,
-        mode="fixed",
-        verbose=True
-    )
+    sim_cfg = SimulationConfig(dt, T, solver="fixed")
+    sim = Simulator(model, sim_cfg, verbose=True)
 
     # ------------------------------------------------------------
     # Run simulation
     # ------------------------------------------------------------
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "ramp.outputs.out",
             "gain.outputs.out"
         ]

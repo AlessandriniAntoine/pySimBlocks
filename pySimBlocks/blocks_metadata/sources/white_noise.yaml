@@ -1,0 +1,49 @@
+name: WhiteNoise
+category: sources
+type: white_noise
+
+summary: >
+  Multi-dimensional Gaussian white noise source.
+
+description: >
+  Generates independent Gaussian noise samples at each simulation step:
+  $$
+  y_i(t) \sim \mathcal{N}(\mu_i, \sigma_i^2)
+  $$
+
+parameters:
+  mean:
+    type: vector
+    required: false
+    description: Mean value of the noise.
+
+  std:
+    type: vector
+    required: false
+    description: Standard deviation of the noise.
+
+  seed:
+    type: int
+    required: false
+    description: Random seed for reproducibility.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs: []
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Gaussian noise output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

@@ -4,31 +4,35 @@ from pySimBlocks.core.block_source import BlockSource
 
 class WhiteNoise(BlockSource):
     """
-    Multi-dimensional Gaussian noise source.
+    Multi-dimensional Gaussian white noise source block.
 
-    Description:
-        Computes:
-            out_i(t) ~ N(mean_i, std_i^2)
+    Summary:
+        Generates independent Gaussian noise samples at each simulation step
+        for each output dimension.
 
-    Parameters:
-        name: str
-            Block name.
-        mean: float | array-like (n,) | array (n,1) (optional)
-            Mean value for each dimension. (default = 0.0)
-        std: float | array-like (n,) | array (n,1) (optional)
-            Standard deviation for each dimension. Must be >= 0. (default = 1.0)
-        seed: int (optional)
-            Random seed for reproducibility. (default = None)
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    Parameters (overview):
+        mean : float or array-like, optional
+            Mean value of the noise.
+        std : float or array-like, optional
+            Standard deviation of the noise.
+        seed : int, optional
+            Random seed for reproducibility.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        (none)
+    I/O:
+        Inputs:
+            (none)
+        Outputs:
+            out : noise output signal.
 
-    Outputs:
-        out: array (n,1)
-            Noise vector drawn at each output_update().
+    Notes:
+        - The block has no internal state.
+        - Noise samples are drawn independently at each step.
+        - Parameters may be scalar or vector-valued.
+        - Scalar parameters are broadcast to all output dimensions.
     """
+
 
     def __init__(self, name: str, mean=0.0, std=1.0, seed:int | None=None, sample_time:float|None = None):
         super().__init__(name, sample_time)

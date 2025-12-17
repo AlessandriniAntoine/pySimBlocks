@@ -4,31 +4,35 @@ from pySimBlocks.core.block_source import BlockSource
 
 class Ramp(BlockSource):
     """
-    Multi-dimensional ramp signal source.
+    Multi-dimensional ramp signal source block.
 
-    Description:
-        Computes:
-            out_i(t) = initial_output_i + slope_i * max(0, t - start_time_i)
+    Summary:
+        Generates a ramp signal for each output dimension, starting at a given
+        time with a specified slope and initial offset.
 
-    Parameters:
-        name: str
-            Block name.
-        slope: float | array-like (n,) | array (n,1)
-            Slope of each output dimension.
-        start_time: float | array-like (n,) | array (n,1) (optional)
-            Time at which each ramp starts. (default = 0.0).
-        offset: float | array-like (n,) | array (n,1) (optional)
-            Value before the ramp starts (default = zeros).
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    Parameters (overview):
+        slope : float or array-like
+            Ramp slope for each output dimension.
+        start_time : float or array-like, optional
+            Time at which the ramp starts.
+        offset : float or array-like, optional
+            Output value before the ramp starts.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        (none)
+    I/O:
+        Inputs:
+            (none)
+        Outputs:
+            out : ramp output signal.
 
-    Outputs:
-        out: array (n,1)
-            Ramp output vector.
+    Notes:
+        - The block has no internal state.
+        - Parameters may be scalar or vector-valued.
+        - Scalar parameters are broadcast to all output dimensions.
+        - Each output dimension may have a different slope and start time.
     """
+
 
     def __init__(self, name, slope, start_time=0.0, offset=None, sample_time:float|None = None):
         super().__init__(name, sample_time)

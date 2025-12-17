@@ -1,0 +1,85 @@
+name: Luenberger
+category: observers
+type: luenberger
+
+summary: >
+  Discrete-time Luenberger state observer.
+
+description: >
+  Implements the discrete-time observer equations:
+  $$
+  x̂[k+1] = A x̂[k] + B u[k] + L (y[k] - C x̂[k])
+  $$
+  $$
+  ŷ[k] = C x̂[k]
+  $$
+
+parameters:
+  A:
+    type: matrix
+    required: true
+    description: System state matrix.
+
+  B:
+    type: matrix
+    required: true
+    description: Input matrix.
+
+  C:
+    type: matrix
+    required: true
+    description: Output matrix.
+
+  L:
+    type: matrix
+    required: true
+    description: Observer gain matrix.
+
+  x0:
+    type: vector
+    required: false
+    description: Initial estimated state.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs:
+    - name: input
+      dynamic: false
+      pattern: u
+      source:
+        type: fixed
+      shape: [m, 1]
+      description: Control input.
+
+    - name: measurement
+      dynamic: false
+      pattern: y
+      source:
+        type: fixed
+      shape: [p, 1]
+      description: Measured output.
+
+  outputs:
+    - name: state_estimate
+      dynamic: false
+      pattern: x_hat
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Estimated state vector.
+
+    - name: output_estimate
+      dynamic: false
+      pattern: y_hat
+      source:
+        type: fixed
+      shape: [p, 1]
+      description: Estimated output.
+
+execution:
+  direct_feedthrough: false
+  has_state: true

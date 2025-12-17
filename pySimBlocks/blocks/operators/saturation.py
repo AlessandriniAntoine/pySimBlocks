@@ -6,31 +6,31 @@ class Saturation(Block):
     """
     Discrete-time saturation operator.
 
-    Description:
-        Applies element-wise saturation to the input signal:
+    Summary:
+        Applies element-wise saturation to the input signal by enforcing
+        lower and upper bounds.
 
-            y[k] = clip(u[k], u_min, u_max)
+    Parameters (overview):
+        u_min : scalar or vector, optional
+            Lower saturation bound.
+        u_max : scalar or vector, optional
+            Upper saturation bound.
+        sample_time : float, optional
+            Block execution period.
 
-        Absence of saturation is represented by infinite bounds.
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Saturated output signal.
 
-    Parameters:
-        name: str
-            Block name.
-
-        u_min: float | array-like (n,) | array (n,1) (optional)
-            Lower saturation bound. (Default = -inf)
-
-        u_max: float | array-like (n,) | array (n,1) (optional)
-            Upper saturation bound. (Default = +inf)
-
-    Inputs:
-        in: array (n,1)
-            Input signal.
-
-    Outputs:
-        out: array (n,1)
-            Saturated output signal.
+    Notes:
+        - Stateless block.
+        - Direct feedthrough.
+        - Bounds are applied component-wise.
+        - Scalar bounds are broadcast to match input dimension.
     """
+
 
     direct_feedthrough = True
 

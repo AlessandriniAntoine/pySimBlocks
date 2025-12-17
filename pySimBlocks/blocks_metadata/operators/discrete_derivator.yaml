@@ -1,0 +1,44 @@
+name: DiscreteDerivator
+category: operators
+type: discrete_derivator
+
+summary: >
+  Discrete-time differentiator block.
+
+description: >
+  Computes a backward finite-difference approximation of the derivative:
+  $$
+  y[k] = \frac{u[k] - u[k-1]}{dt}
+  $$
+
+parameters:
+  initial_output:
+    type: scalar | vector
+    required: false
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Discrete-time derivative of the input.
+
+execution:
+  direct_feedthrough: true
+  has_state: true

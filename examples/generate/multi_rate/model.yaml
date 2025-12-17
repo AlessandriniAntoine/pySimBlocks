@@ -1,0 +1,8 @@
+blocks:
+- name: ramp
+  category: sources
+  type: ramp
+- name: ramp_1
+  category: sources
+  type: ramp
+connections: []

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pySimBlocks import Model, Simulator
+from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
@@ -44,13 +44,12 @@ def main():
 
     # --- Create the simulator ---
     dt = 0.01
-    sim = Simulator(model, dt=dt)
+    T = 5.0
+    sim_cfg = SimulationConfig(dt, T)
+    sim = Simulator(model, sim_cfg)
 
     # --- Run simulation ---
-    T = 5.
-    logs = sim.run(
-        T=T,
-        variables_to_log=[
+    logs = sim.run(logging=[
             "step.outputs.out",
             "sofa_finger.outputs.measure",
             "pid.outputs.u"

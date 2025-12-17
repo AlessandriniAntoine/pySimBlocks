@@ -1,0 +1,49 @@
+name: Delay
+category: operators
+type: delay
+
+summary: >
+  N-step discrete-time delay block.
+
+description: >
+  Implements a discrete delay of $N$ simulation steps:
+  $$
+  y[k] = u[k - N]
+  $$
+
+parameters:
+  num_delays:
+    type: int
+    required: false
+    default: 1
+
+  initial_output:
+    type: scalar | vector
+    required: false
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: in
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: out
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Delayed output signal.
+
+execution:
+  direct_feedthrough: false
+  has_state: true

@@ -1,36 +1,38 @@
 import numpy as np
 from pySimBlocks.core.block import Block
 
+
 class SofaExchangeIO(Block):
     """
-    Interface block for embedding a pySimBlocks model inside a SOFA controller.
+    SOFA exchange interface block.
 
-    Description:
-        This block does NOT run a SOFA simulation. It only exposes:
-            - input ports written by an external SOFA controller
-            - output ports produced by the pySimBlocks model
+    Summary:
+        Provides an interface between a pySimBlocks model and an external
+        SOFA controller by exposing dynamic input and output ports.
 
-        It is fully stateless and acts only as a data bridge.
-        Unlike SofaPlant (full SOFA simulation), this block *does not runs* the SOFA simulation itself but should be set in a SOFA controller.
-
-    Parameters:
-        name: str
-            Block name.
-        input_keys: list of str
+    Parameters (overview):
+        input_keys : list of str
             Names of externally provided input signals.
-        output_keys: list of str
+        output_keys : list of str
             Names of output signals to be consumed by SOFA.
-        scene_file: str
-            Path to the scene file. Only for automatic generation.
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+        scene_file : str
+            Path to the SOFA scene file, used only for automatic generation.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        Dynamic — specified by input_keys.
+    I/O:
+        Inputs:
+            Defined dynamically by input_keys.
+        Outputs:
+            Defined dynamically by output_keys.
 
-    Outputs:
-        Dynamic — specified by output_keys.
+    Notes:
+        - This block does not run a SOFA simulation.
+        - It acts only as a data exchange interface.
+        - The block is stateless.
+        - Outputs are produced by the pySimBlocks controller logic.
     """
+
 
     direct_feedthrough = False   # necessary: outputs depend immediately on pySimBlocks inputs
     is_source = False

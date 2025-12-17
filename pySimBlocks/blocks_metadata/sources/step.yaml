@@ -1,0 +1,53 @@
+name: Step
+category: sources
+type: step
+
+summary: >
+  Step signal source.
+
+description: >
+  Generates a step signal defined by:
+  $$
+  y(t) =
+  \begin{cases}
+  y_{\text{before}}, & t < t_0 \\
+  y_{\text{after}},  & t \geq t_0
+  \end{cases}
+  $$
+
+parameters:
+  value_before:
+    type: vector
+    required: true
+    description: Output value before the step time.
+
+  value_after:
+    type: vector
+    required: true
+    description: Output value after the step time.
+
+  start_time:
+    type: float
+    required: true
+    description: Time at which the step occurs.
+
+  sample_time:
+    type: float
+    required: false
+    description: Block execution period.
+
+ports:
+  inputs: []
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Step output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

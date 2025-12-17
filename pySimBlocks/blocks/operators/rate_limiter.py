@@ -4,42 +4,35 @@ from pySimBlocks.core.block import Block
 
 class RateLimiter(Block):
     """
-    Discrete-time rate limiter.
+    Discrete-time rate limiter block.
 
-    Description:
-        Limits the rate of change of the output signal:
+    Summary:
+        Limits the rate of change of the output signal by constraining the
+        maximum allowed increase and decrease per time step.
 
-            Δu = u[k] - y[k-1]
-            y[k] = y[k-1] + clip(Δu, falling_slope * dt, rising_slope * dt)
+    Parameters (overview):
+        rising_slope : scalar or vector, optional
+            Maximum allowed positive rate of change.
+        falling_slope : scalar or vector, optional
+            Maximum allowed negative rate of change.
+        initial_output : scalar or vector, optional
+            Initial output value at the previous time step.
+        sample_time : float, optional
+            Block execution period.
 
-        Absence of rate limitation in one direction is represented by
-        an infinite slope in that direction.
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Rate-limited output signal.
 
-    Parameters:
-        name: str
-            Block name.
-
-        rising_slope: float | array-like (n,) | array (n,1) (optional)
-            Maximum allowed positive rate (>= 0). (Default = +inf)
-
-        falling_slope: float | array-like (n,) | array (n,1) (optional)
-            Maximum allowed negative rate (<= 0). (Default = -inf)
-
-        initial_output: float | array-like (n,) | array (n,1) (optional)
-            Initial output y[-1].
-            If omitted, y[-1] = u(0).
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        in: array (n,1)
-            Input signal u[k].
-
-    Outputs:
-        out: array (n,1)
-            Rate-limited output signal y[k].
+    Notes:
+        - Stateful block.
+        - Direct feedthrough.
+        - Rate limits are applied symmetrically per component.
+        - Scalar parameters are broadcast to match input dimension.
     """
+
 
     direct_feedthrough = True
 

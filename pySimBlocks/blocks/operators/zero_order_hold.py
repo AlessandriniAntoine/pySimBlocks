@@ -6,31 +6,28 @@ class ZeroOrderHold(Block):
     """
     Zero-Order Hold (ZOH) block.
 
-    Description:
-        Samples the input signal at discrete instants and holds its value
-        constant between sampling instants.
+    Summary:
+        Samples the input signal at discrete instants and holds the sampled
+        value constant between sampling instants.
 
-        Discrete semantics (mono-rate V1):
-            y[k] = u[k_sample]   with k_sample = last sampling instant
+    Parameters (overview):
+        sample_time : float
+            Sampling period Ts (> 0).
 
-        This block models signal sampling semantics only.
-        It does NOT control execution rate.
+    I/O:
+        Inputs:
+            in : Input signal.
+        Outputs:
+            out : Held output signal.
 
-    Parameters:
-        name: str
-            Block name.
-
-        sample_time: float
-            Sampling period Ts > 0.
-
-    Inputs:
-        in: array (n,1)
-            Input signal.
-
-    Outputs:
-        out: array (n,1)
-            Held output signal.
+    Notes:
+        - Stateful block.
+        - Direct feedthrough.
+        - Implements sampling semantics only; it does not control execution rate.
+        - The held value is updated when the elapsed time since the last sample
+          reaches the sampling period.
     """
+
 
     direct_feedthrough = True
 
