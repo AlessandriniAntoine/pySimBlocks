@@ -1,0 +1,87 @@
+name: PID
+category: controllers
+type: pid
+
+summary: >
+  Discrete SISO PID controller.
+
+description: >
+  $$
+  u[k] = K_p e[k] + K_i x_i[k] + K_d \frac{e[k]-e[k-1]}{dt}
+  $$
+
+parameters:
+  controller:
+    type: enum
+    required: true
+    default: PID
+    enum: [P, I, PI, PD, PID]
+
+  Kp:
+    type: scalar
+    required: false
+    autofill: true
+    default: 0.0
+    depends_on:
+      parameter: controller
+      values: [P, PI, PD, PID]
+
+  Ki:
+    type: scalar
+    required: false
+    autofill: true
+    default: 0.0
+    depends_on:
+      parameter: controller
+      values: [I, PI, PID]
+
+  Kd:
+    type: scalar
+    required: false
+    autofill: true
+    default: 0.0
+    depends_on:
+      parameter: controller
+      values: [PD, PID]
+
+  integration_method:
+    type: enum
+    required: false
+    autofill: false
+    default: euler forward
+    enum: [euler forward, euler backward]
+
+  u_min:
+    type: scalar
+    required: false
+
+  u_max:
+    type: scalar
+    required: false
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: error
+      dynamic: false
+      pattern: e
+      source:
+        type: fixed
+      shape: [1, 1]
+      description: Error signal.
+
+  outputs:
+    - name: command
+      dynamic: false
+      pattern: u
+      source:
+        type: fixed
+      shape: [1, 1]
+      description: Control command.
+
+execution:
+  direct_feedthrough: conditional
+  has_state: true

@@ -62,35 +62,32 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
 class SofaPlant(Block):
     """
-    SOFA-based dynamic plant.
+    SOFA-based dynamic plant block.
 
-    Description:
-        Executes a full SOFA simulation (in a worker process) as a dynamic
-        system driven by pySimBlocks. At each step, inputs are sent to SOFA,
-        the scene advances by one time increment, and updated outputs are
-        returned.
-        out(t) = SOFA_simulation_step(in(t))
+    Summary:
+        Executes a SOFA simulation as a dynamic system driven by pySimBlocks.
+        At each control step, inputs are sent to SOFA, the scene advances,
+        and updated outputs are returned.
 
-        Unlike SofaIO (pure I/O bridge embedded inside a SOFA controller),
-        this block *runs* the SOFA simulation itself.
+    Parameters (overview):
+        scene_file : str
+            Path to the SOFA scene file.
+        input_keys : list[str]
+            Names of input signals exchanged with SOFA.
+        output_keys : list[str]
+            Names of output signals produced by SOFA.
+        sample_time : float, optional
+            Block execution period.
 
-    Parameters:
-        name: str
-            Block name.
-        scene_file: str
-            Path to the SOFA scene file (Python script).
-        input_keys: list of str
-            List of input keys for the SOFA controller.
-        output_keys: list of str
-            List of output keys for the SOFA controller.
-        sample_time: float | None (optional)
-            Block sample time (default = None)
+    I/O:
+        Inputs:
+            Defined dynamically by input_keys.
+        Outputs:
+            Defined dynamically by output_keys.
 
-    Inputs:
-        Dynamic — specified by input_keys.
-
-    Outputs:
-        Dynamic — specified by output_keys.
+    Notes:
+        - This block runs SOFA in a separate worker process.
+        - The block has internal state and no direct feedthrough.
     """
 
     direct_feedthrough = False

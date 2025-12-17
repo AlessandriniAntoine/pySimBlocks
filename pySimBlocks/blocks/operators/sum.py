@@ -6,25 +6,26 @@ class Sum(Block):
     """
     Multi-input summation block.
 
-    Description:
-        Computes:
-            out = s1*in1 + s2*in2 + ... + sN*inN
-        where each si ∈ {+1, -1}.
+    Summary:
+        Computes a weighted sum of multiple input signals.
 
-    Parameters:
-        name: str
-            Block name.
-        num_inputs: int (optional)
-            Number of input ports. (default = 2)
-        signs: list[int] | array (1,) (optional)
-            List of +1 or -1 coefficients (length = num_inputs). (default = all +1)
+    Parameters (overview):
+        num_inputs : int
+            Number of input ports.
+        signs : list of {+1, -1}
+            Sign associated with each input.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        Dynamic — in1, in2, ..., inN. array (n,1)
+    I/O:
+        Inputs:
+            in1, in2, ..., inN : input signals
+        Output:
+            out : summed output signal
 
-    Outputs:
-        out: array (n,1)
-            Weighted sum of all inputs.
+    Notes:
+        - All inputs must have the same dimension.
+        - No internal state.
     """
 
     def __init__(self, name: str, num_inputs: int = 2, signs=None, sample_time:float|None = None):

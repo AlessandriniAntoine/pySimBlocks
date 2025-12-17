@@ -5,65 +5,18 @@ from pySimBlocks.core.block import Block
 
 class Pid(Block):
     """
-    Single-input single-output discrete PID controller (Simulink-like).
+    Discrete PID controller.
 
-    Description:
-        Implements the standard discrete PID law in parallel form:
+    Implements a single-input single-output discrete-time PID controller
+    with configurable structure and integration method.
 
-            u[k] = Kp * e[k]
-                 + Ki * x_i[k]
-                 + Kd * (e[k] - e[k-1]) / dt
+    Behavior:
+        - Supports P, I, PI, PD, and PID structures
+        - Optional output saturation with anti-windup
+        - Simulink-like execution semantics
 
-        with integral update:
-
-            x_i[k+1] = x_i[k] + e[k] * dt
-
-        This block is strictly SISO. Each gain (Kp, Ki, Kd) must be a scalar,
-        provided either as:
-            - a float,
-            - a list of length 1,
-            - a numpy array of shape (1,) or (1,1).
-
-        Any other dimension raises an explicit ValueError.
-
-    Parameters:
-        name: str
-            Block name.
-
-        controller: str (optional)
-                    One of {"P","I","PI","PD","PID"}. (default="PID")
-
-        Kp: float | list | array (optional)
-            Proportional gain (scalar-like). (Default = 0.)
-
-        Ki: float | list | array (optional)
-            Integral gain (scalar-like). (Default = 0.)
-
-        Kd: float | list | array (optional)
-            Derivative gain (scalar-like). (Default = 0.)
-
-        u_min: float | array-like (optional)
-            Minimum output saturation (scalar). (Default: no saturation.)
-
-        u_max: float | array-like (optional)
-            Maximum output saturation (scalar). (Default: no saturation.)
-
-        integration_method: str (optional)
-            Integration method. (default = 'euler forward')
-            Currently supported:
-                - euler forward
-                - euler backward
-
-        sample_time: float | None (optional)
-            Block sample time (default = None)
-
-    Inputs:
-        e: array (1,1)
-            Error signal.
-
-    Outputs:
-        u: array (1,1)
-            Control command.
+    Notes:
+        - This block is strictly SISO.
     """
 
 

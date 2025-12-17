@@ -1,0 +1,46 @@
+name: Gain
+category: operators
+type: gain
+
+summary: >
+  Static linear gain block.
+
+description: >
+  Computes:
+  $$
+  y = K \cdot u
+  $$
+
+parameters:
+  gain:
+    type: scalar | vector | matrix
+    required: true
+    description: Gain coefficient.
+    default: 1.
+
+  sample_time:
+    type: float
+    required: false
+
+ports:
+  inputs:
+    - name: input
+      dynamic: false
+      pattern: in
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: Input signal.
+
+  outputs:
+    - name: output
+      dynamic: false
+      pattern: out
+      source:
+        type: fixed
+      shape: [m, 1]
+      description: Output signal.
+
+execution:
+  direct_feedthrough: true
+  has_state: false

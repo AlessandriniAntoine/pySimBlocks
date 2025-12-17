@@ -54,7 +54,7 @@ def build_model_from_dict(
     # ------------------------------------------------------------
     for desc in model_data.get("blocks", []):
         name = desc["name"]
-        category = desc["from"]
+        category = desc["category"]
         block_type = desc["type"]
 
         try:
@@ -113,7 +113,6 @@ def adapt_model_for_sofa(model_yaml: Path) -> Dict[str, Any]:
     dict
         Adapted model dictionary
     """
-    print(model_yaml)
     with model_yaml.open("r") as f:
         model_data = yaml.safe_load(f) or {}
 

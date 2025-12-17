@@ -166,7 +166,7 @@ def iter_python_files(base_path):
 def generate_registry():
     root = Path(__file__).resolve().parents[1]
     blocks_dir = root / "blocks"
-    output_file = root / "api" / "pySimBlocks_blocks_registry.yaml"
+    output_file = root / "gui" / "pySimBlocks_blocks_registry.yaml"
 
 
     registry = {}

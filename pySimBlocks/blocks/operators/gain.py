@@ -4,28 +4,37 @@ from pySimBlocks.core.block import Block
 
 class Gain(Block):
     """
-    Static gain block.
+    Discrete-time SISO PID controller.
 
-    Description:
-        Computes:
-            out = K * in
+    Summary:
+        Implements a parallel-form PID controller with optional saturation
+        and selectable integration method.
 
-    Parameters:
-        name: str
-            Block name.
-        gain: float | array-like (n,) | array (n,1)
-            Gain scalar, vector, or matrix.
+    Parameters (overview):
+        controller : {"P", "I", "PI", "PD", "PID"}
+            Control structure to enable.
+        Kp, Ki, Kd : scalar-like
+            Proportional, integral and derivative gains.
+        integration_method : str
+            Numerical integration scheme for the integral term.
+        u_min, u_max : scalar-like, optional
+            Output saturation limits.
+        sample_time : float, optional
+            Block execution period.
 
-    Inputs:
-        in: array (n,1)
-            Input signal.
+    I/O:
+        Input:
+            e : error signal (SISO)
+        Output:
+            u : control command (SISO)
 
-    Outputs:
-        out: array (m,1)
-            Output signal K * in.
+    Notes:
+        - This block is strictly SISO.
+        - Exact parameter constraints and defaults are defined in the block metadata.
     """
 
-    def __init__(self, name: str, gain, sample_time:float|None = None):
+
+    def __init__(self, name: str, gain=1., sample_time:float|None = None):
         super().__init__(name, sample_time)
 
         # Normalize K into np.ndarray or scalar

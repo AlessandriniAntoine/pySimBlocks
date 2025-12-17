@@ -1,6 +1,3 @@
-# pySimBlocks/project/generate_run_script.py
-
-import argparse
 from pathlib import Path
 
 
@@ -20,8 +17,17 @@ model = Model(
 sim = Simulator(model, sim_cfg)
 
 logs = sim.run()
-plot_from_config(logs, plot_cfg)
+if {enable_plots}:
+    plot_from_config(logs, plot_cfg)
 """
+
+def generate_python_content(model_yaml_path, parameters_yaml_path, enable_plots=True):
+    content = RUN_TEMPLATE.format(
+        model_path=model_yaml_path,
+        parameters_path=parameters_yaml_path,
+        enable_plots=enable_plots
+    )
+    return content
 
 
 def generate_run_script(
@@ -90,10 +96,7 @@ def generate_run_script(
     # ------------------------------------------------------------
     # Write run.py
     # ------------------------------------------------------------
-    content = RUN_TEMPLATE.format(
-        model_path=model_yaml.name,
-        parameters_path=parameters_yaml.name,
-    )
+    content = generate_python_content(model_yaml.name, parameters_yaml.name)
 
     output.write_text(content)
     print(f"[pySimBlocks] run script generated: {output}")
