@@ -1,3 +1,4 @@
+from pathlib import Path
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QDialog,
@@ -7,11 +8,12 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFormLayout,
     QComboBox,
+    QMessageBox
 )
 
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 
-class SimulationSettingsDialog(QDialog):
+class SettingsDialog(QDialog):
     def __init__(self, project:ProjectState, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Simulation Settings")
@@ -20,11 +22,24 @@ class SimulationSettingsDialog(QDialog):
         self.project_state = project
 
         main_layout = QVBoxLayout(self)
-        self.build_form(main_layout)
+        self.build_project_form(main_layout)
+        self.build_simulation_form(main_layout)
+        self.build_plots_form(main_layout)
         self.build_buttons(main_layout)
 
 
-    def build_form(self, layout):
+    def build_project_form(self, layout):
+        form = QFormLayout()
+        title = QLabel("<b>Project Settings</b>")
+        form.addRow(title)
+
+        dir_path = self.project_state.directory_path
+        self.dir_path_edit = QLineEdit(str(dir_path))
+        form.addRow(QLabel("Directory path:"), self.dir_path_edit)
+
+        layout.addLayout(form)
+
+    def build_simulation_form(self, layout):
         form = QFormLayout()
         title = QLabel("<b>Simulation Settings</b>")
         form.addRow(title)
@@ -48,6 +63,12 @@ class SimulationSettingsDialog(QDialog):
 
         layout.addLayout(form)
 
+    def build_plots_form(self, layout):
+        form = QFormLayout()
+        title = QLabel("<b>Plot Settings</b>")
+        form.addRow(title)
+
+        layout.addLayout(form)
 
     # ------------------------------------------------------------
     # Buttons
@@ -67,14 +88,42 @@ class SimulationSettingsDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
-    def apply(self):
-        self.project_state.simulation["dt"] = self.dt_edit.text()
-        self.project_state.simulation["solver"] = self.solver_combo.currentText()
 
-        file = self.file_edit.text()
+    def apply(self):
+        dir_path = Path(self.dir_path_edit.text())
+
+        if not dir_path.exists():
+            QMessageBox.warning(
+                self,
+                "Invalid directory",
+                f"The directory does not exist:\n\n{dir_path}",
+                QMessageBox.Ok,
+            )
+            return False
+
+        # --- Simulation settings ---
+        try:
+            dt = float(self.dt_edit.text())
+        except:
+            dt = self.dt_edit.text()
+        try:
+            T = float(self.T_edit.text())
+        except:
+            T = self.T_edit.text()
+        self.project_state.simulation["dt"] = dt
+        self.project_state.simulation["solver"] = self.solver_combo.currentText()
+        self.project_state.simulation["T"] = T
+
+
+        # --- External file ---
+        file = self.file_edit.text().strip()
         self.project_state.external = None if file == "" else file
+
         self.accept()
+        return True
+
 
     def ok(self):
-        self.apply()
-        self.reject()
+        msg = self.apply()
+        if msg:
+            self.reject()

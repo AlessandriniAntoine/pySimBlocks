@@ -1,14 +1,17 @@
-import re
+from pathlib import Path
 
 from pySimBlocks.gui_qt.model.block_instance import BlockInstance
 from pySimBlocks.gui_qt.model.connection_instance import ConnectionInstance
 
 class ProjectState:
-    def __init__(self):
+    def __init__(self, directory_path: Path):
         self.blocks: list[BlockInstance] = []
         self.connections: list[ConnectionInstance] = []
         self.simulation = {"dt": 0.1, "solver": "fixed", "T": 10.}
         self.external: str | None = None
+        self.directory_path = directory_path
+        self.logs: dict = {}
+        self.plots: list = []
 
     # -------------------------
     # Block management

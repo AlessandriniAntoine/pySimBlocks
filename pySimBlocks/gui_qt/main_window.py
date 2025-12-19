@@ -1,3 +1,6 @@
+import os
+import sys
+from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -14,6 +17,14 @@ from pySimBlocks.gui_qt.model.project_state import ProjectState
 
 registry = load_block_registry()
 categories = sorted(registry.keys())
+# --------------------------------------------------
+# Project directory from CLI
+# --------------------------------------------------
+if len(sys.argv) > 1:
+    project_dir = os.path.abspath(sys.argv[1])
+else:
+    project_dir = os.getcwd()
+project_path = Path(project_dir).resolve()
 
 
 
@@ -24,7 +35,7 @@ class MainWindow(QMainWindow):
 
         central = QWidget()
         layout = QHBoxLayout(central)
-        self.project = ProjectState()
+        self.project = ProjectState(project_path)
 
         self.blocks = BlockList(self.get_categories, self.get_blocks)
         self.diagram = DiagramView(self.resolve_block_meta, self.project)
