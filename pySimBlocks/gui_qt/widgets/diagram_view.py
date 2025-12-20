@@ -23,6 +23,7 @@ class DiagramView(QGraphicsView):
         self.copied_block = None
         self.resolve_block_meta = resolve_block_meta
         self.project_state = project_state
+        self.block_items = {}
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
@@ -41,6 +42,7 @@ class DiagramView(QGraphicsView):
         block_item = BlockItem(instance, pos, self)
 
         self.scene.addItem(block_item)
+        self.block_items[instance.name] = block_item
         event.acceptProposedAction()
 
     def start_connection(self, port):
@@ -103,6 +105,7 @@ class DiagramView(QGraphicsView):
                 self.project_state.add_block(instance)
                 block_item = BlockItem(instance, pos, self)
                 self.scene.addItem(block_item)
+                self.block_items[instance.name] = block_item
             return
 
         # DELETE
@@ -115,6 +118,7 @@ class DiagramView(QGraphicsView):
     def delete_selected(self):
         for item in self.scene.selectedItems():
             if isinstance(item, BlockItem):
+                del self.block_items[item.instance.name]
                 self.project_state.remove_block(item.instance)
                 item.remove_all_connections()
                 self.scene.removeItem(item)
@@ -123,3 +127,11 @@ class DiagramView(QGraphicsView):
                 self.project_state.remove_connection(item.instance)
                 item.remove()
                 self.scene.removeItem(item)
+
+
+    def clear_scene(self):
+        for item in list(self.scene.items()):
+            self.scene.removeItem(item)
+            del item
+        self.block_items.clear()
+        self.pending_port = None

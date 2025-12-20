@@ -53,6 +53,12 @@ class BlockItem(QGraphicsRectItem):
             for conn in port.connections[:]:
                 conn.remove()
 
+    def get_port_item(self, name:str):
+        for port in self.port_items:
+            if port.instance.name == name:
+                return port
+
+
     def refresh_ports(self):
         for item in self.port_items:
             self.scene().removeItem(item)

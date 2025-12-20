@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
 )
 
+from pySimBlocks.gui_qt.services.project_controller import ProjectController
 from pySimBlocks.tools.blocks_registry import load_block_registry
 from pySimBlocks.gui_qt.widgets.block_list import BlockList
 from pySimBlocks.gui_qt.widgets.diagram_view import DiagramView
@@ -12,12 +13,8 @@ from pySimBlocks.gui_qt.widgets.toolbar_view import ToolBarView
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 
 
-
 registry = load_block_registry()
 categories = sorted(registry.keys())
-
-
-
 
 class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
@@ -30,14 +27,17 @@ class MainWindow(QMainWindow):
 
         self.blocks = BlockList(self.get_categories, self.get_blocks)
         self.diagram = DiagramView(self.resolve_block_meta, self.project)
-        self.toolbar = ToolBarView(self.project)
-
+        self.project_controller = ProjectController(self.project, self.diagram, self.resolve_block_meta)
+        self.toolbar = ToolBarView(self.project, self.project_controller)
         self.blocks.setFixedWidth(220)
 
         layout.addWidget(self.blocks)
         layout.addWidget(self.diagram)
         self.addToolBar(self.toolbar)
         self.setCentralWidget(central)
+        flag = self.auto_load_detection(project_path)
+        if flag:
+            self.project_controller.load_project(project_path)
 
     ####################### Registry ########################
     def get_categories(self):
@@ -51,3 +51,20 @@ class MainWindow(QMainWindow):
 
     def resolve_block_meta(self, category, block_type):
         return registry[category][block_type]
+
+
+    ####################### Auto Load ########################
+    def auto_load_detection(self, project_path: Path):
+        param_yaml = self._auto_detect_yaml(
+            project_path, ["parameters.yaml"])
+        model_yaml = self._auto_detect_yaml(
+            project_path, ["model.yaml"])
+        if param_yaml and model_yaml:
+            return True
+
+    def _auto_detect_yaml(self, project_path: Path, names: list[str]) -> str | None:
+        for name in names:
+            path = project_path / name
+            if path.is_file():
+                return str(path)
+        return None

@@ -3,6 +3,10 @@ import copy
 import yaml
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 
+
+def load_yaml_file(path: str) -> dict:
+    with open(path, "r") as f:
+        return yaml.safe_load(f) or {}
 # ===============================================================
 # Custom list type for flow-style sequences
 # ===============================================================

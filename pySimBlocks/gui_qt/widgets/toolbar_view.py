@@ -12,11 +12,11 @@ from pySimBlocks.gui_qt.services.project_controller import ProjectController
 
 class ToolBarView(QToolBar):
 
-    def __init__(self, project: ProjectState):
+    def __init__(self, project: ProjectState, project_controller: ProjectController):
         super().__init__()
 
         self.project_state = project
-        self.controller = ProjectController(project)
+        self.project_controller = project_controller
 
         save_action = QAction("Save", self)
         save_action.triggered.connect(self.save_yaml)
@@ -43,10 +43,10 @@ class ToolBarView(QToolBar):
         self.addAction(plot_action)
 
     def save_yaml(self):
-        self.controller.save()
+        self.project_controller.save()
 
     def export_project(self):
-        self.controller.export()
+        self.project_controller.export()
 
     def open_display_yaml(self):
         dialog = DisplayYamlDialog(self.project_state)
@@ -57,7 +57,7 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def run_sim(self):
-        logs, flag, msg = self.controller.run()
+        logs, flag, msg = self.project_controller.run()
         self.project_state.logs = logs
         if not flag:
             QMessageBox.warning(
@@ -69,7 +69,7 @@ class ToolBarView(QToolBar):
 
 
     def plot_logs(self):
-        flag, msg = self.controller.can_plot()
+        flag, msg = self.project_controller.can_plot()
         if not flag:
             QMessageBox.warning(
                 self,

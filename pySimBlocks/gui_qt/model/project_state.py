@@ -14,9 +14,32 @@ class ProjectState:
         self.logs: dict = {}
         self.plots: list = []
 
+
+    def clear(self):
+        self.blocks.clear()
+        self.connections.clear()
+
+        self.logs.clear()
+        self.logging.clear()
+        self.plots.clear()
+
+        # simulation settings → on garde les defaults
+        self.simulation = {
+            "dt": self.simulation.get("dt", 0.01),
+            "solver": self.simulation.get("solver", "fixed"),
+            "T": self.simulation.get("T", 10.0),
+        }
+
+        self.external = None
+
     # -------------------------
     # Block management
     # -------------------------
+    def get_block(self, name:str):
+        for block in self.blocks:
+            if name == block.name:
+                return block
+
     def add_block(self, instance):
         instance.name = self.make_unique_name(instance.name)
         self.blocks.append(instance)
@@ -50,7 +73,9 @@ class ProjectState:
             # remove block
             self.blocks.remove(block)
 
-
+    # -------------------------
+    # Connection management
+    # -------------------------
     def add_connection(self, conn: ConnectionInstance):
         self.connections.append(conn)
 
