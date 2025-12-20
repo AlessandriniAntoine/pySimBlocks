@@ -176,7 +176,6 @@ class BlockDialog(QDialog):
     def _create_param_widget(self, name, meta, inst_params):
         ptype = meta.get("type")
         value = inst_params.get(name)
-        widget = None
 
         # ENUM
         if ptype == "enum":
