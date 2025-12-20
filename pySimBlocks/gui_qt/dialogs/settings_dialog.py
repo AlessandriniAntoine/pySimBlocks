@@ -52,7 +52,6 @@ class SettingsDialog(QDialog):
         if not self.project_tab.apply():
             return
         self.simulation_tab.apply()
-        self.plots_tab.apply()
 
 
     def _on_tab_changed(self, index):

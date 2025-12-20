@@ -54,6 +54,11 @@ class PortItem(QGraphicsEllipseItem):
     def is_compatible(self, other):
         return self.instance.direction != other.instance.direction
 
+    def can_accept_connection(self) -> bool:
+        if self.instance.direction == "input":
+            return len(self.connections) == 0
+        return True
+
     def add_connection(self, conn):
         self.connections.append(conn)
 

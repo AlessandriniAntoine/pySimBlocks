@@ -65,6 +65,10 @@ class DiagramView(QGraphicsView):
             self.pending_port = None
             return
 
+        if not dst_port.can_accept_connection():
+            self.pending_port = None
+            return
+
         # Create model connection
         conn_inst = ConnectionInstance(
             src_block=src_port.parent_block.instance,

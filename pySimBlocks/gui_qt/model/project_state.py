@@ -23,11 +23,31 @@ class ProjectState:
 
     def remove_block(self, block: BlockInstance):
         if block in self.blocks:
-            # supprimer connexions associées
+            # remove connections
             self.connections = [
                 c for c in self.connections
                 if c.src_block is not block and c.dst_block is not block
             ]
+            # delete all outputs signal from logging
+            removed_signals = [
+                f"{block.name}.outputs.{p.name}"
+                for p in block.ports if p.direction == "output"
+            ]
+            self.logging = [
+                s for s in self.logging
+                if s not in removed_signals
+            ]
+            # remove signals from plots and delete empty plot
+            new_plots = []
+            for plot in self.plots:
+                plot["signals"] = [
+                    s for s in plot["signals"]
+                    if s not in removed_signals
+                ]
+                if plot["signals"]:
+                    new_plots.append(plot)
+            self.plots = new_plots
+            # remove block
             self.blocks.remove(block)
 
 
@@ -68,7 +88,7 @@ class ProjectState:
         signals = []
 
         for block in self.blocks:
-            for port in block.resolve_ports():
+            for port in block.ports:
                 if port.direction == "output":
                     signals.append(f"{block.name}.outputs.{port.name}")
 

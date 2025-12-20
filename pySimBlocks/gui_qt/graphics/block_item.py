@@ -24,7 +24,8 @@ class BlockItem(QGraphicsRectItem):
 
         # Ports
         self.port_items = []
-        for port in self.instance.resolve_ports():
+        self.instance.resolve_ports()
+        for port in self.instance.ports:
             item = PortItem(port, self)
             self.port_items.append(item)
         self._layout_ports()
@@ -57,8 +58,9 @@ class BlockItem(QGraphicsRectItem):
             self.scene().removeItem(item)
 
         self.port_items.clear()
+        self.instance.resolve_ports()
 
-        for port in self.instance.resolve_ports():
+        for port in self.instance.ports:
             self.port_items.append(PortItem(port, self))
 
         self._layout_ports()

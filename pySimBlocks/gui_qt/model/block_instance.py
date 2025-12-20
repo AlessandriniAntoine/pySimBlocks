@@ -13,6 +13,7 @@ class BlockInstance:
         self.meta = meta
         self.name = meta.name
         self.parameters = self._init_parameters()
+        self.ports: list[PortInstance] = []
 
     def _init_parameters(self) -> dict:
         """
@@ -28,17 +29,16 @@ class BlockInstance:
 
         return params
 
-    def resolve_ports(self) -> list[PortInstance]:
+    def resolve_ports(self) -> None:
         ports = []
 
         for direction in ("input", "output"):
             for pmeta in self.meta.ports[f"{direction}s"]:
                 ports.extend(self._resolve_port_group(pmeta, direction))
+        self.ports = ports
 
-        return ports
 
-
-    def _resolve_port_group(self, pmeta, direction):
+    def _resolve_port_group(self, pmeta, direction) -> list[PortInstance]:
         if not pmeta["dynamic"]:
             return [PortInstance(pmeta["pattern"], direction, self, pmeta)]
 
@@ -55,8 +55,10 @@ class BlockInstance:
                 )
             return self._expand_ports(pattern, value, direction, pmeta)
 
+        return []
 
-    def _expand_ports(self, pattern, value, direction, meta):
+
+    def _expand_ports(self, pattern, value, direction, meta) -> list[PortInstance]:
         ports = []
         operation = meta["source"].get("operation", '')
 

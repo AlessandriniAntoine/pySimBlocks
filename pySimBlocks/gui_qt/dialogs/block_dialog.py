@@ -138,7 +138,6 @@ class BlockDialog(QDialog):
     # Buttons
     def apply(self):
         self.block.instance.name = self.name_edit.text()
-
         for pname, widget in self.param_widgets.items():
             if isinstance(widget, QComboBox):
                 self.block.instance.parameters[pname] = widget.currentText()
@@ -155,11 +154,10 @@ class BlockDialog(QDialog):
                 self.block.instance.parameters[pname] = value
 
         self.block.refresh_ports()
-        self.accept()
 
     def ok(self):
         self.apply()
-        self.reject()
+        self.accept()
 
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
