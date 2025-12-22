@@ -138,7 +138,7 @@ class Pid(Block):
         if np.isscalar(value):
             return np.array([[float(value)]])
 
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
 
         # numpy scalar
         if arr.shape == ():
@@ -162,7 +162,7 @@ class Pid(Block):
         if np.isscalar(value):
             return np.array([[float(value)]])
 
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
         if arr.shape == ():
             return np.array([[float(arr)]])
         if arr.shape == (1,):

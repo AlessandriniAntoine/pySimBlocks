@@ -51,9 +51,9 @@ class LinearStateSpace(Block):
         # ------------------------------------------------------------------
         # Store and check matrices
         # ------------------------------------------------------------------
-        self.A = np.asarray(A)
-        self.B = np.asarray(B)
-        self.C = np.asarray(C)
+        self.A = np.asarray(A, dtype=float)
+        self.B = np.asarray(B, dtype=float)
+        self.C = np.asarray(C, dtype=float)
 
         n = self.A.shape[0]
 
@@ -70,9 +70,9 @@ class LinearStateSpace(Block):
         # Initial state x0
         # ------------------------------------------------------------------
         if x0 is None:
-            x0 = np.zeros((n, 1))
+            x0 = np.zeros((n, 1), dtype=float)
         else:
-            x0 = np.asarray(x0).reshape(-1, 1)
+            x0 = np.asarray(x0, dtype=float).reshape(-1, 1)
             if x0.shape != (n, 1):
                 raise ValueError(f"x0 must have shape ({n}, 1).")
 

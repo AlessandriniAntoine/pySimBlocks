@@ -19,7 +19,7 @@ class BlockSource(Block):
 
     # Utility used by all sources
     def _to_column_vector(self, param_name, value):
-        arr = np.asarray(value, dtype=np.float64)
+        arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:
             return arr.reshape(1, 1)

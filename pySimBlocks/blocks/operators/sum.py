@@ -31,7 +31,7 @@ class Sum(Block):
 
         # --- Validate num_inputs / signs -------------------------------------
         if signs is None:
-            signs = 3*[1]
+            signs = "++"
 
         if not isinstance(signs, str):
             raise TypeError(f"[{self.name}] 'signs' must be a str.")
@@ -39,7 +39,7 @@ class Sum(Block):
         if any(s not in ("+", "-") for s in signs):
             raise ValueError(f"[{self.name}] 'signs' must contain only + or -.")
 
-        self.signs = [1 if s == "+" else -1 for s in signs]
+        self.signs = [1. if s == "+" else -1. for s in signs]
         self.num_inputs = len(self.signs)
 
         # Create ports

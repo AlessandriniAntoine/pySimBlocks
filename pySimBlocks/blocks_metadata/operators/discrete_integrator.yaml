@@ -25,6 +25,7 @@ parameters:
   method:
     type: enum
     required: false
+    autofill: true
     default: euler forward
     enum: [euler forward, euler backward]
 

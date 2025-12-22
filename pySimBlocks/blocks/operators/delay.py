@@ -55,7 +55,7 @@ class Delay(Block):
         # Validate initial_output (NEW)
         # -------------------------------
         if initial_output is not None:
-            arr = np.asarray(initial_output)
+            arr = np.asarray(initial_output, dtype=float)
 
             # Accepted shapes : scalar, (n,), (n,1)
             if arr.ndim == 0:

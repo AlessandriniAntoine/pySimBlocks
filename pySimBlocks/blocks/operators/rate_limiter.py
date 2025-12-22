@@ -66,7 +66,7 @@ class RateLimiter(Block):
 
     # ------------------------------------------------------------------
     def _to_column(self, name, value):
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:
             return arr.reshape(1, 1)
