@@ -6,6 +6,7 @@ from PySide6.QtCore import QProcess, QProcessEnvironment
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 from pySimBlocks.gui_qt.services.project_controller import ProjectController
 from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
+from pySimBlocks.gui_qt.services.yaml_tools import save_yaml
 
 
 class SofaService:
@@ -56,10 +57,21 @@ class SofaService:
         if not self.scene_file or not os.path.exists(self.scene_file):
             return False, "scene file not found", ""
 
+        # save yaml on temp dir
+        project_dir = self.project_state.directory_path
+        if project_dir is None:
+            return {}, False, "Project directory is not set.\nPlease define it in settings."
+        temp_dir = project_dir / ".temp"
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+        temp_dir.mkdir(parents=True)
+        save_yaml(self.project_state, True)
+        generate_sofa_controller(temp_dir)
+
+        # set command
         plugins = "SofaPython3"
         if self.gui == "imgui":
             plugins += ",SofaImgui"
-
         args = ["-l", plugins, "-g", self.gui, self.scene_file]
 
         self.process = QProcess()
@@ -74,6 +86,9 @@ class SofaService:
             return False, "Launch failed", "runSofa could not start"
         self.process.waitForFinished(-1)
 
+        generate_sofa_controller(project_dir)
+
+        # get output results
         output = self.process.readAllStandardOutput().data().decode()
         errors = self.process.readAllStandardError().data().decode()
         full_log = output + "\n" + errors
