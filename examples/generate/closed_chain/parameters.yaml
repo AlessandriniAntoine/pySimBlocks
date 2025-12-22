@@ -8,14 +8,12 @@ blocks:
     value_after: [[1.0]]
     start_time: 0.5
   error:
-    num_inputs: 2
-    signs:
-    - 1.0
-    - -1
+    signs: +-
   pid:
     controller: PI
     Kp: [[2.0]]
     Ki: [[1.0]]
+    Kd: 0.0
   plant:
     A: [[0.95]]
     B: [[0.5]]

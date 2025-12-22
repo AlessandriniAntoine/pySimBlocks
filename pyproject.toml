@@ -5,21 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pySimBlocks"
 version = "0.1.0"
-description = "A block-diagram simulation environment with Streamlit editor"
+description = "A block-diagram simulation environment with PySide6 editor"
 authors = [
-    {name = "Antoine Alessandrini", email = "your.email@example.com"}
+    {name = "Antoine Alessandrini", email = "antoine.alessandrini@univ-lille.fr"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "numpy",
-    "streamlit",
-    "pyyaml",
-    "graphviz"
-]
+# dependencies = [
+#     "numpy",
+#     "pyyaml",
+#     "PySide6",
+#     "matplotlib",
+# ]
 
 [project.scripts]
-pysimblocks = "pySimBlocks.gui.launch:main"
+pysimblocks = "pySimBlocks.gui.editor:main"
 pysimblocks-generate = "pySimBlocks.project.generate:main"
 pysimblocks-update = "pySimBlocks.tools.cli:main"
 
@@ -28,7 +28,6 @@ where = ["."]
 
 [project.optional-dependencies]
 examples = [
-    "matplotlib",
     "control",
 ]
 
