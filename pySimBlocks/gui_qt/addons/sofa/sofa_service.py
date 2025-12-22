@@ -57,6 +57,7 @@ class SofaService:
         if not self.scene_file or not os.path.exists(self.scene_file):
             return False, "scene file not found", ""
 
+
         # save yaml on temp dir
         project_dir = self.project_state.directory_path
         if project_dir is None:
