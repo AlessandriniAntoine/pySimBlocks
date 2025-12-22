@@ -45,7 +45,8 @@ class LinearStateSpace(Block):
         B: np.ndarray,
         C: np.ndarray,
         x0: np.ndarray | None = None,
-        sample_time:float|None = None):
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # ------------------------------------------------------------------

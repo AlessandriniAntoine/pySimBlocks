@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -27,14 +28,18 @@ class Gain(Block):
     """
 
 
-    def __init__(self, name: str, gain=1., sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        gain: ArrayLike =1.,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # Normalize K into np.ndarray or scalar
         if np.isscalar(gain):
             self.K = gain
         else:
-            self.K = np.asarray(gain)
+            self.K = np.asarray(gain, dtype=float)
             if self.K.ndim not in (1, 2):
                 raise ValueError(
                     f"[{self.name}] Gain 'K' must be a scalar, vector (m,), or matrix (m,n). "

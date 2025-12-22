@@ -31,7 +31,11 @@ class Mux(Block):
     """
 
 
-    def __init__(self, name: str, num_inputs: int = 2, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        num_inputs: int = 2,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         if not isinstance(num_inputs, int) or num_inputs < 1:

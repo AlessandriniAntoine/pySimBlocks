@@ -98,7 +98,8 @@ class SofaPlant(Block):
         scene_file: str,
         input_keys: list[str],
         output_keys: list[str],
-        sample_time:float|None = None):
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         self.scene_file = scene_file

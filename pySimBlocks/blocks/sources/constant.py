@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -30,7 +31,11 @@ class Constant(BlockSource):
     """
 
 
-    def __init__(self, name: str, value=1., sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        value: ArrayLike = 1.,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         if not isinstance(value, (list, tuple, np.ndarray, float, int)):

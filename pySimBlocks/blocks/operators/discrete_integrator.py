@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -35,9 +36,9 @@ class DiscreteIntegrator(Block):
 
     def __init__(self,
         name: str,
-        initial_state=None,
+        initial_state: ArrayLike | None = None,
         method: str = "euler forward",
-        sample_time:float|None = None
+        sample_time: float | None = None
     ):
         super().__init__(name, sample_time)
 

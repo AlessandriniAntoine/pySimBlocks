@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -34,7 +35,13 @@ class Ramp(BlockSource):
     """
 
 
-    def __init__(self, name, slope, start_time=0.0, offset=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        slope: ArrayLike,
+        start_time: ArrayLike = 0.0,
+        offset: ArrayLike | None = None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # --- Validate and normalize parameters ---

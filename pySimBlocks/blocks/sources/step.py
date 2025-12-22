@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -34,8 +35,13 @@ class Step(BlockSource):
     """
 
 
-    def __init__(self, name: str, value_before=0., value_after=1., start_time=1., sample_time:float|None = None):
-
+    def __init__(self,
+        name: str,
+        value_before: ArrayLike = 0.,
+        value_after: ArrayLike = 1.,
+        start_time: ArrayLike = 1.,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
         # reshape using the same rules as Constant
         vb = self._to_column_vector("value_before", value_before)

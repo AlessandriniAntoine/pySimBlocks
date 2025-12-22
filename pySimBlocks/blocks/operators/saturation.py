@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -35,7 +36,12 @@ class Saturation(Block):
     direct_feedthrough = True
 
     # ------------------------------------------------------------------
-    def __init__(self, name: str, u_min=-np.inf, u_max=np.inf, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        u_min: ArrayLike = -np.inf,
+        u_max: ArrayLike = np.inf,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None

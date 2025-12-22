@@ -26,7 +26,11 @@ class Sum(Block):
         - No internal state.
     """
 
-    def __init__(self, name: str, signs=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        signs: str | None = None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # --- Validate num_inputs / signs -------------------------------------
