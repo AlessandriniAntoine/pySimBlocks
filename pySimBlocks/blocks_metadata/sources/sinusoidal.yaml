@@ -15,11 +15,15 @@ parameters:
   amplitude:
     type: vector
     required: true
+    autofill: true
+    default: [[1.]]
     description: Sinusoidal amplitude.
 
   frequency:
     type: vector
     required: true
+    autofill: true
+    default: [[1.]]
     description: Sinusoidal frequency in Hertz.
 
   phase:

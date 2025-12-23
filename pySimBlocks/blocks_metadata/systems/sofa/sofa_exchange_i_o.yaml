@@ -35,20 +35,22 @@ ports:
   inputs:
     - name: sofa_inputs
       dynamic: true
-      pattern: "{key}"
+      pattern: "{val}"
       source:
         type: parameter
         parameter: input_keys
+        operation: keys
       shape: [n, 1]
       description: Input ports provided by the external SOFA controller.
 
   outputs:
     - name: sofa_outputs
       dynamic: true
-      pattern: "{key}"
+      pattern: "{val}"
       source:
         type: parameter
         parameter: output_keys
+        operation_keys: keys
       shape: [n, 1]
       description: Output ports consumed by the SOFA controller.
 

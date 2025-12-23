@@ -1,5 +1,5 @@
-import numpy as np
 from abc import ABC, abstractmethod
+import numpy as np
 
 
 class Block(ABC):
@@ -43,6 +43,7 @@ class Block(ABC):
 
     @property
     def has_state(self):
+        """Specify if block is stateful."""
         return bool(self.state) or bool(self.next_state)
 
     @abstractmethod
@@ -53,7 +54,6 @@ class Block(ABC):
             - self.state[...]        (initial state)
             - self.outputs[...]      (initial outputs)
         """
-        ...
 
     @abstractmethod
     def output_update(self, t: float, dt: float):
@@ -62,7 +62,6 @@ class Block(ABC):
         Called before state_update.
         Must write to self.outputs[...].
         """
-        ...
 
     @abstractmethod
     def state_update(self, t: float, dt: float):
@@ -70,7 +69,6 @@ class Block(ABC):
         Compute next state x[k+1] from x[k] and inputs u[k].
         Must write to self.next_state[...].
         """
-        ...
 
     def commit_state(self):
         """
@@ -84,4 +82,3 @@ class Block(ABC):
         """
         Optional cleanup method called at the end of the simulation.
         """
-        pass

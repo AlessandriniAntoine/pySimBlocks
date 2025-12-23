@@ -1,24 +1,23 @@
 simulation:
   dt: 0.01
   T: 5.0
+  solver: fixed
 blocks:
   step:
-    value_before: [[0]]
+    value_before: [[0.0]]
     value_after: [[8.0]]
     start_time: 0.4
   error:
-    num_inputs: 2
-    signs:
-    - 1.0
-    - -1.0
+    signs: +-
   Kp:
     gain: [[0.5]]
   Ki:
     gain: [[0.8]]
   discrete_integrator:
-    initial_state: [[0]]
+    initial_state: [[0.0]]
+    method: euler forward
   sum:
-    num_inputs: 2
+    signs: ++
   sofa:
     scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/generate/sofa/sofa_plant/finger/Finger.py
     input_keys:

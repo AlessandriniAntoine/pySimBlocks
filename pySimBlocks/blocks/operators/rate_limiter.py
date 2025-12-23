@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -39,10 +40,11 @@ class RateLimiter(Block):
     # ------------------------------------------------------------------
     def __init__(self,
                  name: str,
-                 rising_slope=np.inf,
-                 falling_slope=-np.inf,
-                 initial_output=None,
-                 sample_time:float|None = None):
+                 rising_slope: ArrayLike =np.inf,
+                 falling_slope: ArrayLike =-np.inf,
+                 initial_output: ArrayLike | None=None,
+                 sample_time: float | None = None
+    ):
 
         super().__init__(name, sample_time)
 
@@ -66,7 +68,7 @@ class RateLimiter(Block):
 
     # ------------------------------------------------------------------
     def _to_column(self, name, value):
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:
             return arr.reshape(1, 1)

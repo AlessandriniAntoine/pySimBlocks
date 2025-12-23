@@ -3,6 +3,7 @@ import pytest
 
 from pySimBlocks.core.model import Model
 from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core.config import SimulationConfig
 from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.operators.sum import Sum
 
@@ -10,7 +11,7 @@ from pySimBlocks.blocks.operators.sum import Sum
 # ------------------------------------------------------------
 # Helper
 # ------------------------------------------------------------
-def run_two_inputs(v1, v2, signs=[1,1], dt=0.1):
+def run_two_inputs(v1, v2, signs="++", dt=0.1):
     m = Model()
 
     s1 = Constant("s1", v1)
@@ -19,14 +20,15 @@ def run_two_inputs(v1, v2, signs=[1,1], dt=0.1):
     m.add_block(s1)
     m.add_block(s2)
 
-    sm = Sum("S", num_inputs=2, signs=signs)
+    sm = Sum("S", signs=signs)
     m.add_block(sm)
 
     m.connect("s1", "out", "S", "in1")
     m.connect("s2", "out", "S", "in2")
 
-    sim = Simulator(m, dt)
-    logs = sim.run(T=dt, variables_to_log=["S.outputs.out"])
+    sim_cfg = SimulationConfig(dt, dt, logging=["S.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs["S.outputs.out"][-1]
 
 
@@ -42,7 +44,7 @@ def test_sum_basic():
 # 2) Subtraction: u1 - u2
 # ------------------------------------------------------------
 def test_sum_subtraction():
-    out = run_two_inputs([[5.0]], [[3.0]], signs=[1, -1])
+    out = run_two_inputs([[5.0]], [[3.0]], signs="+-")
     assert np.allclose(out, [[2.0]])
 
 
@@ -51,7 +53,7 @@ def test_sum_subtraction():
 # ------------------------------------------------------------
 def test_sum_default_signs():
     sm = Sum("S")
-    assert sm.signs == [1, 1]
+    assert sm.signs == [1., 1.]
 
 
 # ------------------------------------------------------------
@@ -63,7 +65,7 @@ def test_sum_dimension_mismatch():
     s1 = Constant("s1", [[1.0], [2.0]])  # 2x1
     s2 = Constant("s2", [[5.0]])         # 1x1 → mismatch
 
-    sm = Sum("S", num_inputs=2, signs=[1, 1])
+    sm = Sum("S", "++")
     m.add_block(s1)
     m.add_block(s2)
     m.add_block(sm)
@@ -71,7 +73,9 @@ def test_sum_dimension_mismatch():
     m.connect("s1", "out", "S", "in1")
     m.connect("s2", "out", "S", "in2")
 
-    sim = Simulator(m, dt=0.1)
+    dt = 0.1
+    sim_cfg = SimulationConfig(dt, dt, logging=["S.outputs.out"])
+    sim = Simulator(m, sim_cfg)
 
     with pytest.raises(ValueError) as err:
         sim.run(T=0.1)
@@ -84,15 +88,15 @@ def test_sum_dimension_mismatch():
 # ------------------------------------------------------------
 def test_sum_invalid_signs():
     with pytest.raises(ValueError):
-        Sum("S", num_inputs=2, signs=[1, 2])  # 2 is invalid
+        Sum("S", signs="+/")  # 2 is invalid
 
 
 # ------------------------------------------------------------
 # 6) Inferred num_inputs from signs only
 # ------------------------------------------------------------
 def test_sum_infer_num_inputs_from_signs():
-    sm = Sum("S", num_inputs=0, signs=[1, -1])
-    assert sm.num_inputs == 2
+    sm = Sum("S", signs="+")
+    assert sm.num_inputs == 1
 
 
 # ------------------------------------------------------------
@@ -104,7 +108,7 @@ def test_sum_initial_output():
     s1 = Constant("s1", [[1.0]])
     s2 = Constant("s2", [[2.0]])
 
-    sm = Sum("S", num_inputs=2, signs=[1,1])
+    sm = Sum("S", signs="++")
 
     m.add_block(s1)
     m.add_block(s2)
@@ -113,7 +117,9 @@ def test_sum_initial_output():
     m.connect("s1", "out", "S", "in1")
     m.connect("s2", "out", "S", "in2")
 
-    sim = Simulator(m, dt=0.1)
+    dt = 0.1
+    sim_cfg = SimulationConfig(dt, dt, logging=["S.outputs.out"])
+    sim = Simulator(m, sim_cfg)
     sim.initialize(0.0)
 
     assert np.allclose(sm.outputs["out"], [[3.0]])

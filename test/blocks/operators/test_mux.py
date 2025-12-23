@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.operators.mux import Mux
 
@@ -18,13 +17,12 @@ def run_sim(values, mux):
         const_blocks.append(c)
 
     m.add_block(mux)
-
-    # connections
     for i, c in enumerate(const_blocks):
         m.connect(c.name, "out", mux.name, f"in{i+1}")
 
-    sim = Simulator(m, dt=0.1)
-    logs = sim.run(T=0.1, variables_to_log=[f"{mux.name}.outputs.out"])
+    sim_cfg = SimulationConfig(0.1, 0.1, logging=[f"{mux.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{mux.name}.outputs.out"][-1]
 
 
@@ -57,9 +55,10 @@ def test_mux_missing_input():
     m.add_block(c1)
     m.add_block(mux)
 
-    m.connect("c1", "out", "M", "in1")  # in2 missing
-
-    sim = Simulator(m, dt=0.1)
+    m.connect("c1", "out", "M", "in1")
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
+    sim.initialize()
     with pytest.raises(RuntimeError):
         sim.run(T=0.1)
 
@@ -78,7 +77,11 @@ def test_mux_invalid_shape():
 
     m.connect("c1", "out", "M", "in1")
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
 
     with pytest.raises(RuntimeError):
-        sim.run(T=0.1)
+        sim.initialize()
+    with pytest.raises(RuntimeError) as err:
+        sim.initialize()
+    assert "must be a column vector (n,1)" in str(err.value)

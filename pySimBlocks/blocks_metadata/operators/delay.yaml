@@ -15,6 +15,7 @@ parameters:
   num_delays:
     type: int
     required: false
+    autofill: true
     default: 1
 
   initial_output:

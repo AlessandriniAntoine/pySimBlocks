@@ -15,6 +15,7 @@ parameters:
   gain:
     type: scalar | vector | matrix
     required: true
+    autofill: true
     description: Gain coefficient.
     default: 1.
 

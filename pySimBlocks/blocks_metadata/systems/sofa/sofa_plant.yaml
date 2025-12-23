@@ -29,20 +29,22 @@ ports:
   inputs:
     - name: sofa_inputs
       dynamic: true
-      pattern: "{key}"
+      pattern: "{val}"
       source:
         type: parameter
         parameter: input_keys
+        operation: keys
       shape: [n, 1]
       description: SOFA input ports.
 
   outputs:
     - name: sofa_outputs
       dynamic: true
-      pattern: "{key}"
+      pattern: "{val}"
       source:
         type: parameter
         parameter: output_keys
+        operation: keys
       shape: [n, 1]
       description: SOFA output ports.
 

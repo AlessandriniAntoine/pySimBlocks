@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Sinusoidal, Constant
 from pySimBlocks.blocks.operators import ZeroOrderHold
-from pySimBlocks import Model, Simulator
 
 
 def run_sim(src, block, dt=0.01, T=0.1):
@@ -12,15 +12,12 @@ def run_sim(src, block, dt=0.01, T=0.1):
     model.add_block(block)
     model.connect(src.name, "out", block.name, "in")
 
-    sim = Simulator(model, dt=dt)
+    sim_cfg = SimulationConfig(dt, T, logging=[f"{block.name}.outputs.out"])
+    sim = Simulator(model, sim_cfg)
     sim.initialize()
 
-    logs = []
-    for _ in range(int(T / dt)):
-        sim.step()
-        logs.append(block.outputs["out"].copy())
-
-    return logs
+    logs = sim.run()
+    return logs[f"{block.name}.outputs.out"]
 
 
 # ------------------------------------------------------------------

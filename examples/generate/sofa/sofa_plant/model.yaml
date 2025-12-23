@@ -21,7 +21,6 @@ blocks:
   category: systems
   type: sofa_plant
 connections:
-- [step.out, error.in1]
 - [error.out, Kp.in]
 - [error.out, discrete_integrator.in]
 - [Kp.out, sum.in1]
@@ -29,3 +28,4 @@ connections:
 - [Ki.out, sum.in2]
 - [sum.out, sofa.cable]
 - [sofa.measure, error.in2]
+- [step.out, error.in1]

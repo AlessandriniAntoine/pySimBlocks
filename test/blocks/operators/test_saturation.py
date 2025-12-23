@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.operators.saturation import Saturation
@@ -17,8 +16,9 @@ def run_sim(src_block, sat_block, dt=0.1, T=0.2):
     m.add_block(sat_block)
     m.connect(src_block.name, "out", sat_block.name, "in")
 
-    sim = Simulator(m, dt=dt)
-    logs = sim.run(T=T, variables_to_log=[f"{sat_block.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, T, logging=[f"{sat_block.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{sat_block.name}.outputs.out"]
 
 
@@ -110,7 +110,8 @@ def test_saturation_missing_input():
     m = Model()
     m.add_block(sat)
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
 
     with pytest.raises(RuntimeError):
-        sim.step()
+        sim.initialize()

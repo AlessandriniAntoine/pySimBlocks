@@ -35,7 +35,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         - variables_to_log: list of signal to log
     """
 
-    def __init__(self, name="SofaControllerGui"):
+    def __init__(self, name: str ="SofaControllerGui"):
         super().__init__(name=name)
 
         self.IS_READY = False

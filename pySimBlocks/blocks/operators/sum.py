@@ -10,9 +10,7 @@ class Sum(Block):
         Computes a weighted sum of multiple input signals.
 
     Parameters (overview):
-        num_inputs : int
-            Number of input ports.
-        signs : list of {+1, -1}
+        signs : str of signs +-
             Sign associated with each input.
         sample_time : float, optional
             Block execution period.
@@ -28,41 +26,28 @@ class Sum(Block):
         - No internal state.
     """
 
-    def __init__(self, name: str, num_inputs: int = 2, signs=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        signs: str | None = None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # --- Validate num_inputs / signs -------------------------------------
-        if signs is None and num_inputs == 0:
-            raise ValueError(f"[{self.name}] Either 'num_inputs' or 'signs' must be provided.")
-
         if signs is None:
-            signs = [1] * num_inputs
+            signs = "++"
 
-        if not isinstance(signs, (list, tuple, np.ndarray)):
-            raise TypeError(f"[{self.name}] 'signs' must be a list, tuple or array.")
+        if not isinstance(signs, str):
+            raise TypeError(f"[{self.name}] 'signs' must be a str.")
 
-        if isinstance(signs, np.ndarray):
-            if signs.ndim != 1:
-                raise ValueError(f"[{self.name}] 'signs' array must be 1-dimensional.")
-            signs = signs.tolist()
+        if any(s not in ("+", "-") for s in signs):
+            raise ValueError(f"[{self.name}] 'signs' must contain only + or -.")
 
-        if any(s not in (+1, -1) for s in signs):
-            raise ValueError(f"[{self.name}] 'signs' must contain only +1 or -1.")
-
-        if num_inputs == 0:
-            num_inputs = len(signs)
-
-        if len(signs) != num_inputs:
-            raise ValueError(f"[{self.name}] len(signs) must equal num_inputs.")
-
-        if num_inputs <= 0:
-            raise ValueError(f"[{self.name}] num_inputs must be >= 1.")
-
-        self.num_inputs = num_inputs
-        self.signs = list(signs)
+        self.signs = [1. if s == "+" else -1. for s in signs]
+        self.num_inputs = len(self.signs)
 
         # Create ports
-        for i in range(num_inputs):
+        for i in range(self.num_inputs):
             self.inputs[f"in{i+1}"] = None
 
         self.outputs["out"] = None

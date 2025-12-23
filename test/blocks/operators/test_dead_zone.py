@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.operators.dead_zone import DeadZone
 
@@ -13,8 +12,9 @@ def run_sim(src, dz, dt=0.1, T=0.1):
     m.add_block(dz)
     m.connect(src.name, "out", dz.name, "in")
 
-    sim = Simulator(m, dt=dt)
-    logs = sim.run(T=T, variables_to_log=[f"{dz.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, T, logging=[f"{dz.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{dz.name}.outputs.out"]
 
 
@@ -68,7 +68,8 @@ def test_dead_zone_missing_input():
     m = Model()
     m.add_block(dz)
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 1.)
+    sim = Simulator(m, sim_cfg)
 
     with pytest.raises(RuntimeError):
-        sim.step()
+        sim.initialize()

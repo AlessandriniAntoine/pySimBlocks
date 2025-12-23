@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -35,12 +36,11 @@ class DiscreteIntegrator(Block):
 
     def __init__(self,
         name: str,
-        initial_state=None,
+        initial_state: ArrayLike | None = None,
         method: str = "euler forward",
-        sample_time:float|None = None
+        sample_time: float | None = None
     ):
         super().__init__(name, sample_time)
-        self.initial_state = initial_state
 
         # --------------------------- validate method
         self.method = method.lower()
@@ -59,7 +59,7 @@ class DiscreteIntegrator(Block):
 
         # --------------------------- state
         if initial_state is not None:
-            arr = np.asarray(initial_state)
+            arr = np.asarray(initial_state, dtype=float)
             if arr.ndim == 0:
                 arr = arr.reshape(1, 1)
             elif arr.ndim == 1:
@@ -71,8 +71,10 @@ class DiscreteIntegrator(Block):
                     f"[{self.name}] initial_state must be scalar or column vector (n,1). "
                     f"Got shape {arr.shape}."
                 )
+            self.initial_state = initial_state
             self.state["x"] = arr.copy()
         else:
+            self.initial_state = None
             self.state["x"] = None
 
         self.next_state["x"] = None

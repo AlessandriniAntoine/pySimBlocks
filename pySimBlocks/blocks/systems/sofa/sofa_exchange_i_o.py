@@ -41,8 +41,9 @@ class SofaExchangeIO(Block):
             name: str,
             input_keys: list[str],
             output_keys: list[str],
-            scene_file:str="",
-            sample_time:float|None = None):
+            scene_file: str = "",
+            sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         self.input_keys = input_keys

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -36,14 +37,21 @@ class Sinusoidal(BlockSource):
     """
 
 
-    def __init__(self, name, amplitude, frequency, offset=0.0, phase=0.0, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        amplitude: ArrayLike,
+        frequency: ArrayLike,
+        offset: ArrayLike = 0.0,
+        phase: ArrayLike = 0.0,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # Normalize parameters to column vectors
-        A = self._to_column_vector("amplitude", np.asarray(amplitude))
-        F = self._to_column_vector("frequency", np.asarray(frequency))
-        O = self._to_column_vector("offset",    np.asarray(offset))
-        P = self._to_column_vector("phase",     np.asarray(phase))
+        A = self._to_column_vector("amplitude", amplitude)
+        F = self._to_column_vector("frequency", frequency)
+        O = self._to_column_vector("offset", offset)
+        P = self._to_column_vector("phase", phase)
 
         # Determine final dimension n
         dims = {A.shape[0], F.shape[0], O.shape[0], P.shape[0]}

@@ -18,16 +18,22 @@ parameters:
   A:
     type: matrix
     required: true
+    autofill: true
+    default: [[0.99]]
     description: State transition matrix.
 
   B:
     type: matrix
     required: true
+    autofill: true
+    default: [[1.]]
     description: Input matrix.
 
   C:
     type: matrix
     required: true
+    autofill: true
+    default: [[1.]]
     description: Output matrix.
 
   x0:

@@ -20,8 +20,7 @@ class BlockMeta:
     description: str
 
     parameters: Dict[str, Any]
-    inputs: Dict[str, Any]
-    outputs: Dict[str, Any]
+    ports: Dict[list, Any]
 
     execution: Dict[str, Any]
     notes: Optional[list[str]]
@@ -105,8 +104,6 @@ def _register_block_from_yaml(
     # ------------------------------------------------------------------
     parameters = data.get("parameters", {})
     ports = data.get("ports", {})
-    inputs = ports.get("inputs", {})
-    outputs = ports.get("outputs", {})
     execution = data.get("execution", {})
     notes = data.get("notes", None)
 
@@ -134,8 +131,7 @@ def _register_block_from_yaml(
         summary=data["summary"],
         description=data["description"],
         parameters=parameters,
-        inputs=inputs,
-        outputs=outputs,
+        ports=ports,
         execution=execution,
         notes=notes,
         yaml_path=yaml_path,

@@ -14,6 +14,7 @@ parameters:
   controller:
     type: enum
     required: true
+    autofill: true
     default: PID
     enum: [P, I, PI, PD, PID]
 
@@ -22,6 +23,7 @@ parameters:
     required: false
     autofill: true
     default: 0.0
+    description: Proportionnal gain.
     depends_on:
       parameter: controller
       values: [P, PI, PD, PID]
@@ -29,8 +31,9 @@ parameters:
   Ki:
     type: scalar
     required: false
-    autofill: true
+    autofill: false
     default: 0.0
+    description: Integral gain.
     depends_on:
       parameter: controller
       values: [I, PI, PID]
@@ -38,8 +41,9 @@ parameters:
   Kd:
     type: scalar
     required: false
-    autofill: true
+    autofill: false
     default: 0.0
+    description: Derivative gain.
     depends_on:
       parameter: controller
       values: [PD, PID]

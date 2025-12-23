@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.operators.discrete_integrator import DiscreteIntegrator
 
@@ -18,8 +17,9 @@ def run_sim(src_block, integrator_block, dt=0.1, T=0.3):
     m.add_block(integrator_block)
     m.connect(src_block.name, "out", integrator_block.name, "in")
 
-    sim = Simulator(m, dt=dt)
-    logs = sim.run(T=T, variables_to_log=[f"{integrator_block.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, T, logging=[f"{integrator_block.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{integrator_block.name}.outputs.out"]
 
 
@@ -132,7 +132,9 @@ def test_integrator_missing_input():
     m = Model()
     m.add_block(I)
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
+    sim.initialize()
 
     with pytest.raises(RuntimeError):
         sim.step()

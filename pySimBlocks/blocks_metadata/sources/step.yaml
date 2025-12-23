@@ -19,16 +19,22 @@ parameters:
   value_before:
     type: vector
     required: true
+    autofill: true
+    default: [[0.]]
     description: Output value before the step time.
 
   value_after:
     type: vector
     required: true
+    autofill: true
+    default: [[1.]]
     description: Output value after the step time.
 
   start_time:
     type: float
     required: true
+    autofill: true
+    default: 1.
     description: Time at which the step occurs.
 
   sample_time:

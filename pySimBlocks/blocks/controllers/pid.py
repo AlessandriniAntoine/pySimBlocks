@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 import warnings
 from pySimBlocks.core.block import Block
 
@@ -47,12 +48,16 @@ class Pid(Block):
 
     # ---------------------------------------------------------------------
     def __init__(self,
-                 name: str, controller:str = "PID",
-                 Kp=0.0, Ki=0.0, Kd=0.0,
-                 u_min=None, u_max=None,
-                 integration_method:str = 'euler forward',
-                 sample_time:float|None = None):
-
+                 name: str,
+                 controller:str = "PID",
+                 Kp: ArrayLike = 0.0,
+                 Ki: ArrayLike = 0.0,
+                 Kd: ArrayLike = 0.0,
+                 u_min: ArrayLike | None = None,
+                 u_max: ArrayLike | None = None,
+                 integration_method: str = 'euler forward',
+                 sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # -------------------------
@@ -138,7 +143,7 @@ class Pid(Block):
         if np.isscalar(value):
             return np.array([[float(value)]])
 
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
 
         # numpy scalar
         if arr.shape == ():
@@ -162,7 +167,7 @@ class Pid(Block):
         if np.isscalar(value):
             return np.array([[float(value)]])
 
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
         if arr.shape == ():
             return np.array([[float(arr)]])
         if arr.shape == (1,):

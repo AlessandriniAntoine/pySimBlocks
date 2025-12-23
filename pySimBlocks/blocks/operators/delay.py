@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -38,8 +39,9 @@ class Delay(Block):
     def __init__(self,
             name: str,
             num_delays: int = 1,
-            initial_output=None,
-            sample_time:float|None = None):
+            initial_output: ArrayLike | None =None,
+            sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         if not isinstance(num_delays, int) or num_delays < 1:
@@ -55,7 +57,7 @@ class Delay(Block):
         # Validate initial_output (NEW)
         # -------------------------------
         if initial_output is not None:
-            arr = np.asarray(initial_output)
+            arr = np.asarray(initial_output, dtype=float)
 
             # Accepted shapes : scalar, (n,), (n,1)
             if arr.ndim == 0:

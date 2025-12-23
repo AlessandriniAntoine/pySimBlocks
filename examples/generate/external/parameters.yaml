@@ -2,41 +2,33 @@ simulation:
   dt: 0.01
   T: 3.0
   solver: fixed
-
-external: parameters.py
-
 blocks:
   ref:
     value_before: [[0.0]]
     value_after: [[1.0]]
     start_time: 0.5
-
   error:
-    num_inputs: 2
-    signs: [1., -1]
-
+    signs: +-
   pid:
     controller: PI
-    Kp: "#Kp"
-    Ki: "#Ki"
-
+    Kp: '#Kp'
+    Ki: '#Ki'
+    Kd: 0.0
   plant:
     A: [[0.95]]
     B: [[0.5]]
     C: [[1.0]]
     x0: [[0.0]]
-
 logging:
+- ref.outputs.out
+- plant.outputs.y
+- pid.outputs.u
+plots:
+- title: Ref vs Output
+  signals:
   - ref.outputs.out
   - plant.outputs.y
+- title: Command
+  signals:
   - pid.outputs.u
-
-plots:
-  - title: Ref vs Output
-    signals:
-      - ref.outputs.out
-      - plant.outputs.y
-
-  - title: Command
-    signals:
-      - pid.outputs.u
+external: parameters.py

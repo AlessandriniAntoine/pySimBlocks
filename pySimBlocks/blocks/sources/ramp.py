@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -34,17 +35,23 @@ class Ramp(BlockSource):
     """
 
 
-    def __init__(self, name, slope, start_time=0.0, offset=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        slope: ArrayLike,
+        start_time: ArrayLike = 0.0,
+        offset: ArrayLike | None = None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # --- Validate and normalize parameters ---
-        S = self._to_column_vector("slope", np.asarray(slope))
-        T = self._to_column_vector("start_time", np.asarray(start_time))
+        S = self._to_column_vector("slope", slope)
+        T = self._to_column_vector("start_time", start_time)
 
         if offset is None:
             O = np.zeros_like(S)
         else:
-            O = self._to_column_vector("offset", np.asarray(offset))
+            O = self._to_column_vector("offset", offset)
 
         # Determine common dimension n
         dims = {S.shape[0], T.shape[0], O.shape[0]}

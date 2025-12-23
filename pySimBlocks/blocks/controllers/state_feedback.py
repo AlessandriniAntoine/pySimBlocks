@@ -33,7 +33,12 @@ class StateFeedback(Block):
 
 
 
-    def __init__(self, name: str, K: np.ndarray, G: np.ndarray, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        K: np.ndarray,
+        G: np.ndarray,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # Store matrices with validation

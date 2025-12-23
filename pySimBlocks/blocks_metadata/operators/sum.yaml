@@ -13,16 +13,11 @@ description: >
 
 parameters:
   signs:
-    type: list[int]
+    type: str
     required: false
     autofill: true
-    default: [1., 1.]
-    valid: [+1, -1]
-
-  num_inputs:
-    type: int
-    required: false
-    default: 2
+    default: "++"
+    valid: ["+", "-"]
 
   sample_time:
     type: float
@@ -32,14 +27,11 @@ ports:
   inputs:
     - name: inputs
       dynamic: true
-      pattern: "in{i}"
+      pattern: "in{val}"
       source:
         type: parameter
         parameter: signs
-      fallback:
-        type: parameter
-        parameter: num_inputs
-        default: 2
+        operation: len
       shape: [n, 1]
       description: Input signals.
 

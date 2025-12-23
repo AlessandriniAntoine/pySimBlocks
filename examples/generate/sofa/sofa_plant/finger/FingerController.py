@@ -14,8 +14,8 @@ class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
         super().__init__(name=name)
-        self.parameters_yaml = str((BASE_DIR / "../.temp/parameters.yaml").resolve())
-        self.model_yaml = str((BASE_DIR / "../.temp/model.yaml").resolve())
+        self.parameters_yaml = str((BASE_DIR / "../parameters.yaml").resolve())
+        self.model_yaml = str((BASE_DIR / "../model.yaml").resolve())
 
         self.mo = mo
         self.actuator = actuator

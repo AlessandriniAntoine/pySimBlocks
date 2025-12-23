@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -37,9 +38,10 @@ class DeadZone(Block):
     # ------------------------------------------------------------------
     def __init__(self,
                  name: str,
-                 lower_bound=0.0,
-                 upper_bound=0.0,
-                 sample_time:float|None = None):
+                 lower_bound: ArrayLike =0.0,
+                 upper_bound: ArrayLike =0.0,
+                 sample_time: float | None = None
+    ):
 
         super().__init__(name, sample_time)
 
@@ -64,7 +66,7 @@ class DeadZone(Block):
 
     # ------------------------------------------------------------------
     def _to_column(self, name, value):
-        arr = np.asarray(value)
+        arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:
             return arr.reshape(1, 1)

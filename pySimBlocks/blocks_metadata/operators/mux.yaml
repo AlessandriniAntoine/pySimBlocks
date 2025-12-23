@@ -21,6 +21,7 @@ parameters:
   num_inputs:
     type: int
     required: false
+    autofill: true
     default: 2
 
   sample_time:
@@ -31,10 +32,11 @@ ports:
   inputs:
     - name: inputs
       dynamic: true
-      pattern: "in{i}"
+      pattern: "in{val}"
       source:
         type: parameter
         parameter: num_inputs
+        operation: value
       shape: [n, 1]
       description: Input column vectors to concatenate.
 

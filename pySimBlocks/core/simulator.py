@@ -100,6 +100,8 @@ class Simulator:
                 raise RuntimeError(
                     f"Error during initialization of block '{block.name}': {e}"
                 ) from e
+        for task in self.tasks:
+            task.update_state_blocks()
 
 
     # ----------------------------------------------------------------------

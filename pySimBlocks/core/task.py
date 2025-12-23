@@ -8,6 +8,8 @@ class Task:
             b for b in global_output_order
             if b in blocks
         ]
+
+    def update_state_blocks(self):
         self.state_blocks = [
             b for b in self.output_blocks
             if b.has_state

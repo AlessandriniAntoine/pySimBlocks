@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.operators.delay import Delay
 
@@ -16,8 +15,9 @@ def run_sim(value_before, value_after, delay_block, dt=0.1):
     m.add_block(delay_block)
     m.connect("src", "out", delay_block.name, "in")
 
-    sim = Simulator(m, dt=dt)
-    logs = sim.run(T=3*dt, variables_to_log=[f"{delay_block.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, 3*dt, logging=[f"{delay_block.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{delay_block.name}.outputs.out"]
 
 
@@ -79,7 +79,8 @@ def test_delay_uninitialized_buffer_error():
     d = Delay("D", num_delays=1)
     m.add_block(d)
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
 
     with pytest.raises(RuntimeError):
         sim.run(T=0.1)

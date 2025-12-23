@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -31,7 +32,11 @@ class DiscreteDerivator(Block):
     """
 
 
-    def __init__(self, name: str, initial_output=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        initial_output: ArrayLike | None =None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
@@ -43,7 +48,7 @@ class DiscreteDerivator(Block):
         self._first_output = True
 
         if initial_output is not None:
-            arr = np.asarray(initial_output)
+            arr = np.asarray(initial_output, dtype=float)
             if arr.ndim == 0:
                 arr = arr.reshape(1,1)
             elif arr.ndim == 1:

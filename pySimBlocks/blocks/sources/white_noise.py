@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
@@ -34,12 +35,18 @@ class WhiteNoise(BlockSource):
     """
 
 
-    def __init__(self, name: str, mean=0.0, std=1.0, seed:int | None=None, sample_time:float|None = None):
+    def __init__(self,
+        name: str,
+        mean: ArrayLike =0.0,
+        std: ArrayLike =1.0,
+        seed: int | None = None,
+        sample_time: float | None = None
+    ):
         super().__init__(name, sample_time)
 
         # Normalize parameters
-        M = self._to_column_vector("mean", np.asarray(mean))
-        S = self._to_column_vector("std",  np.asarray(std))
+        M = self._to_column_vector("mean", mean)
+        S = self._to_column_vector("std", std)
 
         # Validate std ≥ 0
         if np.any(S < 0):

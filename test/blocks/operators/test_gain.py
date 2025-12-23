@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.operators.gain import Gain
 
@@ -20,8 +19,9 @@ def run_sim(const_value, gain_block, dt=0.1):
 
     m.connect("src", "out", gain_block.name, "in")
 
-    sim = Simulator(m, dt=dt)
-    logs = sim.run(T=dt, variables_to_log=[f"{gain_block.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, dt, logging=[f"{gain_block.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{gain_block.name}.outputs.out"][-1]
 
 
@@ -50,9 +50,10 @@ def test_gain_vector_bad_u_shape():
     m.add_block(g)
     m.connect("src", "out", "G", "in")
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
     with pytest.raises(RuntimeError) as err:
-        sim.run(T=0.1)
+        sim.initialize()
     assert "must be shape (1,1)" in str(err.value)
 
 
@@ -79,9 +80,10 @@ def test_gain_matrix_bad_dimensions():
     m.add_block(g)
     m.connect("src", "out", "G", "in")
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
     with pytest.raises(RuntimeError) as err:
-        sim.run(T=0.1)
+        sim.initialize()
     assert "Incompatible dimensions" in str(err.value)
 
 
@@ -96,7 +98,8 @@ def test_initialization_output():
     m.add_block(G)
     m.connect("src", "out", "G", "in")
 
-    sim = Simulator(m, dt=0.1)
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
     sim.initialize(0.0)
 
     assert np.allclose(G.outputs["out"], [[3.0]])

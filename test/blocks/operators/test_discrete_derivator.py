@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pySimBlocks.core.model import Model
-from pySimBlocks.core.simulator import Simulator
+from pySimBlocks.core import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.operators.discrete_derivator import DiscreteDerivator
 
@@ -14,8 +13,9 @@ def run_sim(src_block, der_block, dt=0.1, T=0.3, verbose=False):
     m.add_block(der_block)
     m.connect(src_block.name, "out", der_block.name, "in")
 
-    sim = Simulator(m, dt=dt, verbose=verbose)
-    logs = sim.run(T=T, variables_to_log=[f"{der_block.name}.outputs.out"])
+    sim_cfg = SimulationConfig(dt, T, logging=[f"{der_block.name}.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+    logs = sim.run()
     return logs[f"{der_block.name}.outputs.out"]
 
 
@@ -69,7 +69,10 @@ def test_derivator_missing_input():
     D = DiscreteDerivator("D")
     m = Model()
     m.add_block(D)
-    sim = Simulator(m, dt=0.1)
+
+    sim_cfg = SimulationConfig(0.1, 0.1)
+    sim = Simulator(m, sim_cfg)
+    sim.initialize()
 
     with pytest.raises(RuntimeError):
-        sim.step()
+        sim.run()
