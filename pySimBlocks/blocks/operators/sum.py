@@ -54,8 +54,7 @@ class Sum(Block):
 
     # ----------------------------------------------------------------------
     def initialize(self, t0: float):
-        # If inputs already present, compute; else stay None
-        ready = True
+        """If inputs are already known at initialization, compute output."""
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
                 self.inputs[f"in{i+1}"] = np.zeros((1,1))  # dimension fallback

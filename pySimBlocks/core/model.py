@@ -1,3 +1,4 @@
+from collections import deque
 from pathlib import Path
 from typing import Dict, List, Tuple
 from pySimBlocks.core.block import Block
@@ -55,6 +56,7 @@ class Model:
     # Public methods
     # ----------------------------------------------------------------------
     def add_block(self, block: Block) -> Block:
+        """Add a block to the model."""
         if block.name in self.blocks:
             raise ValueError(f"Block name '{block.name}' already exists.")
 
@@ -110,10 +112,9 @@ class Model:
             src_block, src_port = src
             dst_block, dst_port = dst
 
-            A = blocks[src_block]
-            B = blocks[dst_block]
+            block_dist = blocks[dst_block]
 
-            if B.direct_feedthrough:
+            if block_dist.direct_feedthrough:
                 graph[src_block].append(dst_block)
                 indegree[dst_block] += 1
                 vprint(f"  DEPENDENCY: {src_block}.{src_port} → {dst_block}.{dst_port} "
@@ -134,7 +135,6 @@ class Model:
         # STEP 2 — Kahn topological sort
         vprint("\n--- STEP 2: TOPOLOGICAL SORT ---")
 
-        from collections import deque
         ready = deque([b for b in names if indegree[b] == 0])
 
         vprint(f"Initial READY queue: {list(ready)}")
@@ -185,12 +185,14 @@ class Model:
                 yield (src, dst)
 
     def execution_order(self):
+        """Get execution order, building it if necessary."""
         if not self._output_execution_order:
             return self.build_execution_order()
         return self._output_execution_order
 
 
     def predecessors_of(self, block_name):
+        """Get all blocks that feed into block_name."""
         for (src, dst) in self.connections:
             if dst[0] == block_name:
                 yield src[0]

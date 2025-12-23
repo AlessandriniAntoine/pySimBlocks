@@ -108,4 +108,3 @@ class StateFeedback(Block):
         """
         Static controller : no internal state.
         """
-        pass

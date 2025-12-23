@@ -88,7 +88,6 @@ class Gain(Block):
         """
         Gain has no internal state.
         """
-        pass
 
     # ------------------------------------------------------------------
     # COMPUTATION
@@ -110,7 +109,7 @@ class Gain(Block):
             return self.K.reshape(-1, 1) * u[0, 0]
 
         # CASE 3: matrix gain (m,n)
-        m, n = self.K.shape
+        _, n = self.K.shape
         if u.shape[0] != n:
             raise ValueError(
                 f"[{self.name}] Incompatible dimensions: K has shape {self.K.shape} "

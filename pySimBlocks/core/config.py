@@ -20,6 +20,9 @@ class SimulationConfig:
     logging: List[str] = field(default_factory=list)
 
     def validate(self) -> None:
+        """Verify that the configuration is valid.
+        (ie: dt > 0, T > t0, solver is known)
+        """
         if self.dt <= 0.0:
             raise ValueError("SimulationConfig.dt must be > 0")
 
@@ -45,9 +48,11 @@ class ModelConfig:
     blocks: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def has_block(self, name: str) -> bool:
+        """Check if parameters are defined for a given block name."""
         return name in self.blocks
 
     def get_block_params(self, name: str) -> Dict[str, Any]:
+        """Retrieve parameters for a given block name."""
         if name not in self.blocks:
             raise KeyError(f"No parameters defined for block '{name}'")
         return self.blocks[name]
@@ -78,6 +83,9 @@ class PlotConfig:
     plots: List[Dict[str, Any]]
 
     def validate(self) -> None:
+        """Verify that the configuration is valid.
+        (ie: each plot has required fields)
+        """
         for i, plot in enumerate(self.plots):
             if "signals" not in plot:
                 raise ValueError(

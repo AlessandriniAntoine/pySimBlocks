@@ -25,6 +25,7 @@ class RateCounter(Block):
 
     def output_update(self, t: float, dt: float):
         self.outputs["y"] = np.array(self.state["count"])
+        # print(self.outputs["y"])
 
     def state_update(self, t: float, dt: float):
         self.next_state["count"] = self.state["count"] + 1.0
@@ -38,7 +39,7 @@ def test_task_get_dt_semantics(capsys):
 
     This test is isolated from Simulator (unit test of Task).
     """
-    task = Task(Ts=0.1, blocks=[], global_output_order=[])
+    task = Task(sample_time=0.1, blocks=[], global_output_order=[])
 
     assert task.get_dt(0.0) == pytest.approx(0.1)
 
@@ -69,19 +70,19 @@ def test_multirate_activation_and_hold(capsys):
         T=T,
         t0=0.0,
         solver="fixed",
-        logging=["slow.state.count", "fast.state.count"],
+        logging=["slow.outputs.y", "fast.outputs.y"],
     )
     sim = Simulator(model=m, sim_cfg=cfg, verbose=False)
     logs = sim.run()
 
-    slow_count = np.array(logs["slow.state.count"]).flatten()
-    fast_count = np.array(logs["fast.state.count"]).flatten()
+    slow_count = np.array(logs["slow.outputs.y"]).flatten()
+    fast_count = np.array(logs["fast.outputs.y"]).flatten()
 
-    # # fast executes every tick -> after each step, count increases by 1
-    assert np.allclose(fast_count, np.arange(1, len(fast_count) + 1))
+    # # # fast executes every tick -> after each step, count increases by 1
+    assert np.allclose(fast_count, np.arange(0, int(round(T/dt))+1))
 
     # # slow executes at t = 0, 0.02, 0.04 -> state after commit should be:
     # # t=0: 1, t=0.01: 1, t=0.02: 2, t=0.03: 2, t=0.04: 3
-    expected = np.array([1, 1, 2, 2, 3], dtype=float)
+    expected = np.array([0, 0, 1, 1, 2], dtype=float)
     assert len(slow_count) == len(expected)
     assert np.allclose(slow_count, expected)

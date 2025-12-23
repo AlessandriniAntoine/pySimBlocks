@@ -51,6 +51,11 @@ class Simulator:
     # COMPILE
     # ----------------------------------------------------------------------
     def _compile(self):
+        """Prepare the simulator for execution.
+        - Build execution order.
+        - Group blocks into tasks by sample time.
+        - Initialize the scheduler and time manager.
+        """
         self.output_order = self.model.build_execution_order()
         self.model.resolve_sample_times(self.sim_cfg.dt)
         sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
@@ -58,12 +63,12 @@ class Simulator:
         # regroup blocks by sample time
         tasks_by_ts = {}
         for b in self.model.blocks.values():
-            Ts = b._effective_sample_time
-            tasks_by_ts.setdefault(Ts, []).append(b)
+            sample_time = b._effective_sample_time
+            tasks_by_ts.setdefault(sample_time, []).append(b)
 
         self.tasks = [
-            Task(Ts, blocks, self.output_order)
-            for Ts, blocks in tasks_by_ts.items()
+            Task(sample_time, blocks, self.output_order)
+            for sample_time, blocks in tasks_by_ts.items()
         ]
 
         self.scheduler = Scheduler(self.tasks)
@@ -87,6 +92,7 @@ class Simulator:
     # INITIALIZATION
     # ----------------------------------------------------------------------
     def initialize(self, t0: float = 0.0):
+        """Initialize all blocks and propagate initial outputs."""
         self.t = float(t0)
         self.t_step = float(t0)
         self.logs = {"time": []}
@@ -123,6 +129,7 @@ class Simulator:
     # LOG
     # ----------------------------------------------------------------------
     def _log(self, variables_to_log):
+        """Log specified variables at the current time step."""
         for var in variables_to_log:
             block_name, container, key = var.split(".")
             block = self.model.blocks[block_name]
@@ -144,7 +151,17 @@ class Simulator:
     # ONE SIMULATION STEP
     # ----------------------------------------------------------------------
     def step(self):
-
+        """Perform one simulation step.
+        Follows the two-phase update semantics.
+        Steps:
+            0) Determine dt from time manager.
+            1) PHASE 1: output_update for all active tasks.
+            2) Propagate outputs immediately after each block's output_update.
+            3) PHASE 2: state_update for all active tasks.
+            4) Commit states for all active tasks.
+            5) Advance tasks.
+            6) Advance simulation time.
+        """
         dt_scheduler = self.time_manager.next_dt(self.t)
         active_tasks = self.scheduler.active_tasks(self.t)
 
@@ -181,19 +198,25 @@ class Simulator:
         t0: float | None = None,
         logging: list[str] | None = None,
     ):
-        T_run = T if T is not None else self.sim_cfg.T
+        """Run the simulation from t0 to T.
+        If T, t0 or logging are not provided, use the simulator's config.
+        Returns:
+            logs (Dict[str, List[np.ndarray]]): Logged variables over time.
+        """
+        sim_duration = T if T is not None else self.sim_cfg.T
         t0_run = t0 if t0 is not None else self.sim_cfg.t0
         logging_run = logging if logging is not None else self.sim_cfg.logging
 
         self.initialize(t0_run)
 
-        # Main loop
-        while self.t <= T_run +0.3*self.sim_cfg.dt: # do one more iteration as t is updated at the end of step
+        # Main loop (with a small epsilon to avoid floating-point issues)
+        eps = 1e-12
+        while self.t_step < sim_duration - eps:
             self.step()
             self._log(logging_run)
 
             if self.verbose:
-                print(f"\nTime: {self.t_step}/{T_run}")
+                print(f"\nTime: {self.t_step}/{sim_duration}")
                 for variable in logging_run:
                     print(f"{variable}: {self.logs[variable][-1]}")
 
