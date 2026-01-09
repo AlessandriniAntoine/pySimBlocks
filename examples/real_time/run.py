@@ -1,27 +1,37 @@
 import os
 import psutil
+from pathlib import Path
 import time
 import numpy as np
+import tkinter as tk
 import multiprocessing
 import cv2 as cv
+import json
 
 from pySimBlocks.core import Model, Simulator
 from pySimBlocks.project.load_project_config import load_simulation_config
+from pySimBlocks.real_time import RealTimeRunner
 
 from emioapi import EmioMotors
 from emioapi._depthcamera import DepthCamera
+from gui_emio import EmioRealTimeGUI
 
 
 nb_markers = 3
+data_path = Path(__file__).parent / "data"
 
 ############################################################################
 # Camera helpers
 #############################################################################
 def setup_camera():
+    json_path = data_path / "cameraparameter.json"
+    with json_path.open('r') as fp:
+        json_parameters = json.load(fp)
     camera = DepthCamera(
         show_video_feed=True,
         tracking=True,
-        compute_point_cloud=False)
+        compute_point_cloud=False,
+        parameter=json_parameters)
     camera.set_fps(60)
     camera.set_depth_min(0)
     camera.set_depth_max(1000)
@@ -68,22 +78,29 @@ def setup_motors(init_angles=[0, 0, 0, 0]):
     motors.angles = init_angles
     return motors
 
-def send_motors_command(motors, command):
-    motors.angles = [command[0], 0, command[1], 0]
+def send_motors_command(motors, command, init_angles=np.array([0, 0, 0, 0])):
+    motors.angles = [command[0] + init_angles[0], init_angles[1],
+                     command[1] + init_angles[2], init_angles[3]]
 
-def get_motors_position(motors):
-    motors_pos = np.array(motors.angles)[[0, 2]]
-    return motors_pos
+def get_motors_position(motors, init_angles=np.array([0, 0, 0, 0])):
+    motors_pos = np.array(motors.angles) - init_angles
+    return motors_pos[[0, 2]]
 
 ############################################################################
 # pySimBlocks helpers
 #############################################################################
-def setup_blocks():
+def setup_runner():
     sim_cfg, model_cfg = load_simulation_config("parameters.yaml")
     model = Model( name="model", model_yaml="model.yaml", model_cfg=model_cfg)
     sim = Simulator(model, sim_cfg)
-    sim.initialize()
-    return sim
+    runner = RealTimeRunner(
+        sim,
+        input_blocks=["Camera", "Reference", "Start"],
+        output_blocks=["Motor"],
+        target_dt=1/60
+    )
+    runner.initialize()
+    return runner
 
 ############################################################################
 # Process
@@ -112,73 +129,102 @@ def process_camera(shared_markers_pos, event_measure, event_command):
             camera.quit()
             break
 
-def process_main(shared_markers_pos, event_measure, event_command):
+def process_slider(shared_ref, shared_start, shared_update):
+    p = psutil.Process(os.getpid())
+    p.cpu_affinity([1])
+    p.nice(0)
+    root = tk.Tk()
+    app = EmioRealTimeGUI(root, shared_ref, shared_start, shared_update)
+    root.protocol("WM_DELETE_WINDOW", app.close_app)
+    root.mainloop()
+
+def process_main(shared_markers_pos, shared_ref, shared_start, shared_update, event_measure, event_command):
     """Main control loop."""
     p = psutil.Process(os.getpid())
     p.cpu_affinity([2])
     p.nice(0)
 
-    motors = setup_motors(init_angles=[0, 0, 0, 0])
-    block_sim = setup_blocks()
-
-    # get block_motor and block_camera
-    block_ref = block_sim.model.get_block_by_name("Reference")
-    block_camera = block_sim.model.get_block_by_name("Camera")
-    block_motor = block_sim.model.get_block_by_name("Motor")
+    init_angles = np.array([0.7, 0, 0.7, 0])
+    motors = setup_motors(init_angles)
+    runner = setup_runner()
 
     # Initialize variables
     markers_pos = np.zeros((nb_markers * 3,))
     measure = np.zeros((nb_markers * 2,))
+    init_measure = np.zeros((nb_markers * 2,))
     motors_pos = np.zeros((2,))
     command = np.zeros((2,))
+    ref = np.zeros((2,))
 
+    start = False
     t = time.time()
+    dt_list = []
 
     while True:
+        t2 = time.time()
+        dt_measured = t2 - t
+        t = t2
+        dt_list.append(dt_measured)
+        print(f"dt main loop: {dt_measured*1000:.2f} ms, mean: {np.mean(dt_list)*1000:.2f} ms")
+
         # On event, read current pos and send previous command
         event_command.wait()
         event_command.clear()
-        motors_pos = get_motors_position(motors)
-        send_motors_command(motors, command)
+        motors_pos = get_motors_position(motors, init_angles)
+        send_motors_command(motors, command, init_angles)
 
         # On event (camera ready), read markers position
         event_measure.wait()
         event_measure.clear()
         with shared_markers_pos.get_lock():
             markers_pos = np.array(shared_markers_pos[:])
-        measure = markers_pos[[1, 2, 4, 5, 7, 8]]
+        raw_measure = markers_pos[[1, 2, 4, 5, 7, 8]]
 
+        if start:
+            measure = raw_measure - init_measure
+            # Update pySimBlocks inputs
+            with shared_update.get_lock():
+                if shared_update.value:
+                    with shared_ref.get_lock():
+                        ref = np.array(shared_ref[:])
 
-        # Update pySimBlocks inputs
-        block_ref.inputs['in'] = np.zeros((2,))
-        block_camera.inputs['in'] = measure
+            outs = runner.tick(
+                inputs={
+                    "Camera": measure.reshape((nb_markers * 2, 1)),
+                    "Reference": ref.reshape((2, 1)),
+                    "Start": np.array([[1]])
+                },
+                dt=dt_measured,
+                pace=False
+            )
+            command = outs["Motor"].flatten()
 
-        # Simulate one step
-        block_sim.step()
+        else:
+            init_measure = raw_measure.copy()
 
-        # Update pySimBlocks outputs
-        command = block_motor.outputs['out'].flatten()
+        with shared_start.get_lock():
+            start = shared_start.value
 
-        t2 = time.time()
-        dt = t2 - t
-        t = t2
-        print(f"dt main loop: {dt*1000:.2f} ms")
 
 
 def main():
 
     # shared variables
     shared_markers_pos = multiprocessing.Array("d", 3 * nb_markers * [0.])
-    shared_motors_command = multiprocessing.Array("d", 2 * [0.0])
+    shared_ref = multiprocessing.Array("d", 2 * [0.0])
+    shared_start = multiprocessing.Value("b", False)
+    shared_update = multiprocessing.Value("b", False)
     event_measure = multiprocessing.Event()
     event_command = multiprocessing.Event()
 
     # Create processes
     p1 = multiprocessing.Process(target=process_camera, args=(shared_markers_pos, event_measure, event_command))
-    p2 = multiprocessing.Process(target=process_main, args=(shared_markers_pos, event_measure, event_command))
+    p2 = multiprocessing.Process(target=process_main, args=(shared_markers_pos, shared_ref, shared_start, shared_update, event_measure, event_command))
+    p3 = multiprocessing.Process(target=process_slider, args=(shared_ref, shared_start, shared_update))
 
     p1.start()
     p2.start()
+    p3.start()
 
     try:
         while True:
@@ -186,8 +232,10 @@ def main():
     except KeyboardInterrupt:
         p1.terminate()
         p2.terminate()
+        p3.terminate()
         p1.join()
         p2.join()
+        p3.join()
 
 
 def createScene(root):

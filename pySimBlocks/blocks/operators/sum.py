@@ -78,7 +78,8 @@ class Sum(Block):
             shapes.add(u.shape[0])
 
         if len(shapes) > 1:
-            raise ValueError(f"[{self.name}] All inputs must have same dimension. Got sizes {shapes}.")
+            if shapes != {1, max(shapes)}:
+                raise ValueError(f"[{self.name}] All inputs must have same dimension. Got sizes {shapes}.")
 
         self.outputs["out"] = self._compute_output()
 
@@ -88,11 +89,31 @@ class Sum(Block):
 
     # ----------------------------------------------------------------------
     def _compute_output(self):
-        total = None
-        for i in range(self.num_inputs):
-            u = np.asarray(self.inputs[f"in{i+1}"]).reshape(-1, 1)
-            s = self.signs[i]
+        arrays = []
 
+        # Collect inputs
+        for i in range(self.num_inputs):
+            u = np.asarray(self.inputs[f"in{i+1}"], dtype=float)
+            u = u.reshape(-1, 1)
+            arrays.append(u)
+
+        # Dimension handling (element-wise)
+        sizes = {a.shape[0] for a in arrays}
+        max_dim = max(sizes)
+
+        if len(sizes) > 1:
+            if sizes == {1, max_dim}:
+                arrays = [
+                    np.full((max_dim, 1), a.item()) if a.shape[0] == 1 else a
+                    for a in arrays
+                ]
+            else:
+                raise ValueError(
+                    f"[{self.name}] Incompatible input dimensions for element-wise product: {sizes}"
+                )
+
+        total = None
+        for s, u in zip(self.signs, arrays):
             if total is None:
                 total = s * u
             else:

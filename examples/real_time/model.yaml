@@ -14,9 +14,17 @@ blocks:
   - name: Reference
     category: interfaces
     type: external_input
+  - name: Product
+    category: operators
+    type: product
+  - name: Start
+    category: interfaces
+    type: external_input
 connections:
   - [StateFeedback.u, Luenberger.u]
-  - [StateFeedback.u, Motor.in]
   - [Luenberger.x_hat, StateFeedback.x]
   - [Camera.out, Luenberger.y]
   - [Reference.out, StateFeedback.r]
+  - [Product.out, Motor.in]
+  - [StateFeedback.u, Product.in2]
+  - [Start.out, Product.in1]

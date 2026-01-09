@@ -14,6 +14,10 @@ blocks:
     C: "#C"
     L: "#L"
   Reference: {}
+  Product:
+    operations: "*"
+    multiplication: Element-wise (*)
+  Start: {}
 logging:
   - Camera.outputs.out
   - Motor.outputs.out

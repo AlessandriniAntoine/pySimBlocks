@@ -23,8 +23,6 @@ class ExternalOutput(Block):
                 Value forwarded to the external side as a column vector (n,1).
     """
 
-    direct_feedthrough = True
-
     def __init__(self, name: str, sample_time: float | None = None):
         super().__init__(name, sample_time)
         self.inputs["in"] = None

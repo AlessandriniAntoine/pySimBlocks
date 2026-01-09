@@ -77,7 +77,7 @@ def test_sum_dimension_mismatch():
     sim_cfg = SimulationConfig(dt, dt, logging=["S.outputs.out"])
     sim = Simulator(m, sim_cfg)
 
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(RuntimeError) as err:
         sim.run(T=0.1)
 
     assert "same dimension" in str(err.value)

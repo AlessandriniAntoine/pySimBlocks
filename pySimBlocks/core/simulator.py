@@ -150,19 +150,31 @@ class Simulator:
     # ----------------------------------------------------------------------
     # ONE SIMULATION STEP
     # ----------------------------------------------------------------------
-    def step(self):
-        """Perform one simulation step.
-        Follows the two-phase update semantics.
-        Steps:
-            0) Determine dt from time manager.
-            1) PHASE 1: output_update for all active tasks.
-            2) Propagate outputs immediately after each block's output_update.
-            3) PHASE 2: state_update for all active tasks.
-            4) Commit states for all active tasks.
-            5) Advance tasks.
-            6) Advance simulation time.
+    def step(self, dt_override: float | None = None) -> None:
         """
-        dt_scheduler = self.time_manager.next_dt(self.t)
+        Perform one simulation step.
+
+        If dt_override is provided, the simulator time advance is driven by this
+        external dt (real-time clock). Otherwise, dt is provided by the internal
+        time manager (fixed-step).
+        """
+        # 0) Choose dt for this tick
+        if self.sim_cfg.clock == "external":
+            if dt_override is None:
+                raise RuntimeError(
+                    "[Simulator] dt_override must be provided when using external clock."
+                )
+            else:
+                dt_scheduler = float(dt_override)
+                if dt_scheduler <= 0.0:
+                    raise ValueError(f"[Simulator] dt_override must be > 0. Got {dt_scheduler}")
+        else:  # internal clock
+            if dt_override is not None:
+                raise RuntimeError(
+                    "[Simulator] dt_override should not be provided when using internal clock."
+                )
+            dt_scheduler = self.time_manager.next_dt(self.t)
+
         active_tasks = self.scheduler.active_tasks(self.t)
 
         # PHASE 1 — outputs
@@ -189,6 +201,7 @@ class Simulator:
         self.t += dt_scheduler
 
 
+
     # ----------------------------------------------------------------------
     # RUN MULTIPLE STEPS
     # ----------------------------------------------------------------------
@@ -203,6 +216,9 @@ class Simulator:
         Returns:
             logs (Dict[str, List[np.ndarray]]): Logged variables over time.
         """
+        if self.sim_cfg.clock == "external":
+            raise RuntimeError("Simulator.run() is not supported with external clock. Use step(dt_override=...)")
+
         sim_duration = T if T is not None else self.sim_cfg.T
         t0_run = t0 if t0 is not None else self.sim_cfg.t0
         logging_run = logging if logging is not None else self.sim_cfg.logging

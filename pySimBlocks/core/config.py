@@ -18,6 +18,7 @@ class SimulationConfig:
     t0: float = 0.0
     solver: str = "fixed"
     logging: List[str] = field(default_factory=list)
+    clock: str = "internal" # "internal" or "external"
 
     def validate(self) -> None:
         """Verify that the configuration is valid.
@@ -33,6 +34,12 @@ class SimulationConfig:
             raise ValueError(
                 f"Unknown solver '{self.solver}'. "
                 "Allowed values: {'fixed', 'variable'}"
+            )
+
+        if self.clock not in {"internal", "external"}:
+            raise ValueError(
+                f"Unknown clock '{self.clock}'. "
+                "Allowed values: {'internal', 'external'}"
             )
 
 
