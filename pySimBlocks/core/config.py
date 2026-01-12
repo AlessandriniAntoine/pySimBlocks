@@ -1,3 +1,4 @@
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
@@ -53,6 +54,7 @@ class ModelConfig:
     """
 
     blocks: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    parameters_dir: Path | None = None
 
     def has_block(self, name: str) -> bool:
         """Check if parameters are defined for a given block name."""

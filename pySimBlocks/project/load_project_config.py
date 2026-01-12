@@ -7,7 +7,8 @@ from pySimBlocks.core.config import SimulationConfig, ModelConfig, PlotConfig
 
 
 def load_project_config(
-    parameters_yaml: str | Path
+    parameters_yaml: str | Path,
+    parameters_dir: Path | None = None,
 ) -> Tuple[SimulationConfig, ModelConfig, PlotConfig | None]:
     """
     Load a full pySimBlocks project configuration.
@@ -23,7 +24,7 @@ def load_project_config(
     Returns:
         (SimulationConfig, ModelConfig, PlotConfig or None)
     """
-    sim_cfg, model_cfg = load_simulation_config(parameters_yaml)
+    sim_cfg, model_cfg = load_simulation_config(parameters_yaml, parameters_dir)
 
     raw = _load_yaml(Path(parameters_yaml))
 

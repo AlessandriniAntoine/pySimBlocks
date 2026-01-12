@@ -8,7 +8,6 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
     import sys
     import Sofa
     import importlib.util
-    import numpy as np
 
     scene_dir = os.path.dirname(os.path.abspath(scene_file))
     if scene_dir not in sys.path:

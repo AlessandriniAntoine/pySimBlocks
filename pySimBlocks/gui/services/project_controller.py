@@ -49,6 +49,7 @@ class ProjectController:
         code = generate_python_content(
             model_yaml_path=str(model_path),
             parameters_yaml_path=str(param_path),
+            parameters_dir=str(project_dir),
             enable_plots=False
         )
 

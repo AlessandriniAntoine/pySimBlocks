@@ -1,6 +1,4 @@
 import inspect
-import importlib.util
-from pathlib import Path
 from typing import Callable, List, Dict
 
 import numpy as np
@@ -17,10 +15,8 @@ class AlgebraicFunction(Block):
             y = g(t, dt, u1, u2, ...)
 
     Parameters:
-        file_path : str
-            Path to the Python file containing the function (relative to project dir).
-        function_name : str
-            Name of the function to call.
+        function : callable
+            User-defined function.
         input_keys : list[str]
             Names of input ports.
         output_keys : list[str]
@@ -48,8 +44,7 @@ class AlgebraicFunction(Block):
     def __init__(
         self,
         name: str,
-        file_path: str,
-        function_name: str,
+        function: callable,
         input_keys: List[str],
         output_keys: List[str],
         sample_time: float | None = None,
@@ -57,20 +52,15 @@ class AlgebraicFunction(Block):
         super().__init__(name=name, sample_time=sample_time)
 
         # ---- parameters
-        self.file_path = Path(file_path)
-        self.function_name = function_name
+        self._func = function
         self.input_keys = list(input_keys)
         self.output_keys = list(output_keys)
-
-        # ---- internals
-        self._func: Callable | None = None
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float):
         """
         Load the user function and validate its signature.
         """
-        self._load_function()
         self._validate_signature()
 
         # ---- declare ports
@@ -80,41 +70,6 @@ class AlgebraicFunction(Block):
         for k in self.output_keys:
             # Initialized lazily at first output_update
             self.outputs[k] = None
-
-    # ------------------------------------------------------------------
-    def _load_function(self):
-        """
-        Load the Python function from file_path.
-        """
-        abs_path = Path(self.file_path).resolve()
-        if not abs_path.exists():
-            raise FileNotFoundError(
-                f"{self.name}: file not found: {abs_path}"
-            )
-
-        spec = importlib.util.spec_from_file_location(
-            abs_path.stem, abs_path
-        )
-        if spec is None or spec.loader is None:
-            raise RuntimeError(
-                f"{self.name}: unable to load module from {abs_path}"
-            )
-
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        if not hasattr(module, self.function_name):
-            raise AttributeError(
-                f"{self.name}: function '{self.function_name}' not found in {abs_path}"
-            )
-
-        func = getattr(module, self.function_name)
-        if not callable(func):
-            raise TypeError(
-                f"{self.name}: '{self.function_name}' is not callable"
-            )
-
-        self._func = func
 
     # ------------------------------------------------------------------
     def _validate_signature(self):

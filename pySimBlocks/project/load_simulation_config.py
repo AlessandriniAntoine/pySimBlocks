@@ -9,7 +9,6 @@ from pySimBlocks.core.config import ModelConfig, SimulationConfig
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
-
 def _load_yaml(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Parameters file not found: {path}")
@@ -148,7 +147,8 @@ def eval_recursive(obj: Any, scope: dict):
 # Public API
 # ---------------------------------------------------------------------
 def load_simulation_config(
-    parameters_yaml: str | Path
+    parameters_yaml: str | Path,
+    parameters_dir: Path | None = None,
 ) -> Tuple[SimulationConfig, ModelConfig]:
     """
     Load the configuration required to run a simulation.
@@ -227,6 +227,12 @@ def load_simulation_config(
     if not isinstance(blocks_data, dict):
         raise ValueError("'blocks' section must be a mapping")
 
-    model_cfg = ModelConfig(blocks=blocks_data)
+    if parameters_dir is None:
+        parameters_dir = parameters_yaml.parent.resolve()
+
+    model_cfg = ModelConfig(
+        blocks=blocks_data,
+        parameters_dir=parameters_dir,
+    )
 
     return sim_cfg, model_cfg

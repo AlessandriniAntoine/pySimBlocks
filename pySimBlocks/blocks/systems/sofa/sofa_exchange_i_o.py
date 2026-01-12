@@ -34,14 +34,13 @@ class SofaExchangeIO(Block):
     """
 
 
-    direct_feedthrough = False   # necessary: outputs depend immediately on pySimBlocks inputs
+    direct_feedthrough = False
     is_source = False
 
     def __init__(self,
             name: str,
             input_keys: list[str],
             output_keys: list[str],
-            scene_file: str = "",
             sample_time: float | None = None
     ):
         super().__init__(name, sample_time)

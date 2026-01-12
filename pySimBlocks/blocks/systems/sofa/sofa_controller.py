@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import Dict, Any
+import yaml
 import Sofa
 from pySimBlocks import Model, Simulator
 from pySimBlocks.project.load_simulation_config import load_simulation_config
-from pySimBlocks.project.build_model import adapt_model_for_sofa, build_model_from_dict
+from pySimBlocks.project.build_model import build_model_from_dict
 
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
@@ -219,3 +221,41 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             )
 
         self._sofa_block = candidates[0]
+
+
+
+def adapt_model_for_sofa(model_yaml: Path) -> Dict[str, Any]:
+    """
+    Load model.yaml and adapt it for SOFA execution.
+
+    This replaces any SofaPlant block by a SofaExchangeIO block,
+    while preserving block name and connections.
+
+    Parameters
+    ----------
+    model_yaml : Path
+        Path to model.yaml
+
+    Returns
+    -------
+    dict
+        Adapted model dictionary
+    """
+    with model_yaml.open("r") as f:
+        model_data = yaml.safe_load(f) or {}
+
+    adapted = dict(model_data)
+    adapted_blocks = []
+
+    for block in model_data.get("blocks", []):
+        if block["type"].lower() == "sofa_plant":
+            adapted_blocks.append({
+                "name": block["name"],
+                "category": "systems",
+                "type": "sofa_exchange_i_o",
+            })
+        else:
+            adapted_blocks.append(block)
+
+    adapted["blocks"] = adapted_blocks
+    return adapted

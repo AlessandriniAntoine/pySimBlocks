@@ -1,4 +1,5 @@
-from pySimBlocks.gui.model.port_instance  import PortInstance
+from pySimBlocks.gui.model.port_instance import PortInstance
+
 
 class BlockInstance:
     """
@@ -37,7 +38,6 @@ class BlockInstance:
                 ports.extend(self._resolve_port_group(pmeta, direction))
         self.ports = ports
 
-
     def _resolve_port_group(self, pmeta, direction) -> list[PortInstance]:
         if not pmeta["dynamic"]:
             return [PortInstance(pmeta["pattern"], direction, self, pmeta)]
@@ -57,10 +57,9 @@ class BlockInstance:
 
         return []
 
-
     def _expand_ports(self, pattern, value, direction, meta) -> list[PortInstance]:
         ports = []
-        operation = meta["source"].get("operation", '')
+        operation = meta["source"].get("operation", "")
 
         if operation == "len":
             for i in range(1, len(value) + 1):
@@ -73,10 +72,12 @@ class BlockInstance:
         elif operation == "keys":
             if value:
                 for key in value:
-                    ports.append(PortInstance(pattern.format(val=key), direction, self, meta))
+                    ports.append(
+                        PortInstance(pattern.format(val=key), direction, self, meta)
+                    )
 
         elif operation == "value":
-            for i in range(1, int(value)+1):
+            for i in range(1, int(value) + 1):
                 ports.append(PortInstance(pattern.format(val=i), direction, self, meta))
 
         return ports

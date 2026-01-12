@@ -163,7 +163,3 @@ def _resolve_doc_path(yaml_path: Path) -> Optional[Path]:
 
 if __name__ == "__main__":
     registry = load_block_registry()
-
-    # for category, blocks in registry.items():
-    #     for block_type, meta in blocks.items():
-    #         print(meta.name)

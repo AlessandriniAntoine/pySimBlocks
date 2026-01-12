@@ -9,10 +9,10 @@ from pySimBlocks.project.plot_from_config import plot_from_config
 
 try:
     BASE_DIR = Path(__file__).parent.resolve()
-except:
+except Exception:
     BASE_DIR = Path("")
 
-sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / "{parameters_path}")
+sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / "{parameters_path}"{parameters_dir_line})
 
 model = Model(
     name="model",
@@ -27,13 +27,26 @@ if {enable_plots}:
     plot_from_config(logs, plot_cfg)
 """
 
-def generate_python_content(model_yaml_path, parameters_yaml_path, enable_plots=True):
-    content = RUN_TEMPLATE.format(
+
+def generate_python_content(
+    model_yaml_path: str,
+    parameters_yaml_path: str,
+    parameters_dir: str | None = None,
+    enable_plots: bool = True,
+) -> str:
+
+    if parameters_dir is not None:
+        parameters_dir_line = f", parameters_dir=Path({parameters_dir!r})"
+    else:
+        parameters_dir_line = ""
+
+    return RUN_TEMPLATE.format(
         model_path=model_yaml_path,
         parameters_path=parameters_yaml_path,
-        enable_plots=enable_plots
+        parameters_dir_line=parameters_dir_line,
+        enable_plots=enable_plots,
     )
-    return content
+
 
 
 def generate_run_script(

@@ -25,10 +25,19 @@ class SofaService:
         flag, msg, details = self.can_use_sofa()
         if flag:
             sofa_block =  [b for b in self.project_state.blocks if b.meta.type in ["sofa_plant", "sofa_exchange_i_o"]]
-            scene_path = sofa_block[0].parameters["scene_file"]
-            if not Path(scene_path).exists():
-                return False, "Incorrect Scene File", "The file the scene does not exist."
-            self.scene_file = scene_path
+            scene_param = sofa_block[0].parameters.get("scene_file")
+            if not scene_param:
+                return False, "No scene file", "scene_file parameter is missing."
+
+            try:
+                scene_path = self._resolve_scene_file(scene_param)
+            except Exception as e:
+                return False, "Invalid scene file", str(e)
+
+            if not scene_path.exists():
+                return False, "Incorrect Scene File", "The scene file does not exist."
+
+            self.scene_file = str(scene_path)
             return True, "Scene File set", ""
         else:
             return flag, msg, details
@@ -116,3 +125,14 @@ class SofaService:
             detected = shutil.which("runsofa")
         if detected:
             self.sofa_path = detected
+
+    def _resolve_scene_file(self, scene_file: str) -> Path:
+        project_dir = self.project_state.directory_path
+        if project_dir is None:
+            raise RuntimeError("Project directory is not set")
+
+        path = Path(scene_file)
+        if not path.is_absolute():
+            path = (project_dir / path).resolve()
+
+        return path

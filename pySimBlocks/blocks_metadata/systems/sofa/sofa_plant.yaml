@@ -12,14 +12,20 @@ parameters:
   scene_file:
     type: string
     required: true
+    description: >
+      Path to the SOFA scene file, relative to the parameters.yaml file.
 
   input_keys:
     type: list[string]
     required: true
+    description: >
+      List of input keys corresponding to SOFA input ports.
 
   output_keys:
     type: list[string]
     required: true
+    description: >
+      List of output keys corresponding to SOFA output ports.
 
   sample_time:
     type: float
@@ -49,5 +55,6 @@ ports:
       description: SOFA output ports.
 
 execution:
+  adapter: true
   direct_feedthrough: false
   has_state: true
