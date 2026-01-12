@@ -77,10 +77,6 @@ class Sum(Block):
 
             shapes.add(u.shape[0])
 
-        if len(shapes) > 1:
-            if shapes != {1, max(shapes)}:
-                raise ValueError(f"[{self.name}] All inputs must have same dimension. Got sizes {shapes}.")
-
         self.outputs["out"] = self._compute_output()
 
     # ----------------------------------------------------------------------
@@ -109,7 +105,7 @@ class Sum(Block):
                 ]
             else:
                 raise ValueError(
-                    f"[{self.name}] Incompatible input dimensions for element-wise product: {sizes}"
+                    f"[{self.name}] Incompatible input dimensions for element-wise sum: {sizes}"
                 )
 
         total = None

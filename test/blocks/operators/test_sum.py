@@ -63,7 +63,7 @@ def test_sum_dimension_mismatch():
     m = Model()
 
     s1 = Constant("s1", [[1.0], [2.0]])  # 2x1
-    s2 = Constant("s2", [[5.0]])         # 1x1 → mismatch
+    s2 = Constant("s2", [[5.0], [3.0], [4.0]]) # 3x1 → mismatch
 
     sm = Sum("S", "++")
     m.add_block(s1)
@@ -80,7 +80,7 @@ def test_sum_dimension_mismatch():
     with pytest.raises(RuntimeError) as err:
         sim.run(T=0.1)
 
-    assert "same dimension" in str(err.value)
+    assert "Incompatible input dimensions for element-wise sum" in str(err.value)
 
 
 # ------------------------------------------------------------
