@@ -25,7 +25,7 @@ def main():
     )
     state_matrix = Gain(name="A", gain=A)
     input_matrix = Gain(name="B", gain=B)
-    sum = Sum(name="sum", num_inputs=2, signs=[1, 1])
+    sum = Sum(name="sum", signs="++")
     delay = Delay(name="delay", initial_output=np.zeros((1, 1)))
 
     # -------------------------------------------------------

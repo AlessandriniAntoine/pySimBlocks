@@ -19,7 +19,7 @@ categories = sorted(registry.keys())
 class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
         super().__init__()
-        self.setWindowTitle("pySimBlocks — Qt prototype")
+        self.setWindowTitle("pySimBlocks — Qt Edition")
 
         central = QWidget()
         layout = QHBoxLayout(central)

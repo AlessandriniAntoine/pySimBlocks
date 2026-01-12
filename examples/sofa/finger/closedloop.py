@@ -1,6 +1,4 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
 from pySimBlocks.blocks.systems.sofa import SofaPlant
@@ -16,7 +14,7 @@ def main():
 
     # --- Create Blocks ---
     step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=2.)
-    error = Sum(name="error", num_inputs=2, signs=[1, -1])
+    error = Sum(name="error", signs="+-")
     pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
 
     sofa_block = SofaPlant(

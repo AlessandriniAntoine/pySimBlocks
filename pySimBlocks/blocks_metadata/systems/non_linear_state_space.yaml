@@ -21,7 +21,7 @@ parameters:
     type: string
     required: true
     description: >
-      Absolute path to the Python file containing the function.
+      Path to the Python file containing the functions relative to the parameters.yaml file.
 
   state_function_name:
     type: string
@@ -49,6 +49,12 @@ parameters:
       List of output port names. The function must return a dict with
       exactly these keys.
 
+  x0:
+    type: vector
+    required: true
+    description: >
+      Initial state vector.
+
   sample_time:
     type: float
     required: false
@@ -75,5 +81,6 @@ ports:
         operation: keys
 
 execution:
+  adapter: true
   direct_feedthrough: false
   has_state: true

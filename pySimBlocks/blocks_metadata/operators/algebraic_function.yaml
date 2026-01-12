@@ -21,7 +21,7 @@ parameters:
     type: string
     required: true
     description: >
-      Absolute path to the Python file containing the function.
+       Path to the Python file containing the function relative to the parameters.yaml file.
 
   function_name:
     type: string

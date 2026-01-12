@@ -39,11 +39,11 @@ def main():
     for order in test_order:
         ref = Step("ref", start_time=1., value_before=0., value_after=1.)
         motor = LinearStateSpace("motor", A, B, C)
-        error = Sum("error", signs=[+1, -1])
+        error = Sum("error", signs="+-")
         kp = Gain("Kp", Kp)
         ki = Gain("Ki", Ki)
         integrator = DiscreteIntegrator("integrator")
-        sum = Sum("sum", signs=[+1, +1])
+        sum = Sum("sum", signs="++")
 
         blocks = [ref, error, kp, integrator, ki, sum, motor]
 

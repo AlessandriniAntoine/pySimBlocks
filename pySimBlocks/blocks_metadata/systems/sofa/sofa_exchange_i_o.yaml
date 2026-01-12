@@ -52,7 +52,7 @@ ports:
       source:
         type: parameter
         parameter: output_keys
-        operation_keys: keys
+        operation: keys
       shape: [n, 1]
       description: Output ports consumed by the SOFA controller.
 

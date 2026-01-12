@@ -19,7 +19,7 @@ blocks:
   sum:
     signs: ++
   sofa:
-    scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/generate/sofa/sofa_plant/finger/Finger.py
+    scene_file: finger/Finger.py
     input_keys:
     - cable
     output_keys:

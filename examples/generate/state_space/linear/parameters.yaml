@@ -16,8 +16,7 @@ blocks:
     gain: [[1.]]
 
   sum:
-    num_inputs: 2
-    signs: [1., 1.]
+    signs: ++
 
   delay:
     initial_output: [[0.]]

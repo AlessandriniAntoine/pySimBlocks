@@ -4,7 +4,7 @@ simulation:
   T: 10.0
 blocks:
   Algebraic Function:
-    file_path: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/generate/algebraic_function/g.py
+    file_path: g.py
     function_name: g
     input_keys:
     - u1

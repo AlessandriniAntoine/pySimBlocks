@@ -26,15 +26,18 @@ class ProjectController:
         run_py = self.project_state.directory_path / "run.py"
         run_py.write_text(
             generate_python_content(
-                model_yaml_path="model.yaml",
-                parameters_yaml_path="parameters.yaml"
+                model_yaml_path="model.yaml", parameters_yaml_path="parameters.yaml"
             )
         )
 
     def run(self):
         project_dir = self.project_state.directory_path
         if project_dir is None:
-            return {}, False, "Project directory is not set.\nPlease define it in settings."
+            return (
+                {},
+                False,
+                "Project directory is not set.\nPlease define it in settings.",
+            )
 
         temp_dir = project_dir / ".temp"
 
@@ -50,7 +53,7 @@ class ProjectController:
             model_yaml_path=str(model_path),
             parameters_yaml_path=str(param_path),
             parameters_dir=str(project_dir),
-            enable_plots=False
+            enable_plots=False,
         )
 
         old_cwd = os.getcwd()
@@ -78,14 +81,12 @@ class ProjectController:
 
         return True, "Plotting is available."
 
-
     def change_project_directory(self, new_path: Path):
         if self.project_state.directory_path:
             temp = self.project_state.directory_path / ".temp"
             if temp.exists():
                 shutil.rmtree(temp, ignore_errors=True)
         self.project_state.directory_path = new_path
-
 
     def load_project(self, directory: Path):
         model_yaml = directory / "model.yaml"
@@ -110,7 +111,6 @@ class ProjectController:
         self._instantiate_blocks_in_view()
         self._instantiate_connections_in_view()
 
-
     def _load_simulation(self, params_data):
         sim_data = params_data.get("simulation", {})
         if "dt" not in sim_data:
@@ -122,7 +122,6 @@ class ProjectController:
         self.project_state.simulation = sim_data
         if "external" in params_data:
             self.project_state.external = params_data["external"]
-
 
     def _load_blocks(self, model_data, params_data):
         blocks = model_data.get("blocks", [])
@@ -145,8 +144,6 @@ class ProjectController:
 
             instance.resolve_ports()
             self.project_state.add_block(instance)
-
-
 
     def _load_connections(self, model_data):
         connections = model_data.get("connections", [])

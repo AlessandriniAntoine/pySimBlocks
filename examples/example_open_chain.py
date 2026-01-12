@@ -27,7 +27,7 @@ def main():
         start_time=0.5
     )
     gain = Gain(name="g", gain=2.0)
-    sum = Sum(name="s", num_inputs=2, signs=[1, 1])
+    sum = Sum(name="s", signs="++")
 
     # -------------------------------------------------------
     # 2. Build the model

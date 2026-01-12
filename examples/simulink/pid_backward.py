@@ -10,13 +10,13 @@ from pySimBlocks.blocks.controllers import Pid
 def manual_sim(A, B, C, Kp, Ki, Kd, T, dt):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
-    error = Sum("error", signs=[+1, -1])
+    error = Sum("error", "+-")
     kp = Gain("Kp", Kp)
     ki = Gain("Ki", Ki)
     integrator = DiscreteIntegrator("integrator", method="euler backward")
     kd = Gain("Kd", Kd)
     derivator = DiscreteDerivator("derivator")
-    sum = Sum("sum", num_inputs=3, signs=[+1, +1, +1])
+    sum = Sum("sum", "+++")
 
     blocks = [ref, error, kp, integrator, ki, sum, motor, kd, derivator]
 
@@ -58,7 +58,7 @@ def manual_sim(A, B, C, Kp, Ki, Kd, T, dt):
 def block_sim(A, B, C, Kp, Ki, Kd, T, dt):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
-    error = Sum("error", signs=[+1, -1])
+    error = Sum("error", "+-")
     pid = Pid("pid", Kp=Kp, Ki=Ki, Kd=Kd, integration_method="euler backward")
 
     blocks = [ref, error, pid, motor]

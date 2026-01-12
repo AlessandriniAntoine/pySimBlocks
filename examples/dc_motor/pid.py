@@ -3,19 +3,24 @@ import matplotlib.pyplot as plt
 from pySimBlocks import Model, Simulator, SimulationConfig
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.systems import LinearStateSpace
-from pySimBlocks.blocks.operators import Sum, Gain, DiscreteIntegrator, DiscreteDerivator
+from pySimBlocks.blocks.operators import (
+    Sum,
+    Gain,
+    DiscreteIntegrator,
+    DiscreteDerivator,
+)
 
 
 def manual(A, B, C, Kp, Ki, Kd, dt, T):
-    ref = Step("ref", start_time=1., value_before=0., value_after=1.)
+    ref = Step("ref", start_time=1.0, value_before=0.0, value_after=1.0)
     motor = LinearStateSpace("motor", A, B, C)
-    error = Sum("error", signs=[+1, -1])
+    error = Sum("error", signs="+-")
     kp = Gain("Kp", Kp)
     ki = Gain("Ki", Ki)
     integrator = DiscreteIntegrator("integrator")
     kd = Gain("Kd", Kd)
     derivator = DiscreteDerivator("derivator")
-    sum = Sum("sum", num_inputs=3, signs=[+1, +1, +1])
+    sum = Sum("sum", "+++")
 
     blocks = [ref, error, kp, integrator, ki, sum, motor, kd, derivator]
 
@@ -38,14 +43,16 @@ def manual(A, B, C, Kp, Ki, Kd, dt, T):
     sim_cfg = SimulationConfig(dt, T)
     sim = Simulator(model, sim_cfg, verbose=False)
 
-    logs = sim.run(logging=[
+    logs = sim.run(
+        logging=[
             "ref.outputs.out",
             "motor.outputs.y",
             "sum.outputs.out",
             "derivator.outputs.out",
             "integrator.outputs.out",
-            "Kp.outputs.out"
-            ])
+            "Kp.outputs.out",
+        ]
+    )
 
     length = len(logs["ref.outputs.out"])
     time = np.array(logs["time"])
@@ -62,6 +69,7 @@ def manual(A, B, C, Kp, Ki, Kd, dt, T):
 
     return time, r, w, u, p_term, i_term, d_term
 
+
 def main():
     # DC Motor parameters
     R = 0.1
@@ -76,20 +84,21 @@ def main():
 
     # Simulation parameters
     dt = 0.01
-    T = 100.
+    T = 100.0
 
     # State-space matrices
-    A = np.array([[1-dt*R/L, -dt*K/L], [dt*K/J, 1-dt*a/J]])
-    B = np.array([[dt/L], [0]])
+    A = np.array([[1 - dt * R / L, -dt * K / L], [dt * K / J, 1 - dt * a / J]])
+    B = np.array([[dt / L], [0]])
     C = np.array([[0, 1]])
 
-
-    time_man, r_man, w_man, u_man, p_term, i_term, d_term = manual(A, B, C, Kp, Ki, Kd, dt, T)
+    time_man, r_man, w_man, u_man, p_term, i_term, d_term = manual(
+        A, B, C, Kp, Ki, Kd, dt, T
+    )
 
     plt.figure()
-    plt.step(time_man, r_man, ':r', label="Reference (Manual)", where='post')
-    plt.step(time_man, w_man, ':b', label="Motor Speed (Manual)", where='post')
-    plt.step(time_man, u_man, ':g', label="Control Input (Manual)", where='post')
+    plt.step(time_man, r_man, ":r", label="Reference (Manual)", where="post")
+    plt.step(time_man, w_man, ":b", label="Motor Speed (Manual)", where="post")
+    plt.step(time_man, u_man, ":g", label="Control Input (Manual)", where="post")
     plt.xlabel("Time (s)")
     plt.ylabel("Speed (rad/s)")
     plt.title("DC Motor PID Speed Response")
@@ -97,9 +106,9 @@ def main():
     plt.grid()
 
     plt.figure()
-    plt.step(time_man, p_term, '-r', label="P Term", where='post')
-    plt.step(time_man, i_term, '-g', label="I Term", where='post')
-    plt.step(time_man, d_term, '-b', label="D Term", where='post')
+    plt.step(time_man, p_term, "-r", label="P Term", where="post")
+    plt.step(time_man, i_term, "-g", label="I Term", where="post")
+    plt.step(time_man, d_term, "-b", label="D Term", where="post")
     plt.xlabel("Time (s)")
     plt.ylabel("Term Value")
     plt.title("PID Controller Terms (Manual Implementation)")
@@ -107,6 +116,7 @@ def main():
     plt.grid()
 
     plt.show()
+
 
 if __name__ == "__main__":
     main()

@@ -14,7 +14,7 @@ def manual_sim(A, B, C, T, dt):
     gain_A = Gain("A", A)
     gain_B = Gain("B", B)
     gain_C = Gain("C", C)
-    sum_x = Sum("sum_x", signs=[1, 1])
+    sum_x = Sum("sum_x", "++")
 
     # model
     model = Model("manual_ss")

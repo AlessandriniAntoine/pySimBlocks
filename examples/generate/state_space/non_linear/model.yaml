@@ -1,0 +1,9 @@
+blocks:
+- name: Step
+  category: sources
+  type: step
+- name: NLSS
+  category: systems
+  type: non_linear_state_space
+connections:
+- [Step.out, NLSS.u]

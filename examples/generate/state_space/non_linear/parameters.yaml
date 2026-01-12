@@ -1,0 +1,22 @@
+simulation:
+  dt: 0.1
+  solver: fixed
+  T: 10.0
+blocks:
+  Step:
+    value_before: [[0.0]]
+    value_after: [[1.0]]
+    start_time: 1.0
+  NLSS:
+    file_path: nlss.py
+    state_function_name: f
+    output_function_name: g
+    input_keys:
+    - u
+    output_keys:
+    - y
+    x0: [[0.], [0.]]
+logging:
+- Step.outputs.out
+- NLSS.outputs.y
+plots: []

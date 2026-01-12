@@ -1,7 +1,4 @@
 import os
-import sys
-
-import numpy as np
 import Sofa
 
 dir_path = os.path.dirname(os.path.abspath(__file__))

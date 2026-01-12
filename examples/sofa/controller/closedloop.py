@@ -21,7 +21,7 @@ def main():
         start_time=0.4,
     )
 
-    error = Sum(name="error", num_inputs=2, signs=[1, -1])
+    error = Sum(name="error", signs="+-")
     pid = Pid("pid", Kp=0.3, Ki=0.8, controller="PI")
 
     sofa_block = SofaPlant(

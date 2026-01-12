@@ -9,11 +9,11 @@ from pySimBlocks.blocks.operators import Sum, Gain, DiscreteIntegrator
 def manual(A, B, C, Kp, Ki, dt, T):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
-    error = Sum("error", signs=[+1, -1])
+    error = Sum("error", signs="+-")
     kp = Gain("Kp", Kp)
     ki = Gain("Ki", Ki)
     integrator = DiscreteIntegrator("integrator")
-    sum = Sum("sum", num_inputs=2, signs=[+1, +1])
+    sum = Sum("sum", "++")
 
     blocks = [ref, error, kp, integrator, ki, sum, motor]
 

@@ -7,10 +7,7 @@ blocks:
     value_after: [[8.0]]
     start_time: 0.4
   error:
-    num_inputs: 2
-    signs:
-      - 1.0
-      - -1.0
+    signs: +-
   Kp:
     gain: [[0.3]]
   Ki:
@@ -18,9 +15,9 @@ blocks:
   discrete_integrator:
     initial_state: [[0]]
   sum:
-    num_inputs: 2
+    signs: ++
   sofa:
-    scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/generate/sofa/sofa_plant/finger/Finger.py
+    scene_file: Finger.py
     input_keys:
       - cable
     output_keys:

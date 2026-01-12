@@ -15,15 +15,13 @@ class NonLinearStateSpace(Block):
     Summary:
         Stateless block defined by a user-provided Python function:
             x+ = f(t, dt, x, u1, u2, ...)
-            y = g(t, dt)
+            y = g(t, dt, x)
 
     Parameters:
-        file_path : str
-            Path to the Python file containing the function (relative to project dir).
-        state_function_name : str
-            Name of the state function to call.
-        output_function_name : str
-            Name of the ouput function to call.
+        state_function : callable
+            Function to compute next state.
+        output_function_name : callable
+            Function to compute outputs.
         input_keys : list[str]
             Names of input ports.
         output_keys : list[str]
@@ -51,35 +49,40 @@ class NonLinearStateSpace(Block):
     def __init__(
         self,
         name: str,
-        file_path: str,
-        state_function_name: str,
-        output_function_name: str,
+        state_function: Callable,
+        output_function: Callable,
         input_keys: List[str],
         output_keys: List[str],
+        x0: np.ndarray,
         sample_time: float | None = None,
     ):
         super().__init__(name=name, sample_time=sample_time)
 
         # ---- parameters
-        self.file_path = Path(file_path)
-        self.state_function_name = state_function_name
-        self.output_function_name = output_function_name
+        self._state_func = state_function
+        self._output_func = output_function
         self.input_keys = list(input_keys)
         self.output_keys = list(output_keys)
 
-        # ---- internals
-        self._state_func: Callable | None = None
-        self._output_func: Callable | None = None
-
-        self.state["x"] = None
-        self.next_state["x"] = None
+        # ---- initial state
+        if not isinstance(x0, np.ndarray):
+            raise TypeError(
+                f"{self.name}: x0 must be a numpy array"
+            )
+        if x0.ndim == 1:
+            x0 = x0.reshape(-1, 1)
+        elif x0.ndim != 2 or x0.shape[1] != 1:
+            raise ValueError(
+                f"{self.name}: x0 must have shape (n,1) or (n,)"
+            )
+        self.state["x"] = x0.copy()
+        self.next_state["x"] = x0.copy()
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float):
         """
         Load the user function and validate its signature.
         """
-        self._load_function()
         self._validate_signature()
 
         # ---- declare ports
@@ -87,47 +90,7 @@ class NonLinearStateSpace(Block):
             self.inputs[k] = None
 
         for k in self.output_keys:
-            # Initialized lazily at first output_update
             self.outputs[k] = None
-
-    # ------------------------------------------------------------------
-    def _load_function(self):
-        """
-        Load the Python function from file_path.
-        """
-        abs_path = Path(self.file_path).resolve()
-        if not abs_path.exists():
-            raise FileNotFoundError(
-                f"{self.name}: file not found: {abs_path}"
-            )
-
-        spec = importlib.util.spec_from_file_location(
-            abs_path.stem, abs_path
-        )
-        if spec is None or spec.loader is None:
-            raise RuntimeError(
-                f"{self.name}: unable to load module from {abs_path}"
-            )
-
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        funcs = []
-        for func_name in [self.state_function_name, self.output_function_name]:
-            if not hasattr(module, func_name):
-                raise AttributeError(
-                    f"{self.name}: function '{func_name}' not found in {abs_path}"
-                )
-
-            func = getattr(module, func_name)
-            if not callable(func):
-                raise TypeError(
-                    f"{self.name}: '{func_name}' is not callable"
-                )
-            funcs.append(func)
-
-        self._state_func = funcs[0]
-        self._output_func = funcs[1]
 
     # ------------------------------------------------------------------
     def _validate_signature(self):

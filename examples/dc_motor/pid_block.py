@@ -10,7 +10,7 @@ from pySimBlocks.blocks.controllers import Pid
 def pid(A, B, C, Kp, Ki, Kd, dt, T):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
-    error = Sum("error", signs=[+1, -1])
+    error = Sum("error", signs="+-")
     pid = Pid("pid", Kp=Kp, Ki=Ki, Kd=Kd)
 
     blocks = [ref, error, pid, motor]

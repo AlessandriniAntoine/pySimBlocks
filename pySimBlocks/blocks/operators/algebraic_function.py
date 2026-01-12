@@ -44,7 +44,7 @@ class AlgebraicFunction(Block):
     def __init__(
         self,
         name: str,
-        function: callable,
+        function: Callable,
         input_keys: List[str],
         output_keys: List[str],
         sample_time: float | None = None,
