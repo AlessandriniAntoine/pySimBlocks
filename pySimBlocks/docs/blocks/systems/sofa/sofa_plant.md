@@ -24,24 +24,34 @@ where:
 - $ y[k] $ are the outputs defined by `output_keys`,
 - $ \mathcal{F}_{\text{SOFA}} $ represents one SOFA simulation step.
 
-## Inputs and outputs
+---
 
-- **Inputs**  
-  Dynamically defined by `input_keys`.  
-  Each input corresponds to a command sent to the SOFA controller.
+## Parameters
 
-- **Outputs**  
-  Dynamically defined by `output_keys`.  
-  Each output corresponds to a measurement extracted from the SOFA scene.
+| Name | Type | Description | Required |
+|------|------|-------------|----------|
+| `scene_file` | string | Path to the SOFA scene file to be simulated. | Yes |
+| `input_keys` | list[string] | Names of the input ports $ u_1, \dots, u_m $. | Yes |
+| `output_keys` | list[string] | Names of the output ports returned by the output function. | Yes |
+| `sample_time` | float | Execution period of the block. If omitted, the global simulation time step is used. | No | 
+
+## Inputs
+
+Inputs are dynamically defined by `input_keys`.  
+
+- Each input must be connected.
+- Each input is a NumPy array of shape (n, 1).
+- Each input corresponds to a command sent to the SOFA controller.
+
+## Outputs
+
+Outputs are ynamically defined by `output_keys`.
+
+- Each output is a NumPy array of shape (n, 1).
+- Each output corresponds to a measurement extracted from the SOFA scene.
 
 ## Execution semantics
 
 - The block has internal state.
 - There is no direct feedthrough.
 - One SOFA simulation step is executed per block activation.
-
-## Typical use cases
-
-- Closed-loop control of soft robots simulated in SOFA
-- Co-simulation between pySimBlocks controllers and SOFA physics
-- Rapid prototyping of control laws on complex deformable systems

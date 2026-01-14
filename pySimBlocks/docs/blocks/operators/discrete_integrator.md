@@ -38,47 +38,27 @@ where:
 
 ## Parameters
 
-### `initial_state` (optional)
-
-Initial value of the integrated state.
-
-- Scalar or vector-valued
-- If not provided, the state is initialized lazily using a zero vector with
-  dimension inferred from the first input
-
-### `method` (optional)
-
-Numerical integration method.
-
-- `euler forward`
-- `euler backward`
-- Default value is `euler forward`
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `initial_state` | scalar or vector | Initial value of the integrated state. If omitted, the state is initialized as a zero vector. | True |
+| `method` | string | Numerical integration method: `euler forward` or `euler backward`. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Signal to integrate.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal to be integrated. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Integrated output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Integrated output signal. |
 
 ---
 

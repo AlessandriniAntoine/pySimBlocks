@@ -31,54 +31,28 @@ where:
 
 ## Parameters
 
-### `rising_slope` (optional)
-
-Maximum allowed positive rate of change.
-
-- Scalar or vector-valued
-- Must be greater than or equal to zero
-- Default behavior corresponds to no positive rate limit
-
-### `falling_slope` (optional)
-
-Maximum allowed negative rate of change.
-
-- Scalar or vector-valued
-- Must be less than or equal to zero
-- Default behavior corresponds to no negative rate limit
-
-### `initial_output` (optional)
-
-Initial output value used as $y[-1]$.
-
-- Scalar or vector-valued
-- If not provided, the initial output is set equal to the first input
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `rising_slope` | scalar or vector | Maximum allowed positive rate of change. Default is no positive rate limit. | True |
+| `falling_slope` | scalar or vector | Maximum allowed negative rate of change. Default is no negative rate limit. | True |
+| `initial_output` | scalar or vector | | Initial output value used as $y[-1]$. If not provided, the initial output is set equal to the first input. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Rate-limited output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Rate-limited output signal. |
 
 ---
 

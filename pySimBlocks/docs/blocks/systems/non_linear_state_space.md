@@ -2,95 +2,85 @@
 
 ## Summary
 
-The **NonLinearStateSpace** block evaluates a user-defined, discrete-time non linear state space system without direct feedthrough.
+The **NonLinearStateSpace** block represents a user-defined, discrete-time non linear
+state-space system.
+
+The system dynamics and outputs are defined by Python functions provided by the user,
+while the block itself enforces a strict execution and data-flow contract compatible
+with the pySimBlocks simulation semantics.
 
 ---
 
 ## Mathematical definition
 
-The block implements a general algebraic relation of the form:
+The block represents a discrete-time system of the form:
 
 $$
-x[k+1] = g(t_k, \Delta t_k, x[k] u_1[k], u_2[k], \dots)
-$$
-
-$$
-y[k] = g(t_k, \Delta t_k, x[k])
+\begin{aligned}
+x[k+1] &= f\bigl(t_k,\ \Delta t_k,\ x[k],\ u_1[k],\dots,u_m[k]\bigr) \\
+y[k]   &= g\bigl(t_k,\ \Delta t_k,\ x[k]\bigr)
+\end{aligned}
 $$
 
 where:
-- $x[k]$ is the state vector
-- $u_i[k]$ are the input signals,
-- $y[k]$ is the output signal,
-- $t_k$ is the current simulation time,
-- $\Delta t_k$ is the time step since the previous activation.
+- $ x[k] \in \mathbb{R}^n $ is the state vector,
+- $ u_i[k] $ are the input signals,
+- $ y[k] $ is the output signal,
+- $ t_k $ is the current simulation time,
+- $ \Delta t_k $ is the elapsed time since the previous activation.
 
-The functions $f$ and $g$ are provided by the user as a Python function.
+The functions $ f $ and $ g $ are implemented by the user and executed at each
+block activation.
 
 ---
 
 ## Parameters
 
-### `file_path` (required)
+| Name | Type | Description | Required |
+|------|------|-------------|----------|
+| `file_path` | string | Path to the Python file containing the user-defined functions. | Yes |
+| `state_function_name` | string | Name of the state update function implementing $ f $. | Yes |
+| `output_function_name` | string | Name of the output function implementing  $ g $. | Yes |
+| `input_keys` | list[string] | Names of the input ports $ u_1, \dots, u_m $. | Yes |
+| `output_keys` | list[string] | Names of the output ports returned by the output function. | Yes |
+| `x0` | vector | Initial state vector \(x[0]\). | Yes |
+| `sample_time` | float | Execution period of the block. If omitted, the global simulation time step is used. | No | 
 
-Path to the Python file containing the user-defined function.
+--- 
 
-- Must point to a valid Python file
-- Path resolution is handled externally by the project loader
+## Inputs 
 
-### `state_function_name` (required)
+Inputs are dynamically defined by `input_keys`. 
 
-Name of the state function to call inside the Python file.
+- Each input must be connected. 
+- Each input is a NumPy array of shape $ (n,1) $. 
 
-### `output_function_name` (required)
+--- 
 
-Name of the output function to call inside the Python file.
+## Outputs 
 
-### `input_keys` (required)
+Outputs are dynamically defined by `output_keys`. 
 
-List of input port names.
+- Each output is a NumPy array of shape $ (n,1) $. 
+- Outputs depend only on the current state (no direct feedthrough). 
 
-- Defines the block input ports
-- Must match the function arguments after `(t, dt)`
-
-### `output_keys` (required)
-
-List of output port names.
-
-- Defines the block output ports
-- The function must return a dictionary with exactly these keys
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
-
----
-
-## Inputs
-
-Inputs are dynamically defined by `input_keys`.
-
-- Each input must be connected
-- Dimension: $(n, 1)$
-
-## Outputs
-
-Outputs are dynamically defined by `output_keys`.
-
-- Each output is computed at each simulation step
-- Dimension: $(n, 1)$
-
----
+--- 
 
 ## Execution semantics
 
-- The block has a state.
-- The block has no feedthrough.
-- At each activation, the function is evaluated as:
+- The block **has internal state**.
+- The block **has no direct feedthrough**.
+- Execution follows the standard two-phase discrete-time semantics:
+  1. Outputs are computed from the current state.
+  2. The next state is computed from the current state and current inputs.
 
-```python
-f(t, dt, x, **inputs)
-g(t, dt, x)
-```
+---
+
+## Notes
+
+- This block provides a generic interface for embedding non linear models into a
+  block-diagram simulation.
+- The numerical stability and correctness of the system are the responsibility of
+  the user-defined functions.
+- Advanced users may instantiate this block directly from Python using callable
+  functions instead of file-based definitions.

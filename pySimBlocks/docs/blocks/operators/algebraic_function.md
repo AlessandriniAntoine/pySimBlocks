@@ -19,73 +19,41 @@ y[k] = g(t_k, \Delta t_k, u_1[k], u_2[k], \dots)
 $$
 
 where:
-- $u_i[k]$ are the input signals at step $k$,
-- $y[k]$ is the output signal,
-- $t_k$ is the current simulation time,
-- $\Delta t_k$ is the time step since the previous activation.
+- $ u_i[k] $ are the input signals at step $k$,
+- $ y[k] $ is the output signal,
+- $ t_k $ is the current simulation time,
+- $ \Delta t_k $ is the time step since the previous activation.
 
-The function $g$ is provided by the user as a Python function.
+The function $ g $ is provided by the user as a Python function.
 
 ---
 
 ## Parameters
 
-### `file_path` (required)
+| Name | Type | Description | Required |
+|------|------|-------------|----------|
+| `file_path` | string | Path to the Python file containing the user-defined function. | Yes |
+| `function_name` | string | Name of the function $ g $  to call inside the block. | Yes |
+| `input_keys` | list[string] | Names of the input ports $ u_1, \dots, u_m $. | Yes |
+| `output_keys` | list[string] | Names of the output ports returned by the output function. | Yes |
+| `sample_time` | float | Execution period of the block. If omitted, the global simulation time step is used. | No | 
 
-Path to the Python file containing the user-defined function.
+--- 
 
-- Must point to a valid Python file
-- Path resolution is handled externally by the project loader
+## Inputs 
 
----
+Inputs are dynamically defined by `input_keys`. 
 
-### `function_name` (required)
+- Each input must be connected. 
+- Each input is a NumPy array of shape $ (n,1) $. 
 
-Name of the function to call inside the Python file.
+--- 
 
----
+## Outputs 
 
-### `input_keys` (required)
+Outputs are dynamically defined by `output_keys`. 
 
-List of input port names.
-
-- Defines the block input ports
-- Must match the function arguments after `(t, dt)`
-
----
-
-### `output_keys` (required)
-
-List of output port names.
-
-- Defines the block output ports
-- The function must return a dictionary with exactly these keys
-
----
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
-
----
-
-## Inputs
-
-Inputs are dynamically defined by `input_keys`.
-
-- Each input must be connected
-- Dimension: $(n, 1)$
-
----
-
-## Outputs
-
-Outputs are dynamically defined by `output_keys`.
-
-- Each output is computed at each simulation step
-- Dimension: $(n, 1)$
+- Each output is a NumPy array of shape $ (n,1) $. 
 
 ---
 

@@ -24,32 +24,25 @@ Between two sampling instants, the output remains constant.
 
 ## Parameters
 
-### `sample_time`
-
-Sampling period $T_s$.
-
-- Must be strictly positive
-- Defines the time interval between two sampling instants
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal to be sampled and held. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Held output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Output signal that holds the last sampled value. |
 
 ---
 

@@ -37,37 +37,33 @@ $$
 
 ## Parameters
 
-- **controller**  
-  Selects the controller structure: `P`, `I`, `PI`, `PD`, or `PID`.
-
-- **Kp, Ki, Kd**  
-  Proportional, integral, and derivative gains. All gains must be scalar-like.
-
-- **integration_method**  
-  Numerical integration scheme for the integral term:
-  - `euler forward`
-  - `euler backward`
-
-- **u_min, u_max**  
-  Optional output saturation bounds. When enabled, an anti-windup mechanism
-  clamps the integral state.
-
-- **sample_time**  
-  Optional block-specific sample time.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `controller` | string | Controller structure: `P`, `I`, `PI`, `PD`, or `PID`. | False |
+| `Kp` | scalar | Proportional gain. | False |
+| `Ki` | scalar | Integral gain. | False |
+| `Kd` | scalar | Derivative gain. | False |
+| `integration_method` | string | Numerical integration scheme for the integral term: `euler forward` (default) or `euler backward`. | True |
+| `u_min` | scalar | Minimum output saturation bound. | True |
+| `u_max` | scalar | Maximum output saturation bound. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-- **e**  
-  Control error signal.
+| Port | Description |
+|------|------------|
+| `e` | Control error. |
 
 ---
 
 ## Outputs
 
-- **u**  
-  Control command.
+
+| Port | Description |
+|------|------------|
+| `u` | Control command. |
 
 ---
 

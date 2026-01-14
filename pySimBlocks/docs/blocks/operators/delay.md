@@ -23,47 +23,28 @@ where:
 
 ## Parameters
 
-### `num_delays` (optional)
-
-Number of discrete delay steps $N$.
-
-- Must be an integer greater than or equal to 1
-- Default value is 1
-
-### `initial_output` (optional)
-
-Initial value used to fill the delay buffer.
-
-- Scalar or vector-valued
-- If not provided:
-  - the buffer is initialized from the input if available at initialization,
-  - otherwise the dimension is inferred at the first simulation step
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `num_delays` | integer | Number of discrete delay steps. Default is 1. | True |
+| `initial_output` | scalar or vector | Initial value to fill the delay buffer. If not provided, the buffer is initialized as zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal to be delayed. |
 
 ---
 
 ## Outputs
 
-### `out`
 
-Delayed output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Delayed output signal. |
 
 ---
 

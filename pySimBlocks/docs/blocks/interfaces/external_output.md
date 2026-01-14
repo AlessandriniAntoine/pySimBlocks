@@ -8,9 +8,9 @@ The External Output block represents a data output point in a simulation model. 
 
 ## Parameters
 
-| Name        | Description |
-|------------|-------------|
-| `sample_time` | Optional block sample time. If omitted, the global simulation time step is used. |
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -18,7 +18,7 @@ The External Output block represents a data output point in a simulation model. 
 
 | Port | Description |
 |------|------------|
-| `in` | Model data signal \( u \). |
+| `in` | Model data signal $u$. |
 
 ---
 

@@ -28,29 +28,12 @@ where:
 
 ## Parameters
 
-### `value_before`
-
-Output value before the step time.
-
-- Scalar or vector-valued
-- Scalars are broadcast to all dimensions
-
-### `value_after`
-
-Output value after the step time.
-
-- Scalar or vector-valued
-- Must have the same dimension as `value_before`
-
-### `start_time`
-
-Time at which the step occurs.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `value_before` | scalar or vector | Output value before the step time. Scalars are broadcast to all dimensions. | False |
+| `value_after` | scalar or vector | Output value after the step time. Must have the same dimension as `value_before`. | False |
+| `start_time` | float | Time at which the step occurs. | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -62,11 +45,9 @@ This block has **no inputs**.
 
 ## Outputs
 
-### `out`
-
-Step output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Constant output signal. |
 
 ---
 

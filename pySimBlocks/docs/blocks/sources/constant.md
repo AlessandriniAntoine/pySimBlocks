@@ -21,18 +21,10 @@ where $c$ is a constant scalar or vector value.
 
 ## Parameters
 
-### `value`
-
-Constant output value.
-
-- Can be a scalar or a vector
-- Internally converted to a column vector
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not provided, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `value` | scalar or vector | Constant output value. Can be a scalar or vector. | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -44,12 +36,9 @@ This block has **no inputs**.
 
 ## Outputs
 
-### `out`
-
-Constant output signal.
-
-- Dimension: $(n, 1)$
-- Holds the same value for the entire simulation
+| Port | Description |
+|------|------------|
+| `out` | Constant output signal. |
 
 ---
 

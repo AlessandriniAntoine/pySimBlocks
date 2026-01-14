@@ -10,6 +10,7 @@ and an external SOFA controller by exposing dynamic input and output ports.
 ## Description
 
 This block does **not** execute a SOFA simulation.
+It must **only** be used when SOFA will be running the simulation loop.
 It acts only as a data exchange interface between:
 
 - a pySimBlocks control model, and
@@ -21,45 +22,32 @@ The block is fully stateless and does not modify the signals it exchanges.
 
 ## Parameters
 
-### `input_keys`
-
-List of names of input signals provided by the external SOFA controller.
-
-Each key creates a dynamic input port.
-
-### `output_keys`
-
-List of names of output signals consumed by the SOFA controller.
-
-Each key creates a dynamic output port.
-
-### `scene_file` (optional)
-
-Path to the SOFA scene file.
-
-This parameter is used only for automatic code or scene generation.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name | Type | Description | Required |
+|------|------|-------------|----------|
+| `scene_file` | string | Path to the SOFA scene file to be simulated. | Yes |
+| `input_keys` | list[string] | Names of the input ports $ u_1, \dots, u_m $. | Yes |
+| `output_keys` | list[string] | Names of the output ports returned by the output function. | Yes |
+| `sample_time` | float | Execution period of the block. If omitted, the global simulation time step is used. | No | 
 
 ---
 
 ## Inputs
 
-Dynamic inputs defined by `input_keys`.
+Inputs are dynamically defined by `input_keys`.
 
-Each input is expected to be a column vector.
+- Each input must be connected.
+- Each input is a NumPy array of shape (n, 1).
+- Each input corresponds to a command sent to the SOFA controller.
 
 ---
 
 ## Outputs
 
-Dynamic outputs defined by `output_keys`.
+Outputs are dynamically defined by `output_keys`.
 
-Each output is produced by the pySimBlocks controller logic.
+- Each output is a NumPy array of shape (n, 1).
+- Each output corresponds to a measurement extracted from the SOFA scene.
+- Each output is produced by the pySimBlocks controller logic.
 
 ---
 

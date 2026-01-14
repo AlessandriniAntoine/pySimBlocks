@@ -24,45 +24,28 @@ where:
 
 ## Parameters
 
-### `K`
-
-State feedback gain matrix.
-
-### `G`
-
-Reference feedforward gain matrix.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `K` | array | State feedback gain matrix. | False |
+| `G` | array | Reference feedforward gain matrix. | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `r`
-
-Reference vector.
-
-- Dimension: $(p, 1)$
-
-### `x`
-
-State measurement vector.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `r` | Reference vector. |
+| `x` | State measurement vector. |
 
 ---
 
 ## Outputs
 
-### `u`
-
-Control input vector.
-
-- Dimension: $(m, 1)$
+| Port | Description |
+|------|------------|
+| `u` | Control input vector. |
 
 ---
 

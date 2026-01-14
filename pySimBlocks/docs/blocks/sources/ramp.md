@@ -24,32 +24,12 @@ where:
 
 ## Parameters
 
-### `slope`
-
-Ramp slope for each output dimension.
-
-- Scalar or vector-valued
-- Scalars are broadcast to all dimensions
-
-### `start_time` (optional)
-
-Time at which the ramp starts.
-
-- Scalar or vector-valued
-- Default value is zero
-
-### `offset` (optional)
-
-Output value before the ramp starts.
-
-- Scalar or vector-valued
-- Default value is zero
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `slope` | scalar or vector | Ramp slope for each output dimension. Scalars are broadcast to all dimensions. | False |
+| `start_time` | scalar or vector | Time at which the ramp starts. Default is zero. | True |
+| `offset` | scalar or vector | Output value before the ramp starts. Default is zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -61,11 +41,9 @@ This block has **no inputs**.
 
 ## Outputs
 
-### `out`
-
-Ramp output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Constant output signal. |
 
 ---
 

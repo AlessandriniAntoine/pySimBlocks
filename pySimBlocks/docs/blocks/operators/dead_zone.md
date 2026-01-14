@@ -30,47 +30,27 @@ where:
 
 ## Parameters
 
-### `lower_bound` (optional)
-
-Lower bound of the dead zone.
-
-- Scalar or vector-valued
-- Must be less than or equal to zero
-- Default value is zero
-
-### `upper_bound` (optional)
-
-Upper bound of the dead zone.
-
-- Scalar or vector-valued
-- Must be greater than or equal to zero
-- Default value is zero
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `lower_bound` | scalar or vector | Lower bound of the dead zone. Must be less than or equal to zero. Default is zero. | True |
+| `upper_bound` | scalar or vector | Upper bound of the dead zone. Must be greater than or equal to zero. Default is zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal to be processed. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Output signal after dead-zone transformation.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Output signal after dead-zone transformation. |
 
 ---
 

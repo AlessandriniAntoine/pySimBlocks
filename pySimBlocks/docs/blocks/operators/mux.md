@@ -28,39 +28,26 @@ The resulting output dimension is $(\sum_i n_i, 1)$.
 
 ## Parameters
 
-### `num_inputs` (optional)
-
-Number of input ports to create.
-
-- Must be a positive integer
-- Default value is 2
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `num_inputs` | integer | Number of input ports to create. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in1 … inN`
-
-Input column vectors.
-
-- Dynamically defined by `num_inputs`
-- Each input must have shape $(n_i, 1)$
+| Port | Description |
+|------|------------|
+| `in1 … inN` | Input column vectors to be concatenated. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Vertically concatenated output vector.
-
-- Dimension: $(\sum_i n_i, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Vertically concatenated output vector. |
 
 ---
 

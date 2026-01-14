@@ -24,39 +24,26 @@ where:
 
 ## Parameters
 
-### `initial_output` (optional)
-
-Initial derivative value at the first simulation step.
-
-- Scalar or vector-valued
-- If not provided, the derivative is initialized to zero when the first input
-  becomes available
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `initial_output` | scalar or vector | Initial value to fill the delay buffer. If not provided, the buffer is initialized as zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal for derivative estimation. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Estimated discrete-time derivative.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Estimated discrete-time derivative of the input signal. |
 
 ---
 

@@ -29,65 +29,32 @@ where:
 
 ## Parameters
 
-### `A`
-
-System state matrix.
-
-### `B`
-
-Input matrix.
-
-### `C`
-
-Output matrix.
-
-### `L`
-
-Observer gain matrix.
-
-### `x0` (optional)
-
-Initial estimated state.
-
-If not provided, the estimate is initialized to zero.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `A` | array | System state matrix. | False |
+| `B` | array | Input matrix. | False |
+| `C` | array | Output matrix. | False |
+| `L` | array | Observer gain matrix. | False |
+| `x0` | array | Initial estimated state. If omitted, the estimate is initialized to zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `u`
-
-Control input.
-
-- Dimension: $(m, 1)$
-
-### `y`
-
-Measured output.
-
-- Dimension: $(p, 1)$
+| Port | Description |
+|------|------------|
+| `u` | Control input. |
+| `y` | Measured output. |
 
 ---
 
 ## Outputs
 
-### `x_hat`
-
-Estimated state.
-
-- Dimension: $(n, 1)$
-
-### `y_hat`
-
-Estimated output.
-
-- Dimension: $(p, 1)$
+| Port | Description |
+|------|------------|
+| `x_hat` | Estimated state. |
+| `y_hat` | Estimated output. |
 
 ---
 

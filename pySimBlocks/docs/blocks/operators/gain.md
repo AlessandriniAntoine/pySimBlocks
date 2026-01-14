@@ -6,36 +6,35 @@ The **Gain** block applies a static linear transformation to its input signal.
 
 It computes:
 
-$$ y = K \cdot u $$
+$$ 
+y = K \cdot u 
+$$
 
 where:
-- \( u \) is the input signal,
-- \( K \) is the gain,
-- \( y \) is the output signal.
+- $ u $ is the input signal,
+- $ K $ is the gain,
+- $ y $ is the output signal.
 
 ---
 
 ## Gain definition
 
-The gain \( K \) can take several forms:
+The gain $ K $ can take several forms:
 
-- **Scalar**  
-  Multiplies the entire input signal by a constant.
+- **Scalar**: Multiplies the entire input signal by a constant.
 
-- **Vector**  
-  Applies an element-wise gain to a scalar input.
+- **Vector**: Applies an element-wise gain to a scalar input.
 
-- **Matrix**  
-  Applies a full linear transformation between input and output vectors.
+- **Matrix**: Applies a full linear transformation between input and output vectors.
 
 ---
 
 ## Parameters
 
-| Name        | Description |
-|------------|-------------|
-| `gain`     | Gain coefficient (scalar, vector, or matrix). |
-| `sample_time` | Optional block sample time. If omitted, the global simulation time step is used. |
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `gain`     | scalar, vector, or matrix | Gain value(s) to apply. Can be a scalar, vector, or matrix depending on the desired transformation. | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -43,7 +42,7 @@ The gain \( K \) can take several forms:
 
 | Port | Description |
 |------|------------|
-| `in` | Input signal \( u \). |
+| `in` | Input signal $ u $. |
 
 ---
 
@@ -51,7 +50,7 @@ The gain \( K \) can take several forms:
 
 | Port | Description |
 |------|------------|
-| `out` | Output signal \( y = K \cdot u \). |
+| `out` | Output signal $ y = K \cdot u $. |
 
 ---
 

@@ -23,33 +23,12 @@ where:
 
 ## Parameters
 
-### `mean` (optional)
-
-Mean value of the noise.
-
-- Scalar or vector-valued
-- Scalars are broadcast to all dimensions
-- Default value is zero
-
-### `std` (optional)
-
-Standard deviation of the noise.
-
-- Scalar or vector-valued
-- Must be non-negative
-- Default value is one
-
-### `seed` (optional)
-
-Random seed for reproducibility.
-
-If provided, the noise sequence is deterministic.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `mean` | scalar or vector | Mean value of the noise. Scalars are broadcast to all dimensions. Default is zero. | True |
+| `std` | scalar or vector | Standard deviation of the noise. Must be non-negative. Default is one. | True |
+| `seed` | integer | Random seed for reproducibility. If provided, the noise sequence is deterministic. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -61,11 +40,9 @@ This block has **no inputs**.
 
 ## Outputs
 
-### `out`
-
-Gaussian noise output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Gaussian noise output signal. |
 
 ---
 

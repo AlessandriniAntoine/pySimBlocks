@@ -8,16 +8,16 @@ It implements:
 
 $$ y = s_1 u_1 + s_2 u_2 + \dots + s_N u_N $$
 
-where each coefficient \( s_i \) is either +1 or −1.
+where each coefficient $ s_i $ is either +1 or −1.
 
 ---
 
 ## Parameters
 
-| Name | Description |
-|------|------------|
-| `signs` | List of + or − coefficients applied to each input. |
-| `sample_time` | Optional block sample time. |
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `signs` | string | Sequence of '+' and '−' characters defining the sign for each input. | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 
 ---

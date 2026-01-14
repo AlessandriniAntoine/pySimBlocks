@@ -24,45 +24,27 @@ where:
 
 ## Parameters
 
-### `u_min` (optional)
-
-Lower saturation bound.
-
-- Scalar or vector-valued
-- Default behavior corresponds to no lower bound
-
-### `u_max` (optional)
-
-Upper saturation bound.
-
-- Scalar or vector-valued
-- Default behavior corresponds to no upper bound
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `u_min`     | scalar or vector | Lower saturation bound. If omitted, no lower bound is applied. | True |
+| `u_max`     | scalar or vector | Upper saturation bound. If omitted, no upper bound is applied. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `in`
-
-Input signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `in` | Input signal. |
 
 ---
 
 ## Outputs
 
-### `out`
-
-Saturated output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Saturated output signal. |
 
 ---
 

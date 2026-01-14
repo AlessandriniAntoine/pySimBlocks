@@ -27,55 +27,30 @@ where:
 
 ## Parameters
 
-### `A`
-
-State transition matrix.
-
-### `B`
-
-Input matrix.
-
-### `C`
-
-Output matrix.
-
-### `x0` (optional)
-
-Initial state vector.
-
-If not provided, the state is initialized to zero.
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `A` | 2D array | State transition matrix of size (n, n). | False |
+| `B` | 2D array | Input matrix of size (n, m). | False |
+| `C` | 2D array | Output matrix of size (p, n). | False |
+| `x0` | 1D array | Initial state vector of size (n,). If omitted, the state is initialized to zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
 ## Inputs
 
-### `u`
-
-Input vector.
-
-- Dimension: $(m, 1)$
+| Port | Description |
+|------|------------|
+| `u` | Input vector. |
 
 ---
 
 ## Outputs
 
-### `x`
-
-State vector.
-
-- Dimension: $(n, 1)$
-
-### `y`
-
-Output vector.
-
-- Dimension: $(p, 1)$
+| Port | Description |
+|------|------------|
+| `x` | State vector. |
+| `y` | Output vector. |
 
 ---
 

@@ -25,39 +25,13 @@ where:
 
 ## Parameters
 
-### `amplitude`
-
-Sinusoidal amplitude.
-
-- Scalar or vector-valued
-- Scalars are broadcast to all dimensions
-
-### `frequency`
-
-Sinusoidal frequency in Hertz.
-
-- Scalar or vector-valued
-- Scalars are broadcast to all dimensions
-
-### `phase` (optional)
-
-Phase shift in radians.
-
-- Scalar or vector-valued
-- Default value is zero
-
-### `offset` (optional)
-
-Constant offset added to the signal.
-
-- Scalar or vector-valued
-- Default value is zero
-
-### `sample_time` (optional)
-
-Execution period of the block.
-
-If not specified, the simulator time step is used.
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `amplitude` | scalar or vector | Sinusoidal amplitude. Can be a scalar or vector. | False |
+| `frequency` | scalar or vector | Sinusoidal frequency in Hertz. Can be a scalar or vector. | False |
+| `phase` | scalar or vector | Phase shift in radians. Default is zero. | True |
+| `offset` | scalar or vector | Constant offset added to the signal. Default is zero. | True |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -69,11 +43,9 @@ This block has **no inputs**.
 
 ## Outputs
 
-### `out`
-
-Sinusoidal output signal.
-
-- Dimension: $(n, 1)$
+| Port | Description |
+|------|------------|
+| `out` | Constant output signal. |
 
 ---
 

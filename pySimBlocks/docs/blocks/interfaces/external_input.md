@@ -8,9 +8,9 @@ The External Input block represents a data input point in a simulation model. It
 
 ## Parameters
 
-| Name        | Description |
-|------------|-------------|
-| `sample_time` | Optional block sample time. If omitted, the global simulation time step is used. |
+| Name        | Type | Description | Optional |
+|------------|-------------|-------------|-------------|
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
@@ -18,7 +18,7 @@ The External Input block represents a data input point in a simulation model. It
 
 | Port | Description |
 |------|------------|
-| `in` | External data signal \( u \). |
+| `in` | External data signal $u$. |
 
 ---
 

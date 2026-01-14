@@ -16,11 +16,11 @@ where each coefficient \( oper_i \) is either * (matrix product @) or / (matrix 
 
 ## Parameters
 
-| Name | Description |
+| Name | Type | Description | Optional |
 |------|------------|
-| `operations` | List of * or / operations applied between each input. |
-| `multiplication` | Either 'Element-wise (*)' or 'Matrix (@)' multiplication. |
-| `sample_time` | Optional block sample time. |
+| `operations` | string | Specify the operations between inputs as a string of "*" and "/" characters. For example, for three inputs and operations "*", "/", the string would be "* /". The length of this string must be one less than the number of inputs. | False |
+| `multiplication` | string | Type of multiplication: "Element-wise (*)" or "Matrix (@)". | False |
+| `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
 
