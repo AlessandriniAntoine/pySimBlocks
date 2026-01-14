@@ -14,6 +14,7 @@ blocks:
     Kp: '#Kp'
     Ki: '#Ki'
     Kd: 0.0
+    integration_method: euler forward
   plant:
     A: [[0.95]]
     B: [[0.5]]

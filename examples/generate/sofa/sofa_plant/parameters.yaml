@@ -13,7 +13,7 @@ blocks:
     gain: [[0.5]]
   Ki:
     gain: [[0.8]]
-  discrete_integrator:
+  integrator:
     initial_state: [[0.0]]
     method: euler forward
   sum:

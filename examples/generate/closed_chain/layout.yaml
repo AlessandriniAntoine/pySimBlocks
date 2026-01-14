@@ -1,0 +1,14 @@
+version: 1
+blocks:
+  ref:
+    x: 0.0
+    y: -71.0
+  error:
+    x: 195.0
+    y: -71.0
+  pid:
+    x: 364.0
+    y: -71.0
+  plant:
+    x: 282.0
+    y: 87.0

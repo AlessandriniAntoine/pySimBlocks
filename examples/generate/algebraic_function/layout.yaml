@@ -1,0 +1,11 @@
+version: 1
+blocks:
+  Algebraic Function:
+    x: 0.0
+    y: 0.0
+  Constant:
+    x: -197.0
+    y: -35.0
+  Step:
+    x: -196.0
+    y: 43.0

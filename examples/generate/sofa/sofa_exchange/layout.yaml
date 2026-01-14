@@ -1,0 +1,23 @@
+version: 1
+blocks:
+  step:
+    x: -29.0
+    y: -9.0
+  error:
+    x: 137.0
+    y: -3.0
+  Kp:
+    x: 286.0
+    y: -59.0
+  Ki:
+    x: 438.0
+    y: 15.0
+  integrator:
+    x: 283.0
+    y: 20.0
+  sum:
+    x: 581.0
+    y: -58.0
+  sofa:
+    x: 308.0
+    y: 163.0
