@@ -23,7 +23,7 @@ class DiagramView(QGraphicsView):
         self.copied_block = None
         self.resolve_block_meta = resolve_block_meta
         self.project_state = project_state
-        self.block_items = {}
+        self.block_items: dict[str, BlockItem] = {}
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():

@@ -10,7 +10,6 @@ from pySimBlocks.gui.services.yaml_tools import save_yaml
 
 
 class SofaService:
-
     def __init__(self, project_state: ProjectState, project_controller: ProjectController):
         self.project_state = project_state
         self.project_controller = project_controller
@@ -74,7 +73,7 @@ class SofaService:
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
         temp_dir.mkdir(parents=True)
-        save_yaml(self.project_state, True)
+        save_yaml(project_state=self.project_state, temp=True)
         generate_sofa_controller(temp_dir)
 
         # set command

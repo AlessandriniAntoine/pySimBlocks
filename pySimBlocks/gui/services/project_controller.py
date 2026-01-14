@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Callable
 import shutil
 from PySide6.QtCore import QPointF
 
@@ -13,16 +14,19 @@ from pySimBlocks.project.generate_run_script import generate_python_content
 
 
 class ProjectController:
-    def __init__(self, project_state: ProjectState, resolve_block_meta):
+    def __init__(self, 
+                 project_state: ProjectState,
+                 view: DiagramView,
+                 resolve_block_meta: Callable):
         self.project_state = project_state
         self.resolve_block_meta = resolve_block_meta
-        self.view: DiagramView | None = None
+        self.view = view
 
     def save(self):
-        save_yaml(self.project_state)
+        save_yaml(self.project_state, self.view.block_items)
 
     def export(self):
-        save_yaml(self.project_state)
+        save_yaml(self.project_state, self.view.block_items)
         run_py = self.project_state.directory_path / "run.py"
         run_py.write_text(
             generate_python_content(
@@ -44,7 +48,7 @@ class ProjectController:
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
         temp_dir.mkdir(parents=True)
-        save_yaml(self.project_state, True)
+        save_yaml(project_state=self.project_state, temp=True)
 
         model_path = temp_dir / "model.yaml"
         param_path = temp_dir / "parameters.yaml"
@@ -169,18 +173,23 @@ class ProjectController:
         self.project_state.plots = plot_data
 
     def _instantiate_blocks_in_view(self):
-        x, y = 0, 0
-        dx, dy = 180, 120
+        # --- load layout ---
+        layout_blocks, layout_warnings = self._load_layout_data(
+            self.project_state.directory_path
+        )
 
-        for i, block in enumerate(self.project_state.blocks):
-            pos = QPointF(x, y)
+        positions, position_warnings = self._compute_block_positions(layout_blocks)
+
+        for w in layout_warnings + position_warnings:
+            print(f"[Layout warning] {w}")
+
+        # --- instantiate blocks ---
+        for block in self.project_state.blocks:
+            pos = positions[block.name]
             item = BlockItem(block, pos, self.view)
             self.view.scene.addItem(item)
             self.view.block_items[block.name] = item
-            x += dx
-            if x > 800:
-                x = 0
-                y += dy
+
 
     def _instantiate_connections_in_view(self):
         for conn in self.project_state.connections:
@@ -195,3 +204,94 @@ class ProjectController:
 
             src_port.add_connection(item)
             dst_port.add_connection(item)
+
+
+    def _load_layout_data(self, directory: Path) -> tuple[dict | None, list[str]]:
+        """
+        Load layout.yaml if it exists.
+
+        Returns:
+            layout_data: dict or None
+            warnings: list of warning strings
+        """
+        warnings = []
+        layout_path = directory / "layout.yaml"
+
+        if not layout_path.exists():
+            return None, warnings  # Rule 1
+
+        try:
+            data = load_yaml_file(str(layout_path))
+        except Exception as e:
+            warnings.append(f"Failed to parse layout.yaml: {e}")
+            return None, warnings
+
+        if not isinstance(data, dict):
+            warnings.append("layout.yaml is not a valid mapping, ignored.")
+            return None, warnings
+
+        blocks = data.get("blocks", {})
+        if not isinstance(blocks, dict):
+            warnings.append("layout.yaml.blocks is invalid, ignored.")
+            return None, warnings
+
+        return blocks, warnings
+
+
+    def _compute_block_positions(
+        self,
+        layout_blocks: dict | None
+    ) -> tuple[dict[str, QPointF], list[str]]:
+        """
+        Decide final positions for each block in the model.
+
+        Returns:
+            positions: dict[name -> QPointF]
+            warnings: list of warning strings
+        """
+        warnings = []
+        positions = {}
+
+        # automatic layout parameters
+        x, y = 0, 0
+        dx, dy = 180, 120
+
+        model_block_names = {b.name for b in self.project_state.blocks}
+        layout_block_names = set(layout_blocks.keys()) if layout_blocks else set()
+
+        for block in self.project_state.blocks:
+            name = block.name
+
+            if layout_blocks and name in layout_blocks:
+                entry = layout_blocks[name]
+                x_val = entry.get("x")
+                y_val = entry.get("y")
+
+                if isinstance(x_val, (int, float)) and isinstance(y_val, (int, float)):
+                    positions[name] = QPointF(float(x_val), float(y_val))
+                    continue
+                else:
+                    warnings.append(
+                        f"Invalid position for block '{name}' in layout.yaml, auto-placed."
+                    )
+
+            else:
+                if layout_blocks is not None:
+                    warnings.append(
+                        f"Block '{name}' not found in layout.yaml, auto-placed."
+                    )
+
+            # fallback automatic placement
+            positions[name] = QPointF(x, y)
+            x += dx
+            if x > 800:
+                x = 0
+                y += dy
+
+        # layout blocks not in model
+        for name in layout_block_names - model_block_names:
+            warnings.append(
+                f"layout.yaml contains block '{name}' not present in model.yaml."
+            )
+
+        return positions, warnings

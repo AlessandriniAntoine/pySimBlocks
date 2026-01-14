@@ -11,17 +11,22 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.yaml_tools import dump_parameter_yaml, dump_model_yaml
+from pySimBlocks.gui.services.yaml_tools import dump_parameter_yaml, dump_model_yaml, dump_layout_yaml
+from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class DisplayYamlDialog(QDialog):
-    def __init__(self, project: ProjectState, parent=None):
+    def __init__(self, 
+                 project: ProjectState, 
+                 view: DiagramView,
+                 parent=None):
         super().__init__(parent)
 
         self.setWindowTitle("Generated YAML files")
         self.resize(900, 600)
 
         self.project_state = project
+        self.view = view
 
         main_layout = QVBoxLayout(self)
 
@@ -42,6 +47,13 @@ class DisplayYamlDialog(QDialog):
         tabs.addTab(
             self._make_code_view(mtext),
             "model.yaml"
+        )
+
+        # Layout.yaml
+        ltext = dump_layout_yaml(self.view.block_items)
+        tabs.addTab(
+            self._make_code_view(ltext),
+            "layout.yaml"
         )
 
         main_layout.addWidget(tabs)

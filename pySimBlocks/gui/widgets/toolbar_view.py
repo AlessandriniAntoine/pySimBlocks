@@ -2,7 +2,6 @@ from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplicati
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 
-from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
@@ -16,10 +15,10 @@ from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
 class ToolBarView(QToolBar):
 
-    def __init__(self, project: ProjectState, project_controller: ProjectController):
+    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
         super().__init__()
 
-        self.project_state = project
+        self.project_state = project_state
         self.project_controller = project_controller
 
         save_action = QAction("Save", self)
@@ -59,7 +58,7 @@ class ToolBarView(QToolBar):
         self.project_controller.export()
 
     def open_display_yaml(self):
-        dialog = DisplayYamlDialog(self.project_state)
+        dialog = DisplayYamlDialog(self.project_state, self.project_controller.view)
         dialog.exec()
 
     def open_simulation_settings(self):
@@ -123,13 +122,13 @@ class ToolBarView(QToolBar):
 
     def open_sofa_dialog(self):
         ok, msg, details = self.sofa_service.can_use_sofa()
-        # if not ok:
-        #     QMessageBox.warning(
-        #         self,
-        #         msg,
-        #         details,
-        #         QMessageBox.Ok
-        #     )
-            # return
+        if not ok:
+            QMessageBox.warning(
+                self,
+                msg,
+                details,
+                QMessageBox.Ok
+            )
+            return
         dialog = SofaDialog(self.sofa_service)
         dialog.exec()

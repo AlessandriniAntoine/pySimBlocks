@@ -8,22 +8,22 @@ from pySimBlocks.gui.model.project_state import ProjectState
 
 
 class SimulationSettingsWidget(QWidget):
-    def __init__(self, project: ProjectState):
+    def __init__(self, project_state: ProjectState):
         super().__init__()
-        self.project = project
+        self.project_state = project_state
 
         layout = QFormLayout(self)
         layout.addRow(QLabel("<b>Simulation Settings</b>"))
 
-        self.dt_edit = QLineEdit(str(project.simulation.get("dt", 0.01)))
+        self.dt_edit = QLineEdit(str(project_state.simulation.get("dt", 0.01)))
         layout.addRow("Step time:", self.dt_edit)
 
         self.solver_combo = QComboBox()
         self.solver_combo.addItems(["fixed", "variable"])
-        self.solver_combo.setCurrentText(project.simulation.get("solver", "fixed"))
+        self.solver_combo.setCurrentText(project_state.simulation.get("solver", "fixed"))
         layout.addRow("Solver:", self.solver_combo)
 
-        self.T_edit = QLineEdit(str(project.simulation.get("T", 10.0)))
+        self.T_edit = QLineEdit(str(project_state.simulation.get("T", 10.0)))
         layout.addRow("Stop time:", self.T_edit)
 
         # -------- Logs --------
@@ -34,18 +34,18 @@ class SimulationSettingsWidget(QWidget):
 
     def apply(self):
         try:
-            self.project.simulation["dt"] = float(self.dt_edit.text())
+            self.project_state.simulation["dt"] = float(self.dt_edit.text())
         except ValueError:
-            self.project.simulation["dt"] = self.dt_edit.text()
+            self.project_state.simulation["dt"] = self.dt_edit.text()
 
         try:
-            self.project.simulation["T"] = float(self.T_edit.text())
+            self.project_state.simulation["T"] = float(self.T_edit.text())
         except ValueError:
-            self.project.simulation["T"] = self.T_edit.text()
+            self.project_state.simulation["T"] = self.T_edit.text()
 
-        self.project.simulation["solver"] = self.solver_combo.currentText()
+        self.project_state.simulation["solver"] = self.solver_combo.currentText()
 
-        self.project.logging = [
+        self.project_state.logging = [
             self.logs_list.item(i).text()
             for i in range(self.logs_list.count())
             if self.logs_list.item(i).checkState() == Qt.Checked
@@ -57,7 +57,7 @@ class SimulationSettingsWidget(QWidget):
         Called when the Simulation tab becomes active.
         """
         self._define_log_list()
-        selected = set(self.project.logging)
+        selected = set(self.project_state.logging)
         self.logs_list.blockSignals(True)
 
         for i in range(self.logs_list.count()):
@@ -72,8 +72,8 @@ class SimulationSettingsWidget(QWidget):
     def _define_log_list(self):
         self.logs_list.blockSignals(True)
         self.logs_list.clear()
-        available = self.project.get_output_signals()
-        selected = set(self.project.logging)
+        available = self.project_state.get_output_signals()
+        selected = set(self.project_state.logging)
         for sig in available:
             item = QListWidgetItem(sig)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
@@ -85,7 +85,7 @@ class SimulationSettingsWidget(QWidget):
         if item.checkState() == Qt.Unchecked:
             used = any(
                 item.text() in plot["signals"]
-                for plot in self.project.plots
+                for plot in self.project_state.plots
             )
             if used:
                 QMessageBox.warning(

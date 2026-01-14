@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import yaml
 from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.graphics.block_item import BlockItem
 
 
 def load_yaml_file(path: str) -> dict:
@@ -66,9 +67,12 @@ ModelYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
 # ===============================================================
 # Dump helpers
 # ===============================================================
-def dump_parameter_yaml(project=None, raw:dict|None=None):
-    if project:
-        data = build_parameters_yaml(project)
+def dump_parameter_yaml(
+        project_state: ProjectState | None = None, 
+        raw: dict | None = None
+        ) -> str:
+    if project_state:
+        data = build_parameters_yaml(project_state)
     elif raw:
         data = raw
     else:
@@ -81,9 +85,12 @@ def dump_parameter_yaml(project=None, raw:dict|None=None):
         sort_keys=False
     )
 
-def dump_model_yaml(project=None, raw:dict|None=None) -> str:
-    if project:
-        data = build_model_yaml(project)
+def dump_model_yaml(
+        project_state: ProjectState | None = None, 
+        raw: dict | None = None
+        ) -> str:
+    if project_state:
+        data = build_model_yaml(project_state)
     elif raw:
         data = raw
     else:
@@ -100,10 +107,32 @@ def dump_model_yaml(project=None, raw:dict|None=None) -> str:
         sort_keys=False,
     )
 
-def save_yaml(project: ProjectState, temp=False):
-    directory = project.directory_path
-    params_yaml = build_parameters_yaml(project)
-    model_yaml = build_model_yaml(project)
+def dump_layout_yaml(
+        block_items: dict[str, BlockItem] | None = None, 
+        raw: dict | None = None
+        ) -> str:
+    if block_items:
+        data = build_layout_yaml(block_items)
+    elif raw:
+        data = raw
+    else:
+        raise ValueError("block_items or raw must be set")
+    return yaml.dump(
+        data,
+        Dumper=ModelYamlDumper,
+        sort_keys=False,
+    )
+
+# ===============================================================
+# Save functions
+# ===============================================================
+def save_yaml(
+        project_state: ProjectState, 
+        block_items: dict[str, BlockItem] | None = None, 
+        temp: bool = False) -> None:
+    directory = project_state.directory_path
+    params_yaml = build_parameters_yaml(project_state)
+    model_yaml = build_model_yaml(project_state)
 
     if temp:
         temp_dir = directory / ".temp"
@@ -121,31 +150,37 @@ def save_yaml(project: ProjectState, temp=False):
         dump_model_yaml(raw=model_yaml)
     )
 
+    if not temp and block_items:
+        layout_yaml = build_layout_yaml(block_items)
+        (directory / "layout.yaml").write_text(
+            dump_layout_yaml(raw=layout_yaml)
+        )
+
 # ===============================================================
 # Build function
 # ===============================================================
-def build_parameters_yaml(project: ProjectState) -> dict:
+def build_parameters_yaml(project_state: ProjectState) -> dict:
     data = {
-        "simulation": project.simulation,
+        "simulation": project_state.simulation,
         "blocks": {},
-        "logging": project.logging,
-        "plots": project.plots,
+        "logging": project_state.logging,
+        "plots": project_state.plots,
     }
 
-    for b in project.blocks:
+    for b in project_state.blocks:
         params = {
             k: v for k, v in b.parameters.items()
             if v is not None
         }
         data["blocks"][b.name] = params
 
-    if project.external is not None:
-        data["external"] = project.external
+    if project_state.external is not None:
+        data["external"] = project_state.external
 
     return data
 
 
-def build_model_yaml(project: ProjectState) -> dict:
+def build_model_yaml(project_state: ProjectState) -> dict:
     return {
         "blocks": [
             {
@@ -153,12 +188,35 @@ def build_model_yaml(project: ProjectState) -> dict:
                 "category": b.meta.category,
                 "type": b.meta.type,
             }
-            for b in project.blocks
+            for b in project_state.blocks
         ],
         "connections": [
              [f"{c.src_block.name}.{c.src_port}",
               f"{c.dst_block.name}.{c.dst_port}",
             ]
-            for c in project.connections
+            for c in project_state.connections
         ],
     }
+
+
+def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
+    """
+    Build layout.yaml content from the current diagram view.
+
+    This function extracts ONLY visual information.
+    """
+
+    data = {
+        "version": 1,
+        "blocks": {}
+    }
+
+    for name, item in block_items.items():
+        pos = item.pos()
+        data["blocks"][name] = {
+            "x": float(pos.x()),
+            "y": float(pos.y()),
+        }
+
+    return data
+
