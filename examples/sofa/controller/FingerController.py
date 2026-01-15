@@ -6,7 +6,7 @@ from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, verbose=True, name="FingerController"):
-        super().__init__(name=name)
+        super().__init__(root, name=name)
 
         self.parameters_yaml = "parameters.yaml"
         self.model_yaml = "model.yaml"

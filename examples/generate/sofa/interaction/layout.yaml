@@ -1,8 +1,0 @@
-version: 1
-blocks:
-  SofaPlant:
-    x: -168.0
-    y: -89.0
-  Constant:
-    x: -337.0
-    y: -88.0

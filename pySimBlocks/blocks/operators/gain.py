@@ -8,7 +8,7 @@ class Gain(Block):
     Static linear gain block
 
     Summary:
-        Computes y = K u
+        Computes y = gain * u
 
     Parameters (overview):
         gain: scalar or matrix
@@ -37,13 +37,13 @@ class Gain(Block):
 
         # Normalize K into np.ndarray or scalar
         if np.isscalar(gain):
-            self.K = gain
+            self.gain = gain
         else:
-            self.K = np.asarray(gain, dtype=float)
-            if self.K.ndim not in (1, 2):
+            self.gain = np.asarray(gain, dtype=float)
+            if self.gain.ndim not in (1, 2):
                 raise ValueError(
                     f"[{self.name}] Gain 'K' must be a scalar, vector (m,), or matrix (m,n). "
-                    f"Got array with ndim={self.K.ndim}."
+                    f"Got array with ndim={self.gain.ndim}."
                 )
 
         # One input port, one output port
@@ -95,25 +95,26 @@ class Gain(Block):
     def _compute(self, u: np.ndarray) -> np.ndarray:
 
         # CASE 1: scalar gain
-        if np.isscalar(self.K):
-            return self.K * u
+        if np.isscalar(self.gain):
+            return self.gain * u
 
         # CASE 2: vector gain (m,)
-        if self.K.ndim == 1:
+        if self.gain.ndim == 1:
             if u.shape != (1, 1):
                 raise ValueError(
-                    f"[{self.name}] Input 'in' must be shape (1,1) when gain 'K' is a vector (shape {self.K.shape}). "
+                    f"[{self.name}] Input 'in' must be shape (1,1) when gain 'K' is a vector (shape {self.gain.shape}). "
                     f"Got input shape {u.shape}."
                 )
             # Vector treated as row vector → output is (m,1)
-            return self.K.reshape(-1, 1) * u[0, 0]
+            return self.gain.reshape(-1, 1) * u[0, 0]
 
         # CASE 3: matrix gain (m,n)
-        _, n = self.K.shape
+        _, n = self.gain.shape
         if u.shape[0] != n:
             raise ValueError(
-                f"[{self.name}] Incompatible dimensions: K has shape {self.K.shape} "
+                f"[{self.name}] Incompatible dimensions: K has shape {self.gain.shape} "
                 f"but input 'in' has shape {u.shape}."
             )
 
-        return self.K @ u
+        return self.gain @ u
+

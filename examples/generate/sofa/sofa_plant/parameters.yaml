@@ -3,10 +3,6 @@ simulation:
   T: 5.0
   solver: fixed
 blocks:
-  step:
-    value_before: [[0.0]]
-    value_after: [[8.0]]
-    start_time: 0.4
   error:
     signs: +-
   Kp:
@@ -25,15 +21,26 @@ blocks:
     output_keys:
     - tip
     - measure
+    slider_params:
+      ref.value:
+      - -10.0
+      - 50.0
+      Kp.gain:
+      - 1.0
+      - 20.0
+      Ki.gain:
+      - 1.0
+      - 20.0
+  ref:
+    value: [[1.0]]
 logging:
-- step.outputs.out
-- sofa.outputs.measure
 - sum.outputs.out
+- sofa.outputs.measure
 plots:
 - title: Outputs
   signals:
-  - step.outputs.out
   - sofa.outputs.measure
+  - ref.outputs.out
 - title: Command
   signals:
   - sum.outputs.out

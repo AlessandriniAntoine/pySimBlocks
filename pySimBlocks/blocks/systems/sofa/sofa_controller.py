@@ -46,7 +46,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         - variables_to_log: list of signal to log
     """
 
-    def __init__(self, name: str ="SofaControllerGui"):
+    def __init__(self, root: Sofa.Core.Node, name: str ="SofaControllerGui"):
         super().__init__(name=name)
 
         self.IS_READY = False
@@ -54,6 +54,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self._imgui = _imgui
 
         # MUST be filled by child controllers
+        self.root = root
         self.inputs: Dict[str, np.ndarray] = {}
         self.outputs: Dict[str, np.ndarray] = {}
         self.variables_to_log: List[str] = []
@@ -282,7 +283,8 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         for var, extremum in data.items():
             block_name, key = var.split(".")
             node = self._slider_node.addChild(f"{block_name}_{key}")
-            value = self.sim.model.blocks[block_name].__getattribute__(key)
+            block = self.sim.model.blocks[block_name]
+            value = getattr(block, key)
             self._slider_data[f"{block_name}.{key}"] = {"node": node, "shape": value.shape}
             value = value.flatten()
             for i in range(len(value)):
@@ -292,12 +294,13 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
     def _update_sofa_slider(self):
         for var in self._slider_data:
             block_name, key = var.split(".")
+            block = self.sim.model.blocks[block_name]
             node = self._slider_data[var]["node"]
             shape = self._slider_data[var]["shape"]
             new_values = []
             for i in range(np.prod(shape)):
                 new_values.append(node.getData(f"value{i}").value)
-            self.sim.model.blocks[block_name].__setattr__(key, np.array(new_values).reshape(shape))
+            setattr(block, key, np.array(new_values).reshape(shape))
 
 
 def adapt_model_for_sofa(model_yaml: str) -> Dict[str, Any]:

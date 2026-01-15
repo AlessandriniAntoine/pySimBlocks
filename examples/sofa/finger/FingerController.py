@@ -7,7 +7,7 @@ import Sofa
 class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(name=name)
+        super().__init__(root, name=name)
 
         self.mo = mo
         self.actuator = actuator

@@ -1,9 +1,0 @@
-blocks:
-- name: SofaPlant
-  category: systems
-  type: sofa_plant
-- name: Constant
-  category: sources
-  type: constant
-connections:
-- [Constant.out, SofaPlant.cable]

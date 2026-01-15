@@ -1,8 +1,5 @@
 version: 1
 blocks:
-  step:
-    x: -330.0
-    y: -18.0
   error:
     x: -164.0
     y: -9.0
@@ -13,11 +10,14 @@ blocks:
     x: 137.0
     y: -11.0
   integrator:
-    x: 0.0
-    y: 0.0
+    x: -15.0
+    y: 3.0
   sum:
     x: 294.0
     y: -71.0
   sofa:
     x: 25.0
     y: 148.0
+  ref:
+    x: -353.0
+    y: -18.0
