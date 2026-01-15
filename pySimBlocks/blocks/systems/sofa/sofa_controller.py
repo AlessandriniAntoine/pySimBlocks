@@ -1,6 +1,7 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 import yaml
+import numpy as np
 import Sofa
 from pySimBlocks import Model, Simulator
 from pySimBlocks.project.load_simulation_config import load_simulation_config
@@ -44,17 +45,17 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.SOFA_MASTER = True
 
         # MUST be filled by child controllers
-        self.inputs  = {}
-        self.outputs = {}
-        self.variables_to_log = []
+        self.inputs: Dict[str, np.ndarray] = {}
+        self.outputs: Dict[str, np.ndarray] = {}
+        self.variables_to_log: List[str] = []
         self.verbose = False
 
-        self.dt = None
-        self.sim = None
-        self.step_index = 0
+        self.dt: float | None = None
+        self.sim: Simulator | None = None
+        self.step_index: int = 0
 
-        self.model_yaml= None
-        self.parameters_yaml = None
+        self.model_yaml: str | None = None
+        self.parameters_yaml: str | None = None
 
     # ----------------------------------------------------------------------
     # Common             ---------------------------------------------------

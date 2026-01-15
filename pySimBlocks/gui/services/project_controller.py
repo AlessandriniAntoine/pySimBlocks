@@ -193,8 +193,8 @@ class ProjectController:
 
     def _instantiate_connections_in_view(self):
         for conn in self.project_state.connections:
-            src_item = self.view.block_items[conn.src_block.name]
-            dst_item = self.view.block_items[conn.dst_block.name]
+            src_item = self.view.block_items[conn.src_block.uid]
+            dst_item = self.view.block_items[conn.dst_block.uid]
 
             src_port = src_item.get_port_item(conn.src_port)
             dst_port = dst_item.get_port_item(conn.dst_port)

@@ -94,7 +94,10 @@ class SofaService:
             return False, "Launch failed", "runSofa could not start"
         self.process.waitForFinished(-1)
 
-        generate_sofa_controller(project_dir)
+        try:
+            generate_sofa_controller(project_dir)
+        except Exception as e:
+            return False, "Could not regenerate controller", "model and parameters yaml does not exists.\n" + str(e)
 
         # get output results
         output = self.process.readAllStandardOutput().data().decode()
