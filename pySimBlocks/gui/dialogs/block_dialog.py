@@ -1,19 +1,20 @@
 import ast
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QDialog,
-    QLabel,
-    QVBoxLayout,
-    QLineEdit,
-    QPushButton,
-    QFormLayout,
-    QComboBox,
-    QFrame,
-    QTextBrowser,
-    QMessageBox,
-    QSizePolicy
-)
+
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTextBrowser,
+    QVBoxLayout,
+)
 
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
@@ -31,7 +32,6 @@ class BlockDialog(QDialog):
         self.param_widgets = {}
 
         main_layout = QVBoxLayout(self)
-
 
         self.param_widgets = {}
         self.param_labels = {}
