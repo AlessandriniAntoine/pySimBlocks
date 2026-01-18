@@ -23,6 +23,11 @@ pysimblocks = "pySimBlocks.gui.editor:main"
 pysimblocks-generate = "pySimBlocks.project.generate:main"
 pysimblocks-update = "pySimBlocks.tools.cli:main"
 
+[tool.setuptools.package-data]
+pySimBlocks = [
+    "blocks_metadata/**/*",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 
