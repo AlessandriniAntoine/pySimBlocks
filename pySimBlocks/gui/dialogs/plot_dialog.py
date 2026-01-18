@@ -28,7 +28,6 @@ class PlotDialog(QDialog):
         self._build_ui()
         self._populate_signals()
 
-
     # ------------------------------------------------------------
     # UI
     # ------------------------------------------------------------
@@ -59,7 +58,6 @@ class PlotDialog(QDialog):
 
         main_layout.addWidget(self.canvas, 1)
 
-
     # ------------------------------------------------------------
     # Populate signals
     # ------------------------------------------------------------
@@ -75,7 +73,6 @@ class PlotDialog(QDialog):
             item.setCheckState(Qt.Unchecked)
             self.signal_list.addItem(item)
 
-
     # ------------------------------------------------------------
     # Interactive plot
     # ------------------------------------------------------------
@@ -90,6 +87,53 @@ class PlotDialog(QDialog):
         self._update_preview_plot()
 
 
+    def _stack_logged_signal_2d(self, sig: str) -> np.ndarray:
+        """
+        Stack a logged signal over time, preserving its 2D shape.
+
+        Returns:
+            data: np.ndarray of shape (T, m, n)
+
+        Raises:
+            ValueError if samples are not 2D arrays of consistent shape.
+        """
+        samples = self.project_state.logs.get(sig, None)
+        if not isinstance(samples, list) or len(samples) == 0:
+            raise ValueError(f"Signal '{sig}' has no samples in logs.")
+
+        # Find first non-None sample to define shape
+        first = None
+        for s in samples:
+            if s is not None:
+                first = np.asarray(s)
+                break
+
+        if first is None:
+            raise ValueError(f"Signal '{sig}' is always None; cannot plot.")
+
+        if first.ndim != 2:
+            raise ValueError(f"Signal '{sig}' must be 2D. Got ndim={first.ndim} with shape {first.shape}.")
+
+        shape0 = first.shape
+
+        stacked = []
+        for k, s in enumerate(samples):
+            if s is None:
+                raise ValueError(f"Signal '{sig}' contains None at index {k}; cannot plot.")
+            a = np.asarray(s)
+            if a.ndim != 2:
+                raise ValueError(
+                    f"Signal '{sig}' sample {k} must be 2D. Got ndim={a.ndim} with shape {a.shape}."
+                )
+            if a.shape != shape0:
+                raise ValueError(
+                    f"Signal '{sig}' shape changed over time: expected {shape0}, got {a.shape} at sample {k}."
+                )
+            stacked.append(a)
+
+        return np.stack(stacked, axis=0)  # (T, m, n)
+
+
     def _update_preview_plot(self):
         self.figure.clear()
         ax = self.figure.add_subplot(111)
@@ -99,20 +143,52 @@ class PlotDialog(QDialog):
             return
 
         time = np.asarray(self.project_state.logs["time"]).flatten()
-        n = len(time)
+        T = len(time)
 
-        for sig in sorted(self.selected_signals):
-            data = np.asarray(self.project_state.logs[sig]).reshape(n, -1)
+        try:
+            for sig in sorted(self.selected_signals):
+                data = self._stack_logged_signal_2d(sig)  # (T, m, n)
 
-            for i in range(data.shape[1]):
-                label = sig if data.shape[1] == 1 else f"{sig}[{i}]"
-                ax.step(time, data[:, i], where="post", label=label)
+                if data.shape[0] != T:
+                    raise ValueError(
+                        f"Time length mismatch for '{sig}': time has {T} samples but signal has {data.shape[0]}."
+                    )
 
-        ax.set_xlabel("Time [s]")
-        ax.grid(True)
-        ax.legend()
+                m, n = data.shape[1], data.shape[2]
+
+                # scalar
+                if (m, n) == (1, 1):
+                    ax.step(time, data[:, 0, 0], where="post", label=sig)
+                    continue
+
+                # vector column (m,1)
+                if n == 1:
+                    for i in range(m):
+                        ax.step(time, data[:, i, 0], where="post", label=f"{sig}[{i}]")
+                    continue
+
+                # matrix (m,n)
+                for r in range(m):
+                    for c in range(n):
+                        ax.step(time, data[:, r, c], where="post", label=f"{sig}[{r},{c}]")
+
+            ax.set_xlabel("Time [s]")
+            ax.grid(True)
+            ax.legend()
+
+        except Exception as e:
+            # Keep the UI responsive; show the error inside the plot area.
+            ax.text(
+                0.01, 0.99,
+                f"Plot preview error:\n{e}",
+                transform=ax.transAxes,
+                va="top",
+                ha="left",
+                wrap=True,
+            )
+            ax.set_axis_off()
+
         self.canvas.draw()
-
 
     # ------------------------------------------------------------
     # Plot defined plots (matplotlib windows)

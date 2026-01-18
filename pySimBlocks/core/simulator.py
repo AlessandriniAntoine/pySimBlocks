@@ -89,28 +89,6 @@ class Simulator:
             )
 
     # ----------------------------------------------------------------------
-    # INITIALIZATION
-    # ----------------------------------------------------------------------
-    def initialize(self, t0: float = 0.0):
-        """Initialize all blocks and propagate initial outputs."""
-        self.t = float(t0)
-        self.t_step = float(t0)
-        self.logs = {"time": []}
-
-        # Initialisation bloc par bloc + propagation
-        for block in self.output_order:
-            try:
-                block.initialize(self.t)
-                self._propagate_from(block)
-            except Exception as e:
-                raise RuntimeError(
-                    f"Error during initialization of block '{block.name}': {e}"
-                ) from e
-        for task in self.tasks:
-            task.update_state_blocks()
-
-
-    # ----------------------------------------------------------------------
     # PROPAGATION
     # ----------------------------------------------------------------------
     def _propagate_from(self, block):
@@ -129,7 +107,12 @@ class Simulator:
     # LOG
     # ----------------------------------------------------------------------
     def _log(self, variables_to_log):
-        """Log specified variables at the current time step."""
+        """Log specified variables at the current time step.
+
+        Enforces:
+            - logged values must be 2D numpy arrays
+            - shape must stay constant over time for each logged variable
+        """
         for var in variables_to_log:
             block_name, container, key = var.split(".")
             block = self.model.blocks[block_name]
@@ -141,11 +124,58 @@ class Simulator:
             else:
                 raise ValueError(f"Unknown container '{container}' in '{var}'.")
 
+            if value is None:
+                raise RuntimeError(
+                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: value is None."
+                )
+
+            arr = np.asarray(value)
+
+            if arr.ndim != 2:
+                raise RuntimeError(
+                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: expected a 2D array, "
+                    f"got ndim={arr.ndim} with shape {arr.shape}."
+                )
+
+            # Enforce constant shape over time for this variable
+            if var not in self._log_shapes:
+                self._log_shapes[var] = arr.shape
+            else:
+                expected_shape = self._log_shapes[var]
+                if arr.shape != expected_shape:
+                    raise RuntimeError(
+                        f"[Simulator] Logged signal '{var}' changed shape over time at t={self.t_step}: "
+                        f"expected {expected_shape}, got {arr.shape}."
+                    )
+
             if var not in self.logs:
                 self.logs[var] = []
-            self.logs[var].append(np.copy(value))
+            self.logs[var].append(np.copy(arr))
 
         self.logs["time"].append(np.array([self.t_step]))
+
+
+    # ----------------------------------------------------------------------
+    # INITIALIZATION
+    # ----------------------------------------------------------------------
+    def initialize(self, t0: float = 0.0):
+        """Initialize all blocks and propagate initial outputs."""
+        self.t = float(t0)
+        self.t_step = float(t0)
+        self.logs = {"time": []}
+        self._log_shapes: Dict[str, tuple[int, int]] = {}
+
+        # Initialisation bloc par bloc + propagation
+        for block in self.output_order:
+            try:
+                block.initialize(self.t)
+                self._propagate_from(block)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Error during initialization of block '{block.name}': {e}"
+                ) from e
+        for task in self.tasks:
+            task.update_state_blocks()
 
     # ----------------------------------------------------------------------
     # ONE SIMULATION STEP
@@ -199,8 +229,6 @@ class Simulator:
 
         self.t_step = self.t
         self.t += dt_scheduler
-
-
 
     # ----------------------------------------------------------------------
     # RUN MULTIPLE STEPS
