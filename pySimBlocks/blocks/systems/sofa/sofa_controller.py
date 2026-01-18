@@ -3,9 +3,17 @@ from typing import Dict, Any, List
 import yaml
 import numpy as np
 import Sofa
+
 from pySimBlocks import Model, Simulator
-from pySimBlocks.project.load_simulation_config import load_simulation_config
+from pySimBlocks.project.load_project_config import load_project_config
 from pySimBlocks.project.build_model import build_model_from_dict
+
+
+try:
+    import Sofa.ImGui as MyGui
+    _imgui = True
+except ImportError:
+    _imgui = False
 
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
@@ -38,13 +46,15 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         - variables_to_log: list of signal to log
     """
 
-    def __init__(self, name: str ="SofaControllerGui"):
+    def __init__(self, root: Sofa.Core.Node, name: str ="SofaControllerGui"):
         super().__init__(name=name)
 
         self.IS_READY = False
         self.SOFA_MASTER = True
+        self._imgui = _imgui
 
         # MUST be filled by child controllers
+        self.root = root
         self.inputs: Dict[str, np.ndarray] = {}
         self.outputs: Dict[str, np.ndarray] = {}
         self.variables_to_log: List[str] = []
@@ -84,6 +94,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
     def get_outputs(self):
         """
         Read state from SOFA components and populate self.outputs.
+        MUST ALWAYS WORK AND RETURN CONSISTENT SHAPES.
         Must be implemented by child classes.
         """
         raise NotImplementedError("get_outputs() must be implemented by subclass.")
@@ -116,27 +127,28 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if self.SOFA_MASTER:
             if self.sim is None:
                 self._prepare_pysimblocks()
+                self._get_sofa_outputs()
+                self._set_sofa_plot()
+                self._set_sofa_slider()
 
             if not self.IS_READY:
                 self.prepare_scene()
 
             if self.IS_READY:
                 if self.counter % self.ratio ==0:
-                    self.get_outputs()
-                    for keys, val in self.outputs.items():
-                        self._sofa_block.outputs[keys] = val
-
+                    
+                    self._get_sofa_outputs()
                     self.sim.step()
                     self.sim._log(self.sim_cfg.logging)
-
-                    for key, val in self._sofa_block.inputs.items():
-                        self.inputs[key] = val
-                    self.set_inputs()
+                    self._set_sofa_inputs()
 
                     if self.verbose:
                         self._print_logs()
 
                     self.save()
+                    self._update_sofa_slider()
+                    self._update_sofa_plot()
+
                     self.sim_index += 1
                     self.counter = 0
                 self.counter += 1
@@ -157,9 +169,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             - self.variables_to_log
         """
         if self.parameters_yaml is not None:
-            self.sim_cfg, self.model_cfg = load_simulation_config(self.parameters_yaml)
+            self.sim_cfg, self.model_cfg, self.plot_cfg = load_project_config(self.parameters_yaml)
         if self.model_yaml is not None:
-            model_dict = adapt_model_for_sofa(Path(self.model_yaml))
+            model_dict = adapt_model_for_sofa(self.model_yaml)
             self.model = Model("sofa_model")
             build_model_from_dict(self.model, model_dict, self.model_cfg)
 
@@ -223,9 +235,99 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         self._sofa_block = candidates[0]
 
+    def _get_sofa_outputs(self):
+        """
+        Read outputs from SOFA components and push them to pySimBlocks.
+        """
+        self.get_outputs()
+        for keys, val in self.outputs.items():
+            self._sofa_block.outputs[keys] = val
+
+    def _set_sofa_inputs(self):
+        """
+        Apply inputs from pySimBlocks to SOFA components.
+        """
+        for key, val in self._sofa_block.inputs.items():
+            self.inputs[key] = val
+        self.set_inputs()
+
+    def _set_sofa_plot(self):
+        """
+        Setup ImGui plotting for selected variables.
+        """
+        if not self._imgui:
+            return 
+
+        if self.sim is None:
+            raise RuntimeError("Simulator not initialized.")
+
+        self._plot_node = self.root.addChild("PLOT")
+        self._plot_data = {}
+        for plot in self.plot_cfg.plots:
+            for var in plot["signals"]:
+                block_name, _, key = var.split(".")
+                self._plot_data[f"{block_name}.{key}"] = self._plot_node.addChild(f"{block_name}_{key}")
+                value = self.sim.model.blocks[block_name].outputs[key].flatten()
+                for i in range(len(value)):
+                    self._plot_data[f"{block_name}.{key}"].addData(name=f"value{i}", type="float", value=value[i])
+                    MyGui.PlottingWindow.addData(f"{block_name}.{key}[{i}]", self._plot_data[f"{block_name}.{key}"].getData(f"value{i}"))
 
 
-def adapt_model_for_sofa(model_yaml: Path) -> Dict[str, Any]:
+    def _update_sofa_plot(self):
+        """
+        Update ImGui plotting for selected variables.
+        """
+        if not self._imgui:
+            return 
+
+        for name, node in self._plot_data.items():
+            block_name, key = name.split(".")
+            value = self.sim.model.blocks[block_name].outputs[key].flatten()
+            for i in range(len(value)):
+                node.getData(f"value{i}").value = float(value[i])
+
+
+    def _set_sofa_slider(self):
+        """
+        Setup ImGui sliders for selected variables.
+        """
+        if not self._imgui:
+            return 
+        if self.sim is None:
+            raise RuntimeError("Simulator not initialized.")
+
+        data = self._sofa_block.slider_params 
+        data = data if data is not None else {}
+
+        self._slider_node = self.root.addChild("SLIDERS")
+        self._slider_data = {}
+        for var, extremum in data.items():
+            block_name, key = var.split(".")
+            node = self._slider_node.addChild(f"{block_name}_{key}")
+            block = self.sim.model.blocks[block_name]
+            value = getattr(block, key)
+            self._slider_data[f"{block_name}.{key}"] = {"node": node, "shape": value.shape}
+            value = value.flatten()
+            for i in range(len(value)):
+                d = node.addData(name=f"value{i}", type="float", value=value[i])
+                MyGui.MyRobotWindow.addSettingInGroup( f"{key}[{i}]", d, extremum[0], extremum[1], f"{block_name}")
+
+    def _update_sofa_slider(self):
+        """
+        Update ImGui sliders for selected variables.
+        """
+        for var in self._slider_data:
+            block_name, key = var.split(".")
+            block = self.sim.model.blocks[block_name]
+            node = self._slider_data[var]["node"]
+            shape = self._slider_data[var]["shape"]
+            new_values = []
+            for i in range(np.prod(shape)):
+                new_values.append(node.getData(f"value{i}").value)
+            setattr(block, key, np.array(new_values).reshape(shape))
+
+
+def adapt_model_for_sofa(model_yaml: str) -> Dict[str, Any]:
     """
     Load model.yaml and adapt it for SOFA execution.
 
@@ -242,7 +344,11 @@ def adapt_model_for_sofa(model_yaml: Path) -> Dict[str, Any]:
     dict
         Adapted model dictionary
     """
-    with model_yaml.open("r") as f:
+    model_path = Path(model_yaml)
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model YAML file not found: {model_yaml}")
+
+    with model_path.open("r") as f:
         model_data = yaml.safe_load(f) or {}
 
     adapted = dict(model_data)

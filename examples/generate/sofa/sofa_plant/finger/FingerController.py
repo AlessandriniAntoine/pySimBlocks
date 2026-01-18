@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(name=name)
+        super().__init__(root, name=name)
         self.parameters_yaml = str((BASE_DIR / "../parameters.yaml").resolve())
         self.model_yaml = str((BASE_DIR / "../model.yaml").resolve())
 

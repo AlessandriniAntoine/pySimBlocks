@@ -23,13 +23,18 @@ pysimblocks = "pySimBlocks.gui.editor:main"
 pysimblocks-generate = "pySimBlocks.project.generate:main"
 pysimblocks-update = "pySimBlocks.tools.cli:main"
 
-[tool.setuptools.package-data]
-pySimBlocks = [
-    "blocks_metadata/**/*",
-]
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.setuptools.package-data]
+pySimBlocks = [
+    "blocks_metadata/**/*.yaml",
+    "docs/blocks/**/*.md",
+    "project/pySimBlocks_blocks_index.yaml",
+]
 
 [project.optional-dependencies]
 examples = [

@@ -1,5 +1,6 @@
 from multiprocessing import Process, Pipe
 import numpy as np
+from typing import Dict, List
 from pySimBlocks.core.block import Block
 
 
@@ -97,6 +98,7 @@ class SofaPlant(Block):
         scene_file: str,
         input_keys: list[str],
         output_keys: list[str],
+        slider_params: Dict[str, List[float]] | None = None,
         sample_time: float | None = None
     ):
         super().__init__(name, sample_time)
@@ -104,6 +106,7 @@ class SofaPlant(Block):
         self.scene_file = scene_file
         self.input_keys = input_keys
         self.output_keys = output_keys
+        self.slider_params = slider_params
 
         for k in input_keys:
             self.inputs[k] = None

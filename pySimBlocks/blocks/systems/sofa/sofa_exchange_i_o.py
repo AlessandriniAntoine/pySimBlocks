@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Dict, List
 from pySimBlocks.core.block import Block
 
 
@@ -41,12 +42,14 @@ class SofaExchangeIO(Block):
             name: str,
             input_keys: list[str],
             output_keys: list[str],
+            slider_params: Dict[str, List[float]] | None = None,
             sample_time: float | None = None
-    ):
+        ):
         super().__init__(name, sample_time)
 
         self.input_keys = input_keys
         self.output_keys = output_keys
+        self.slider_params = slider_params
 
         # Declare dynamic ports
         for k in input_keys:
@@ -55,9 +58,7 @@ class SofaExchangeIO(Block):
             self.outputs[k] = None
 
     def initialize(self, t0: float):
-        # Outputs start as zero vectors
-        for k in self.output_keys:
-            self.outputs[k] = np.zeros((1, 1))
+        pass
 
     def output_update(self, t: float, dt: float):
         """

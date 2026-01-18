@@ -1,7 +1,4 @@
 blocks:
-- name: step
-  category: sources
-  type: step
 - name: error
   category: operators
   type: sum
@@ -20,6 +17,9 @@ blocks:
 - name: sofa
   category: systems
   type: sofa_plant
+- name: ref
+  category: sources
+  type: constant
 connections:
 - [error.out, Kp.in]
 - [error.out, integrator.in]
@@ -27,5 +27,5 @@ connections:
 - [Ki.out, sum.in2]
 - [sum.out, sofa.cable]
 - [sofa.measure, error.in2]
-- [step.out, error.in1]
+- [ref.out, error.in1]
 - [integrator.out, Ki.in]

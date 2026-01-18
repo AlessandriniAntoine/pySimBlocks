@@ -29,6 +29,12 @@ parameters:
     description: >
       List of output keys corresponding to SOFA output ports.
 
+  slider_params:
+    type: dict
+    required: false
+    description: >
+      Dictionary of slider parameters to be modified in the SOFA scene at runtime.
+
   sample_time:
     type: float
     required: false

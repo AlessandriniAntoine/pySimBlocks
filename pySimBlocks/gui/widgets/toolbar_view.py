@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication, QLabel
+from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 
