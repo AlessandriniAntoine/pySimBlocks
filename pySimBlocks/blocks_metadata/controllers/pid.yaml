@@ -22,7 +22,7 @@ parameters:
     type: scalar
     required: false
     autofill: true
-    default: 0.0
+    default: 1.
     description: Proportionnal gain.
     depends_on:
       parameter: controller
@@ -32,7 +32,7 @@ parameters:
     type: scalar
     required: false
     autofill: false
-    default: 0.0
+    default: 1.
     description: Integral gain.
     depends_on:
       parameter: controller
@@ -42,7 +42,7 @@ parameters:
     type: scalar
     required: false
     autofill: false
-    default: 0.0
+    default: 1.
     description: Derivative gain.
     depends_on:
       parameter: controller

@@ -1,5 +1,7 @@
 import uuid
+from typing import Any, Dict, List
 from pySimBlocks.gui.model.port_instance import PortInstance
+from pySimBlocks.tools.blocks_registry import BlockMeta
 
 
 class BlockInstance:
@@ -11,12 +13,13 @@ class BlockInstance:
     - Used by BlockItem and BlockDialog
     """
 
-    def __init__(self, meta):
+    def __init__(self, meta: BlockMeta):
         self.uid = uuid.uuid4().hex
         self.meta = meta
-        self.name = meta.name
-        self.parameters: dict = self._init_parameters()
-        self.ports: list[PortInstance] = []
+        self.name: str = meta.name
+        self.parameters: Dict[str, Any] = self._init_parameters()
+        self.ports: List[PortInstance] = []
+        self.ui_cache: Dict[str, Any] = {}
 
     def _init_parameters(self) -> dict:
         """

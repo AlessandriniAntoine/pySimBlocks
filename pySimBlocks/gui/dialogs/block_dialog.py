@@ -144,9 +144,24 @@ class BlockDialog(QDialog):
 
             if current_value not in allowed_values:
                 visible = False
+                old_val = inst_params.get(pname)
+                if old_val is not None:
+                    self.block.instance.ui_cache[pname] = old_val
+                inst_params[pname] = None  
 
             widget = self.param_widgets[pname]
             label = self.param_labels[pname]
+
+            if visible:
+                if inst_params.get(pname) is None:
+                    if pname in self.block.instance.ui_cache:
+                        restored = self.block.instance.ui_cache.pop(pname)
+                        inst_params[pname] = restored
+                        w = self.param_widgets[pname]
+                        if isinstance(w, QLineEdit):
+                            w.setText(str(restored))
+                        elif isinstance(w, QComboBox):
+                            w.setCurrentText(str(restored))
 
             widget.setVisible(visible)
             label.setVisible(visible)
@@ -154,12 +169,20 @@ class BlockDialog(QDialog):
 
     # ------------------------------------------------------------
     # Buttons
+    # ------------------------------------------------------------
     def apply(self):
         if self.readonly:
             return
 
         self.block.instance.name = self.name_edit.text()
+
         for pname, widget in self.param_widgets.items():
+
+            # NEW: hidden parameter => force to None
+            if not widget.isVisible():
+                self.block.instance.parameters[pname] = None
+                continue
+
             if isinstance(widget, QComboBox):
                 self.block.instance.parameters[pname] = widget.currentText()
 
@@ -171,14 +194,16 @@ class BlockDialog(QDialog):
                 try:
                     value = ast.literal_eval(text)
                 except Exception:
-                    value = text   # fallback (string simple)
+                    value = text
                 self.block.instance.parameters[pname] = value
 
         self.block.refresh_ports()
 
+
     def ok(self):
         self.apply()
         self.accept()
+
 
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
