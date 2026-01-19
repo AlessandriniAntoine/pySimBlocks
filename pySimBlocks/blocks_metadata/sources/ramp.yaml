@@ -13,19 +13,19 @@ description: >
 
 parameters:
   slope:
-    type: vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[1.]]
     description: Ramp slope for each output dimension.
 
   start_time:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Time at which the ramp starts.
 
   offset:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Output value before the ramp starts.
 
@@ -43,7 +43,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Ramp output signal.
 
 execution:

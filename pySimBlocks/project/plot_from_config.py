@@ -4,6 +4,54 @@ import matplotlib.pyplot as plt
 from pySimBlocks.core.config import PlotConfig
 
 
+def _stack_logged_signal(logs: dict, sig: str) -> np.ndarray:
+    """
+    Stack a logged signal over time, preserving its 2D shape.
+
+    Returns:
+        data: np.ndarray of shape (T, m, n)
+
+    Raises:
+        ValueError: if the signal is not a list of 2D arrays with consistent shape.
+    """
+    samples = logs[sig]
+    if not isinstance(samples, list) or len(samples) == 0:
+        raise ValueError(f"Signal '{sig}' has no samples in logs.")
+
+    # Find first non-None sample to define shape
+    first = None
+    for s in samples:
+        if s is not None:
+            first = np.asarray(s)
+            break
+
+    if first is None:
+        raise ValueError(f"Signal '{sig}' is always None; cannot plot.")
+
+    if first.ndim != 2:
+        raise ValueError(f"Signal '{sig}' must be 2D. Got ndim={first.ndim} with shape {first.shape}.")
+
+    shape0 = first.shape
+
+    stacked = []
+    for k, s in enumerate(samples):
+        if s is None:
+            raise ValueError(f"Signal '{sig}' contains None at index {k}; cannot plot.")
+        a = np.asarray(s)
+        if a.ndim != 2:
+            raise ValueError(
+                f"Signal '{sig}' sample {k} must be 2D. Got ndim={a.ndim} with shape {a.shape}."
+            )
+        if a.shape != shape0:
+            raise ValueError(
+                f"Signal '{sig}' shape changed over time: expected {shape0}, got {a.shape} at sample {k}."
+            )
+        stacked.append(a)
+
+    data = np.stack(stacked, axis=0)  # (T, m, n)
+    return data
+
+
 def plot_from_config(
     logs: dict,
     plot_cfg: PlotConfig | None,
@@ -12,20 +60,18 @@ def plot_from_config(
     """
     Plot logged simulation signals according to a PlotConfig.
 
-    Parameters
-    ----------
-    logs : dict
-        Logs returned by Simulator.run().
-        Must contain 'time' and all requested signals.
+    Supports 2D signals:
+      - scalar (1,1)
+      - column vectors (n,1)
+      - matrices (m,n) with n>1
 
-    plot_cfg : PlotConfig | None
-        Plot description (titles, signals to plot).
-        If None, this function does nothing.
-
-    show : bool, optional
-        Whether to call plt.show() at the end (default: True).
+    Plot semantics:
+      - each component is plotted as a separate curve
+      - labels:
+          scalar:      sig
+          vector:      sig[i]
+          matrix:      sig[r,c]
     """
-
     if plot_cfg is None:
         return
 
@@ -48,12 +94,22 @@ def plot_from_config(
             + "\n".join(f"  - {sig}" for sig in sorted(available_signals))
         )
 
+    if "time" not in logs:
+        raise KeyError("Logs must contain a 'time' entry.")
+
+    # ------------------------------------------------------------
+    # Time base
+    # Your simulator logs time as np.array([t_step]) each step,
+    # so flatten() is appropriate.
+    # ------------------------------------------------------------
+    time = np.asarray(logs["time"]).flatten()
+    T = len(time)
+    if T == 0:
+        return
+
     # ------------------------------------------------------------
     # Plotting
     # ------------------------------------------------------------
-    time = np.asarray(logs["time"]).flatten()
-    length = len(time)
-
     for plot in plot_cfg.plots:
         title = plot.get("title", "")
         signals = plot["signals"]
@@ -61,12 +117,30 @@ def plot_from_config(
         plt.figure()
 
         for sig in signals:
-            data = np.asarray(logs[sig]).reshape(length, -1)
+            data = _stack_logged_signal(logs, sig)  # (T, m, n)
 
-            # If vector signal, plot each component
-            for i in range(data.shape[1]):
-                label = sig if data.shape[1] == 1 else f"{sig}[{i}]"
-                plt.step(time, data[:, i], where="post", label=label)
+            if data.shape[0] != T:
+                raise ValueError(
+                    f"Time length mismatch for '{sig}': time has {T} samples but signal has {data.shape[0]}."
+                )
+
+            m, n = data.shape[1], data.shape[2]
+
+            # scalar
+            if (m, n) == (1, 1):
+                plt.step(time, data[:, 0, 0], where="post", label=sig)
+                continue
+
+            # vector column (n,1) -> label sig[i]
+            if n == 1:
+                for i in range(m):
+                    plt.step(time, data[:, i, 0], where="post", label=f"{sig}[{i}]")
+                continue
+
+            # matrix (m,n) -> label sig[r,c]
+            for r in range(m):
+                for c in range(n):
+                    plt.step(time, data[:, r, c], where="post", label=f"{sig}[{r},{c}]")
 
         plt.xlabel("Time [s]")
         plt.grid(True)

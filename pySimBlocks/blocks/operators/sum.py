@@ -7,112 +7,154 @@ class Sum(Block):
     Multi-input summation block.
 
     Summary:
-        Computes a sum/substraction of multiple input signals.
+        Computes an element-wise sum/subtraction of multiple input signals.
 
-    Parameters (overview):
-        signs : str of signs +-
-            Sign associated with each input.
+    Parameters:
+        signs : str
+            Sequence of '+' and '-' defining the sign of each input (e.g. '++-', '+-').
+            If None, defaults to '++' (two inputs).
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            in1, in2, ..., inN : input signals
-        Output:
-            out : summed output signal
+    Inputs:
+        in1, in2, ..., inN : array (m,n)
+            Input signals (must be 2D).
+            Scalar (1,1) inputs can be broadcast to the common target shape.
+
+    Outputs:
+        out : array (m,n)
+            Element-wise signed sum.
 
     Notes:
-        - All inputs must have the same dimension.
-        - No internal state.
+        - Direct feedthrough.
+        - Stateless.
+        - Shape policy:
+            * all inputs must be 2D
+            * all non-scalar inputs must share exactly the same shape
+            * scalar (1,1) inputs can be broadcast to that shape
+            * no other broadcasting is allowed
     """
 
-    def __init__(self,
+    direct_feedthrough = True
+
+    def __init__(
+        self,
         name: str,
         signs: str | None = None,
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # --- Validate num_inputs / signs -------------------------------------
         if signs is None:
             signs = "++"
 
         if not isinstance(signs, str):
             raise TypeError(f"[{self.name}] 'signs' must be a str.")
 
-        if any(s not in ("+", "-") for s in signs):
-            raise ValueError(f"[{self.name}] 'signs' must contain only + or -.")
+        if len(signs) == 0:
+            raise ValueError(f"[{self.name}] 'signs' must not be empty.")
 
-        self.signs = [1. if s == "+" else -1. for s in signs]
+        if any(s not in ("+", "-") for s in signs):
+            raise ValueError(f"[{self.name}] 'signs' must contain only '+' or '-'.")
+
+        self.signs = [1.0 if s == "+" else -1.0 for s in signs]
         self.num_inputs = len(self.signs)
 
-        # Create ports
         for i in range(self.num_inputs):
             self.inputs[f"in{i+1}"] = None
 
         self.outputs["out"] = None
 
-    # ----------------------------------------------------------------------
-    def initialize(self, t0: float):
-        """If inputs are already known at initialization, compute output."""
-        for i in range(self.num_inputs):
-            if self.inputs[f"in{i+1}"] is None:
-                self.inputs[f"in{i+1}"] = np.zeros((1,1))  # dimension fallback
+    # ------------------------------------------------------------------
+    def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
+        """
+        Determine target shape among inputs.
+
+        - Scalars (1,1) are broadcastable
+        - Any non-scalar fixes the target shape
+        - If multiple non-scalars exist, they must all match exactly
+        - If all scalars => target is (1,1)
+        """
+        non_scalar_shapes = {a.shape for a in arrays if not self._is_scalar_2d(a)}
+
+        if len(non_scalar_shapes) == 0:
+            return (1, 1)
+
+        if len(non_scalar_shapes) == 1:
+            return next(iter(non_scalar_shapes))
+
+        raise ValueError(
+            f"[{self.name}] Inconsistent input shapes for Sum: "
+            f"{[a.shape for a in arrays]}. All non-scalar inputs must have the same shape."
+        )
+
+    def _broadcast_scalar_only(self, arr: np.ndarray, target_shape: tuple[int, int], input_name: str) -> np.ndarray:
+        """
+        Broadcast only scalar (1,1) to target_shape.
+        Non-scalar must match target_shape exactly.
+        """
+        if self._is_scalar_2d(arr):
+            if target_shape == (1, 1):
+                return arr.astype(float, copy=False)
+            return np.full(target_shape, float(arr[0, 0]), dtype=float)
+
+        if arr.shape != target_shape:
+            raise ValueError(
+                f"[{self.name}] Input '{input_name}' shape {arr.shape} is incompatible with target shape {target_shape}. "
+                f"Only scalar (1,1) inputs can be broadcast."
+            )
+        return arr.astype(float, copy=False)
+
+    # ------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        """
+        If all inputs are already available, compute output.
+        Otherwise output stays None until first output_update().
+        """
+        if any(self.inputs[f"in{i+1}"] is None for i in range(self.num_inputs)):
+            self.outputs["out"] = None
+            return
+
         self.outputs["out"] = self._compute_output()
 
-    # ----------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        # Check all inputs & check dimension consistency
-        shapes = set()
-        for i in range(self.num_inputs):
-            u = self.inputs[f"in{i+1}"]
-            if u is None:
-                raise RuntimeError(f"[{self.name}] Input 'in{i+1}' is not connected or not set.")
-
-            u = np.asarray(u)
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"[{self.name}] Input 'in{i+1}' must be a column vector (n,1). Got {u.shape}."
-                )
-
-            shapes.add(u.shape[0])
-
-        self.outputs["out"] = self._compute_output()
-
-    # ----------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        pass
-
-    # ----------------------------------------------------------------------
-    def _compute_output(self):
+    # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        # Validate presence + 2D constraint
         arrays = []
-
-        # Collect inputs
         for i in range(self.num_inputs):
-            u = np.asarray(self.inputs[f"in{i+1}"], dtype=float)
-            u = u.reshape(-1, 1)
-            arrays.append(u)
+            key = f"in{i+1}"
+            u = self.inputs[key]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] Input '{key}' is not connected or not set.")
 
-        # Dimension handling (element-wise)
-        sizes = {a.shape[0] for a in arrays}
-        max_dim = max(sizes)
-
-        if len(sizes) > 1:
-            if sizes == {1, max_dim}:
-                arrays = [
-                    np.full((max_dim, 1), a.item()) if a.shape[0] == 1 else a
-                    for a in arrays
-                ]
-            else:
+            a = np.asarray(u, dtype=float)
+            if a.ndim != 2:
                 raise ValueError(
-                    f"[{self.name}] Incompatible input dimensions for element-wise sum: {sizes}"
+                    f"[{self.name}] Input '{key}' must be a 2D array. Got ndim={a.ndim} with shape {a.shape}."
                 )
+            arrays.append(a)
 
-        total = None
-        for s, u in zip(self.signs, arrays):
-            if total is None:
-                total = s * u
-            else:
-                total += s * u
+        self.outputs["out"] = self._compute_output(prevalidated_arrays=arrays)
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        return  # stateless
+
+    # ------------------------------------------------------------------
+    def _compute_output(self, prevalidated_arrays: list[np.ndarray] | None = None) -> np.ndarray:
+        """
+        Compute signed element-wise sum with strict scalar-only broadcast.
+        """
+        if prevalidated_arrays is None:
+            arrays = [np.asarray(self.inputs[f"in{i+1}"], dtype=float) for i in range(self.num_inputs)]
+        else:
+            arrays = prevalidated_arrays
+
+        target_shape = self._resolve_common_shape(arrays)
+
+        total = np.zeros(target_shape, dtype=float)
+        for i, (s, a) in enumerate(zip(self.signs, arrays), start=1):
+            a2 = self._broadcast_scalar_only(a, target_shape, input_name=f"in{i}")
+            total += s * a2
 
         return total

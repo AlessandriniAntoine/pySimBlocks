@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -39,6 +40,12 @@ class MainWindow(QMainWindow):
         flag = self.auto_load_detection(project_path)
         if flag:
             self.project_controller.load_project(project_path)
+
+    def cleanup(self):
+        temp_path = self.project_state.directory_path / ".temp"
+        if temp_path.exists():
+            shutil.rmtree(temp_path, ignore_errors=True)
+
 
     ####################### Registry ########################
     def get_categories(self):

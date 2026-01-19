@@ -23,7 +23,7 @@ where $c$ is a constant scalar or vector value.
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `value` | scalar or vector | Constant output value. Can be a scalar or vector. | False |
+| `value` | scalar or vector or matrix | Constant output value. Can be a scalar or vector. | False |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

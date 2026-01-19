@@ -26,9 +26,9 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `slope` | scalar or vector | Ramp slope for each output dimension. Scalars are broadcast to all dimensions. | False |
-| `start_time` | scalar or vector | Time at which the ramp starts. Default is zero. | True |
-| `offset` | scalar or vector | Output value before the ramp starts. Default is zero. | True |
+| `slope` | scalar or vector or matrix | Ramp slope for each output dimension. Scalars are broadcast to all dimensions. | False |
+| `start_time` | scalar or vector or matrix | Time at which the ramp starts. Default is zero. | True |
+| `offset` | scalar or vector or matrix | Output value before the ramp starts. Default is zero. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

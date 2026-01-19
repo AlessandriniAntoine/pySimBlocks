@@ -23,7 +23,7 @@ ports:
       pattern: in
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signal.
 
   outputs:
@@ -32,7 +32,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Held output signal.
 
 execution:

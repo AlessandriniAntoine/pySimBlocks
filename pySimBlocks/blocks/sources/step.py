@@ -13,73 +13,99 @@ class Step(BlockSource):
 
     Parameters (overview):
         value_before : float or array-like
-            Output value before the step time.
+            Output value before the step time. Scalar, vector, or matrix.
         value_after : float or array-like
-            Output value after the step time.
+            Output value after the step time. Scalar, vector, or matrix.
         start_time : float
             Time at which the step occurs.
         sample_time : float, optional
             Block execution period.
 
     I/O:
-        Inputs:
-            (none)
         Outputs:
             out : step output signal.
 
     Notes:
         - The block has no internal state.
-        - Scalar parameters are broadcast to all output dimensions.
-        - A small tolerance is used to ensure consistent behavior on discrete
-          time grids.
+        - Signals are normalized to 2D arrays:
+            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n).
+        - If one value is scalar (1,1) and the other is not, scalar is broadcast
+          to match the other shape.
+        - EPS compensates floating-point rounding to ensure consistent behavior
+          on discrete time grids.
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
-        value_before: ArrayLike = 0.,
-        value_after: ArrayLike = 1.,
-        start_time: ArrayLike = 1.,
-        sample_time: float | None = None
+        value_before: ArrayLike = 0.0,
+        value_after: ArrayLike = 1.0,
+        start_time: float = 1.0,
+        sample_time: float | None = None,
+        eps: float = 1e-12,
     ):
         super().__init__(name, sample_time)
-        # reshape using the same rules as Constant
-        vb = self._to_column_vector("value_before", value_before)
-        va = self._to_column_vector("value_after", value_after)
 
-        if vb.shape != va.shape:
-            raise ValueError(
-                f"[{self.name}] 'value_before' and 'value_after' must have same shape. "
-                f"Got {vb.shape} vs {va.shape}."
-            )
+        vb = self._to_2d_array("value_before", value_before, dtype=float)
+        va = self._to_2d_array("value_after", value_after, dtype=float)
 
-        self.value_before = vb
-        self.value_after = va
+        vb, va = self._match_shapes_with_scalar_broadcast(vb, va)
 
         # --- Validate start_time ---
         if not isinstance(start_time, (float, int)):
             raise TypeError(f"[{self.name}] start_time must be a float or int.")
-
         self.start_time = float(start_time)
 
-        # Output port
+        self.value_before = vb
+        self.value_after = va
+
         self.outputs["out"] = None
-
-        self.EPS = 1e-12 # This compensates for floating-point rounding and restores correct behavior on all time grids.
-
+        self.EPS = float(eps)
 
     # ------------------------------------------------------------------
-    def initialize(self, t0: float):
-        self.outputs["out"] = (
-            np.copy(self.value_before)
-            if t0 < self.start_time - self.EPS
-            else np.copy(self.value_after)
+    @staticmethod
+    def _is_scalar_2d(arr: np.ndarray) -> bool:
+        return arr.shape == (1, 1)
+
+    def _match_shapes_with_scalar_broadcast(
+        self,
+        a: np.ndarray,
+        b: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        If shapes differ:
+          - allow scalar (1,1) to broadcast to the other's shape
+          - otherwise raise ValueError
+        """
+        if a.shape == b.shape:
+            return a, b
+
+        a_is_scalar = self._is_scalar_2d(a)
+        b_is_scalar = self._is_scalar_2d(b)
+
+        if a_is_scalar and not b_is_scalar:
+            return np.full(b.shape, float(a[0, 0])), b
+
+        if b_is_scalar and not a_is_scalar:
+            return a, np.full(a.shape, float(b[0, 0]))
+
+        raise ValueError(
+            f"[{self.name}] 'value_before' and 'value_after' must have compatible shapes. "
+            f"Got {a.shape} vs {b.shape}. Only scalar-to-shape broadcasting is allowed."
         )
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def initialize(self, t0: float) -> None:
         self.outputs["out"] = (
-            np.copy(self.value_before)
+            self.value_before.copy()
+            if t0 < self.start_time - self.EPS
+            else self.value_after.copy()
+        )
+
+    # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        self.outputs["out"] = (
+            self.value_before.copy()
             if t < self.start_time - self.EPS
-            else np.copy(self.value_after)
+            else self.value_after.copy()
         )

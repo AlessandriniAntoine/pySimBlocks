@@ -30,8 +30,8 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `value_before` | scalar or vector | Output value before the step time. Scalars are broadcast to all dimensions. | False |
-| `value_after` | scalar or vector | Output value after the step time. Must have the same dimension as `value_before`. | False |
+| `value_before` | scalar or vector or matrix | Output value before the step time. Scalars are broadcast to all dimensions. | False |
+| `value_after` | scalar or vector or matrix | Output value after the step time. Must have the same dimension as `value_before`. | False |
 | `start_time` | float | Time at which the step occurs. | False |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 

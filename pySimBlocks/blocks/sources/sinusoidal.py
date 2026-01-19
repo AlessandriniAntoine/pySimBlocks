@@ -5,11 +5,15 @@ from pySimBlocks.core.block_source import BlockSource
 
 class Sinusoidal(BlockSource):
     """
-    Multi-dimensional sinusoidal signal source block.
+    Multi-dimensional sinusoidal signal source block (Option B).
 
     Summary:
-        Generates sinusoidal signals with configurable amplitude, frequency,
-        phase and offset for each output dimension.
+        Generates sinusoidal signals element-wise on a 2D output array:
+            y(t) = amplitude * sin(2*pi*frequency*t + phase) + offset
+
+        Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
+        broadcasting is allowed; all non-scalar parameters must share the same
+        shape.
 
     Parameters (overview):
         amplitude : float or array-like
@@ -23,65 +27,54 @@ class Sinusoidal(BlockSource):
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            (none)
-        Outputs:
-            out : sinusoidal output signal.
+    Outputs:
+        out : sinusoidal output signal (2D ndarray)
 
     Notes:
-        - The block has no internal state.
-        - Parameters may be scalar or vector-valued.
-        - Scalar parameters are broadcast to all output dimensions.
-        - Each output dimension may have its own frequency and phase.
+        - Stateless.
+        - Normalization:
+            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n)
+        - Broadcasting:
+            Only (1,1) scalars are broadcast to the common shape.
+            No NumPy broadcasting beyond that.
+        - No implicit flattening is performed.
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         amplitude: ArrayLike,
         frequency: ArrayLike,
         offset: ArrayLike = 0.0,
         phase: ArrayLike = 0.0,
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # Normalize parameters to column vectors
-        A = self._to_column_vector("amplitude", amplitude)
-        F = self._to_column_vector("frequency", frequency)
-        O = self._to_column_vector("offset", offset)
-        P = self._to_column_vector("phase", phase)
+        A = self._to_2d_array("amplitude", amplitude, dtype=float)
+        F = self._to_2d_array("frequency", frequency, dtype=float)
+        O = self._to_2d_array("offset", offset, dtype=float)
+        P = self._to_2d_array("phase", phase, dtype=float)
 
-        # Determine final dimension n
-        dims = {A.shape[0], F.shape[0], O.shape[0], P.shape[0]}
-        dims.discard(1)
-        if len(dims) > 1:
-            raise ValueError(
-                f"[{self.name}] Inconsistent parameter lengths: "
-                f"amplitude={A.shape}, frequency={F.shape}, offset={O.shape}, phase={P.shape}"
-            )
-        n = max(A.shape[0], F.shape[0], O.shape[0], P.shape[0])
+        target_shape = self._resolve_common_shape({
+            "amplitude": A,
+            "frequency": F,
+            "offset": O,
+            "phase": P,
+        })
 
-        # Broadcast scalar parameters to dimension n
-        def expand(x):
-            if x.shape[0] == 1:
-                return np.full((n, 1), x.item(), dtype=float)
-            return x.astype(float)
+        self.amplitude = self._broadcast_scalar_only("amplitude", A, target_shape)
+        self.frequency = self._broadcast_scalar_only("frequency", F, target_shape)
+        self.offset = self._broadcast_scalar_only("offset", O, target_shape)
+        self.phase = self._broadcast_scalar_only("phase", P, target_shape)
 
-        self.amplitude = expand(A)
-        self.frequency = expand(F)
-        self.offset    = expand(O)
-        self.phase     = expand(P)
-
-        # Initialize output
-        self.outputs["out"] = np.zeros((n, 1))
+        self.outputs["out"] = np.zeros(target_shape, dtype=float)
 
     # ------------------------------------------------------------------
-    def _compute_output(self, t: float):
+    def _compute_output(self, t: float) -> None:
         self.outputs["out"] = (
             self.amplitude
-            * np.sin(2 * np.pi * self.frequency * t + self.phase)
+            * np.sin(2.0 * np.pi * self.frequency * t + self.phase)
             + self.offset
         )
 

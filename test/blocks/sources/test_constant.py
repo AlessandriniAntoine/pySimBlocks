@@ -30,9 +30,17 @@ def test_constant_1d_list():
     c.initialize(0.0)
     assert np.allclose(c.outputs["out"], [[10.0], [20.0]])
 
+# ------------------------------------------------------------
+# 4) Test matrice (m,n)
+# ------------------------------------------------------------
+def test_constant_matrix():
+    c = Constant("c", [[1.0, 2.0], [3.0, 4.0]])
+    c.initialize(0.0)
+    assert np.allclose(c.outputs["out"], [[1.0, 2.0], [3.0, 4.0]])
+
 
 # ------------------------------------------------------------
-# 4) Test erreur : valeur non numérique
+# 5) Test erreur : valeur non numérique
 # ------------------------------------------------------------
 def test_constant_invalid_type():
     with pytest.raises(TypeError):
@@ -40,8 +48,8 @@ def test_constant_invalid_type():
 
 
 # ------------------------------------------------------------
-# 5) Test erreur : mauvaise forme (simulateur ne joue pas de rôle ici)
+# 6) Test erreur : mauvaise forme (simulateur ne joue pas de rôle ici)
 # ------------------------------------------------------------
 def test_constant_bad_shape():
     with pytest.raises(ValueError):
-        Constant("c", value=np.zeros((2, 3)))  # pas un vecteur colonne
+        Constant("c", value=np.zeros((2, 3, 2)))

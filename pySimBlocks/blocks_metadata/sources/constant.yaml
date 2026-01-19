@@ -13,7 +13,7 @@ description: >
 
 parameters:
   value:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[1.]]
@@ -32,7 +32,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Constant output signal.
 
 execution:

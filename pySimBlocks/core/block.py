@@ -41,10 +41,48 @@ class Block(ABC):
 
         self._effective_sample_time = 0.
 
+
+    # ------------------------------------------------------------------
+    # Internal methods
+    # ------------------------------------------------------------------
+    def _to_2d_array(self, param_name: str, value, *, dtype=float) -> np.ndarray:
+        """
+        Normalize into a 2D NumPy array.
+
+        Rules:
+            - scalar -> (1,1)
+            - 1D -> (n,1) (column vector convention)
+            - 2D -> preserved as-is (m,n)
+            - ndim > 2 -> rejected
+        """
+        arr = np.asarray(value, dtype=dtype)
+
+        if arr.ndim == 0:
+            return arr.reshape(1, 1)
+
+        if arr.ndim == 1:
+            return arr.reshape(-1, 1)
+
+        if arr.ndim == 2:
+            return arr
+
+        raise ValueError(
+            f"[{self.name}] '{param_name}' must be scalar, 1D, or 2D array-like. "
+            f"Got ndim={arr.ndim} with shape {arr.shape}."
+        )
+
+    @staticmethod
+    def _is_scalar_2d(arr: np.ndarray) -> bool:
+        return arr.shape == (1, 1)
+
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
     @property
     def has_state(self):
         """Specify if block is stateful."""
         return bool(self.state) or bool(self.next_state)
+
 
     @abstractmethod
     def initialize(self, t0: float):
@@ -55,6 +93,7 @@ class Block(ABC):
             - self.outputs[...]      (initial outputs)
         """
 
+
     @abstractmethod
     def output_update(self, t: float, dt: float):
         """
@@ -63,12 +102,14 @@ class Block(ABC):
         Must write to self.outputs[...].
         """
 
+
     @abstractmethod
     def state_update(self, t: float, dt: float):
         """
         Compute next state x[k+1] from x[k] and inputs u[k].
         Must write to self.next_state[...].
         """
+
 
     def commit_state(self):
         """
@@ -78,6 +119,7 @@ class Block(ABC):
         for key, value in self.next_state.items():
             self.state[key] = np.copy(value)
 
+     
     def finalize(self):
         """
         Optional cleanup method called at the end of the simulation.

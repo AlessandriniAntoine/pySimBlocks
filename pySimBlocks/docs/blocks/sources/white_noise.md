@@ -25,8 +25,8 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `mean` | scalar or vector | Mean value of the noise. Scalars are broadcast to all dimensions. Default is zero. | True |
-| `std` | scalar or vector | Standard deviation of the noise. Must be non-negative. Default is one. | True |
+| `mean` | scalar or vector or matrix | Mean value of the noise. Scalars are broadcast to all dimensions. Default is zero. | True |
+| `std` | scalar or vector or matrix | Standard deviation of the noise. Must be non-negative. Default is one. | True |
 | `seed` | integer | Random seed for reproducibility. If provided, the noise sequence is deterministic. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 

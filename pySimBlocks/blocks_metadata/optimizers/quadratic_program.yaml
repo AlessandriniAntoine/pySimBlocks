@@ -1,0 +1,151 @@
+name: QuadraticProgram
+category: optimizers
+type: quadratic_program
+
+summary: >
+  General time-varying quadratic program (QP) solver.
+
+description: >
+  Solves at each simulation step the quadratic program:
+  $$
+  \begin{aligned}
+  \min_x \quad & \tfrac12 x^T P x + q^T x \\
+  \text{s.t.} \quad
+  & Gx \le h \\
+  & Ax = b \\
+  & \ell \le x \le u
+  \end{aligned}
+  $$
+  All problem data are provided as inputs and may vary with time.
+  Inequality, equality, and bound constraints are optional.
+
+parameters:
+  size:
+    type: int
+    required: true
+    description: >
+      Number of decision variables of the quadratic program.
+
+  solver:
+    type: string
+    required: false
+    autofill: true
+    default: clarabel
+    description: >
+      Name of the QP solver used by qpsolvers.
+
+ports:
+  inputs:
+    - name: P
+      dynamic: false
+      pattern: P
+      source:
+        type: fixed
+      shape: [n, n]
+      description: >
+        Quadratic cost matrix (Hessian). Must be square and compatible with size.
+
+    - name: q
+      dynamic: false
+      pattern: q
+      source:
+        type: fixed
+      shape: [n]
+      description: >
+        Linear cost vector. Accepted shapes are (n,) or (n,1).
+
+    - name: G
+      dynamic: false
+      pattern: G
+      source:
+        type: fixed
+      optional: true
+      shape: [m, n]
+      description: >
+        Inequality constraint matrix. Must be provided together with h.
+
+    - name: h
+      dynamic: false
+      pattern: h
+      source:
+        type: fixed
+      optional: true
+      shape: [m]
+      description: >
+        Inequality constraint vector. Accepted shapes are (m,) or (m,1).
+
+    - name: A
+      dynamic: false
+      pattern: A
+      source:
+        type: fixed
+      optional: true
+      shape: [p, n]
+      description: >
+        Equality constraint matrix. Must be provided together with b.
+
+    - name: b
+      dynamic: false
+      pattern: b
+      source:
+        type: fixed
+      optional: true
+      shape: [p]
+      description: >
+        Equality constraint vector. Accepted shapes are (p,) or (p,1).
+
+    - name: lb
+      dynamic: false
+      pattern: lb
+      source:
+        type: fixed
+      optional: true
+      shape: [n]
+      description: >
+        Lower bound on decision variables. Accepted shapes are (n,) or (n,1).
+
+    - name: ub
+      dynamic: false
+      pattern: ub
+      source:
+        type: fixed
+      optional: true
+      shape: [n]
+      description: >
+        Upper bound on decision variables. Accepted shapes are (n,) or (n,1).
+
+  outputs:
+    - name: x
+      dynamic: false
+      pattern: x
+      source:
+        type: fixed
+      shape: [n, 1]
+      description: >
+        Optimal solution of the quadratic program.
+
+    - name: status
+      dynamic: false
+      pattern: status
+      source:
+        type: fixed
+      shape: [1, 1]
+      description: >
+        Solver status code:
+        0 = optimal solution found,
+        1 = problem infeasible,
+        2 = solver or numerical error.
+
+    - name: cost
+      dynamic: false
+      pattern: cost
+      source:
+        type: fixed
+      shape: [1, 1]
+      description: >
+        Optimal value of the quadratic cost function.
+
+execution:
+  direct_feedthrough: true
+  has_state: false
+

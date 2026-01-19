@@ -13,26 +13,26 @@ description: >
 
 parameters:
   amplitude:
-    type: vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[1.]]
     description: Sinusoidal amplitude.
 
   frequency:
-    type: vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[1.]]
     description: Sinusoidal frequency in Hertz.
 
   phase:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Phase shift in radians.
 
   offset:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Constant offset added to the signal.
 
@@ -50,7 +50,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Sinusoidal output signal.
 
 execution:

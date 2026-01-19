@@ -17,14 +17,14 @@ description: >
 
 parameters:
   value_before:
-    type: vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[0.]]
     description: Output value before the step time.
 
   value_after:
-    type: vector
+    type: scalar | vector | matrix
     required: true
     autofill: true
     default: [[1.]]
@@ -51,7 +51,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Step output signal.
 
 execution:

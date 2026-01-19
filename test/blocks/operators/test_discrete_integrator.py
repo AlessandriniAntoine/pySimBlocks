@@ -8,10 +8,6 @@ from pySimBlocks.blocks.operators.discrete_integrator import DiscreteIntegrator
 
 # ----------------------------------------------------------------------
 def run_sim(src_block, integrator_block, dt=0.1, T=0.3):
-    """
-    Helper function: builds model, runs simulation,
-    returns logs of integrator output.
-    """
     m = Model()
     m.add_block(src_block)
     m.add_block(integrator_block)
@@ -24,26 +20,7 @@ def run_sim(src_block, integrator_block, dt=0.1, T=0.3):
 
 
 # ----------------------------------------------------------------------
-# 1. TEST FORWARD EULER — SCALAR
-# ----------------------------------------------------------------------
 def test_integrator_scalar_forward():
-    """
-    Simulink convention (forward rectangular):
-
-        x[n] = x[n-1] + dt * u[n]
-        y[n] = x[n]
-
-    Step input:
-        u(0) = 0
-        u(1) = 1
-        u(2) = 1
-
-    dt = 0.1 → results:
-
-        y(0) = 0
-        y(1) = 0
-        y(2) = 0.1
-    """
     src = Step("src", start_time=0.1, value_before=0.0, value_after=1.0)
     I = DiscreteIntegrator("I", method="euler forward")
 
@@ -55,48 +32,44 @@ def test_integrator_scalar_forward():
 
 
 # ----------------------------------------------------------------------
-# 2. TEST FORWARD EULER — VECTOR
-# ----------------------------------------------------------------------
 def test_integrator_vector_forward():
     src = Step(
         "src",
         start_time=0.1,
         value_before=[[0.0], [0.0]],
-        value_after=[[1.0], [2.0]]
+        value_after=[[1.0], [2.0]],
     )
-
     I = DiscreteIntegrator("I", method="euler forward")
 
     logs = run_sim(src, I, dt=0.1, T=0.3)
 
-    # Expected:
-    # y[0] = [0, 0]
-    # y[1] = [0, 0]
-    # y[2] = [0.1, 0.2]
     assert np.allclose(logs[0], [[0.0], [0.0]])
     assert np.allclose(logs[1], [[0.0], [0.0]])
     assert np.allclose(logs[2], [[0.1], [0.2]])
 
 
 # ----------------------------------------------------------------------
-# 3. TEST BACKWARD EULER (implicit)
+def test_integrator_matrix_forward():
+    src = Step(
+        "src",
+        start_time=0.1,
+        value_before=[[0.0, 0.0],
+                      [0.0, 0.0]],
+        value_after=[[1.0, 2.0],
+                     [3.0, 4.0]],
+    )
+    I = DiscreteIntegrator("I", method="euler forward")
+
+    logs = run_sim(src, I, dt=0.1, T=0.3)
+
+    assert np.allclose(logs[0], np.zeros((2, 2)))
+    assert np.allclose(logs[1], np.zeros((2, 2)))
+    assert np.allclose(logs[2], 0.1 * np.array([[1.0, 2.0], [3.0, 4.0]]))
+
+
 # ----------------------------------------------------------------------
 def test_integrator_scalar_backward():
-    """
-    Backward Euler definition in your code:
-
-        y[n] = x[n] + dt * u[n]
-        x[n+1] = x[n] + dt * u[n]
-
-    Step:
-        u(0)=0, u(1)=1, dt=0.1
-
-    Expected:
-        y(0) = 0
-        y(1) = x(1)+dt*u(1) = 0 + 0.1*1 = 0.1
-        y(2) = x(2)+dt*u(2) = 0.1 + 0.1*1 = 0.2
-    """
-    src = Step("src", start_time=0.1, value_before=0., value_after=1.)
+    src = Step("src", start_time=0.1, value_before=0.0, value_after=1.0)
     I = DiscreteIntegrator("I", method="euler backward")
 
     logs = run_sim(src, I, dt=0.1, T=0.3)
@@ -107,28 +80,42 @@ def test_integrator_scalar_backward():
 
 
 # ----------------------------------------------------------------------
-# 4. TEST INITIAL STATE
-# ----------------------------------------------------------------------
-def test_integrator_initial_state():
-    src = Step("src", start_time=0.1, value_before=0., value_after=1.)
-    I = DiscreteIntegrator("I", initial_state=[[5.0]])
+def test_integrator_matrix_backward():
+    src = Step(
+        "src",
+        start_time=0.1,
+        value_before=[[0.0, 0.0],
+                      [0.0, 0.0]],
+        value_after=[[1.0, 2.0],
+                     [3.0, 4.0]],
+    )
+    I = DiscreteIntegrator("I", method="euler backward")
 
     logs = run_sim(src, I, dt=0.1, T=0.3)
 
-    # Expected:
-    # y(0) = 5
-    # y(1) = 5
-    # y(2) = 5 + 0.1*1 = 5.1
+    expected1 = 0.1 * np.array([[1.0, 2.0], [3.0, 4.0]])
+    expected2 = 0.2 * np.array([[1.0, 2.0], [3.0, 4.0]])
+
+    assert np.allclose(logs[0], np.zeros((2, 2)))
+    assert np.allclose(logs[1], expected1)
+    assert np.allclose(logs[2], expected2)
+
+
+# ----------------------------------------------------------------------
+def test_integrator_initial_state():
+    src = Step("src", start_time=0.1, value_before=0.0, value_after=1.0)
+    I = DiscreteIntegrator("I", initial_state=[[5.0]], method="euler forward")
+
+    logs = run_sim(src, I, dt=0.1, T=0.3)
+
     assert np.allclose(logs[0], [[5.0]])
     assert np.allclose(logs[1], [[5.0]])
     assert np.allclose(logs[2], [[5.1]])
 
-# ----------------------------------------------------------------------
-# 5. TEST MISSING INPUT
+
 # ----------------------------------------------------------------------
 def test_integrator_missing_input():
     I = DiscreteIntegrator("I")
-
     m = Model()
     m.add_block(I)
 
@@ -138,3 +125,20 @@ def test_integrator_missing_input():
 
     with pytest.raises(RuntimeError):
         sim.step()
+
+
+# ----------------------------------------------------------------------
+def test_integrator_input_shape_change_raises():
+    # block-only: once shape known, it cannot change
+    I = DiscreteIntegrator("I", method="euler forward")
+
+    I.inputs["in"] = np.array([[0.0]])
+    I.initialize(0.0)
+    I.output_update(0.0, 0.1)
+    I.state_update(0.0, 0.1)
+
+    I.inputs["in"] = np.array([[1.0, 2.0],
+                               [3.0, 4.0]])
+    with pytest.raises(ValueError) as err:
+        I.state_update(0.1, 0.1)
+    assert "shape" in str(err.value)

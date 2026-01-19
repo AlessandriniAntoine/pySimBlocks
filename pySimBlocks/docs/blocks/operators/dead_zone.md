@@ -32,8 +32,8 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `lower_bound` | scalar or vector | Lower bound of the dead zone. Must be less than or equal to zero. Default is zero. | True |
-| `upper_bound` | scalar or vector | Upper bound of the dead zone. Must be greater than or equal to zero. Default is zero. | True |
+| `lower_bound` | scalar or vector or matrix | Lower bound of the dead zone. Must be less than or equal to zero. Default is zero. | True |
+| `upper_bound` | scalar or vector or matrix | Upper bound of the dead zone. Must be greater than or equal to zero. Default is zero. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

@@ -2,38 +2,69 @@
 
 ## Description
 
-The **Gain** block applies a static linear transformation to its input signal.
+The **Gain** block applies a static transformation to its input signal using a gain **K**.
 
-It computes:
+Depending on the selected multiplication mode, it computes one of:
 
-$$ 
-y = K \cdot u 
-$$
+- **Element-wise**:  
+  $$ y = K \odot u $$
+- **Left matrix product**:  
+  $$ y = K \cdot u $$
+- **Right matrix product**:  
+  $$ y = u \cdot K $$
 
-where:
-- $ u $ is the input signal,
-- $ K $ is the gain,
-- $ y $ is the output signal.
+Where:
+- $u$ is the input signal (2D array),
+- $K$ is the gain,
+- $y$ is the output signal.
 
 ---
 
-## Gain definition
+## Multiplication modes
 
-The gain $ K $ can take several forms:
+### 1) Element wise (K * u)
 
-- **Scalar**: Multiplies the entire input signal by a constant.
+Element-wise multiplication with strict shape rules (no implicit matrix product):
 
-- **Vector**: Applies an element-wise gain to a scalar input.
+- **K scalar**: `y = K * u`  
+  Works for any 2D `u` shape `(m,n)`.
 
-- **Matrix**: Applies a full linear transformation between input and output vectors.
+- **K vector (m,)**: `y = K[:,None] * u`  
+  Requires `u.shape[0] == m`. Output shape is `(m,n)`.
+
+- **K matrix (m,n)**: `y = K * u`  
+  Requires `u.shape == (m,n)`.
+
+Any other mismatch raises an error.
+
+---
+
+### 2) Matrix (K @ u)
+
+Left matrix product:
+
+- Requires **K is a 2D matrix** with shape `(p,m)`
+- Requires input `u` is 2D with shape `(m,ncols)`
+- Output `y` has shape `(p,ncols)`
+
+---
+
+### 3) Matrix (u @ K)
+
+Right matrix product:
+
+- Requires **K is a 2D matrix** with shape `(m,q)`
+- Requires input `u` is 2D with shape `(nrows,m)`
+- Output `y` has shape `(nrows,q)`
 
 ---
 
 ## Parameters
 
-| Name        | Type | Description | Optional |
-|------------|-------------|-------------|-------------|
-| `gain`     | scalar, vector, or matrix | Gain value(s) to apply. Can be a scalar, vector, or matrix depending on the desired transformation. | False |
+| Name | Type | Description | Optional |
+|------|------|-------------|----------|
+| `gain` | scalar, vector (m,), or matrix (p,m) / (m,q) | Gain coefficient(s). | False |
+| `multiplication` | string enum | `"Element wise (K * u)"` \| `"Matrix (K @ u)"` \| `"Matrix (u @ K)"` | True (default: element-wise) |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---
@@ -42,7 +73,7 @@ The gain $ K $ can take several forms:
 
 | Port | Description |
 |------|------------|
-| `in` | Input signal $ u $. |
+| `in` | Input signal $u$ (**must be a 2D NumPy array**). |
 
 ---
 
@@ -50,12 +81,13 @@ The gain $ K $ can take several forms:
 
 | Port | Description |
 |------|------------|
-| `out` | Output signal $ y = K \cdot u $. |
+| `out` | Output signal $y$ (2D array). |
 
 ---
 
 ## Notes
 
-- The Gain block is **stateless**.
-- Dimension mismatches between the gain and the input signal raise an error.
-- This block is equivalent to the Simulink **Gain** block.
+- The Gain block is **stateless** and **direct feedthrough**.
+- Inputs must be **2D** (`ndim == 2`). No implicit reshape/flatten is applied.
+- Dimension mismatches raise an error.
+- This block is conceptually similar to Simulink **Gain**, but the multiplication behavior is made explicit via `multiplication`.

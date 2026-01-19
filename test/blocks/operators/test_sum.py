@@ -49,21 +49,46 @@ def test_sum_subtraction():
 
 
 # ------------------------------------------------------------
-# 3) Automatic default signs = +1
+# 3) Automatic default signs = ++
 # ------------------------------------------------------------
 def test_sum_default_signs():
     sm = Sum("S")
-    assert sm.signs == [1., 1.]
+    assert sm.signs == [1.0, 1.0]
+    assert sm.num_inputs == 2
 
 
 # ------------------------------------------------------------
-# 4) Dimension mismatch must raise RuntimeError (wrapping ValueError)
+# 4) Matrix sum supported
 # ------------------------------------------------------------
-def test_sum_dimension_mismatch():
+def test_sum_matrix_supported():
+    u1 = np.array([[1.0, 2.0],
+                   [3.0, 4.0]])
+    u2 = np.array([[10.0, 20.0],
+                   [30.0, 40.0]])
+    out = run_two_inputs(u1, u2, signs="++")
+    assert np.allclose(out, u1 + u2)
+
+
+# ------------------------------------------------------------
+# 5) Scalar broadcast to matrix supported (only (1,1) allowed)
+# ------------------------------------------------------------
+def test_sum_scalar_broadcast_to_matrix():
+    u1 = np.array([[1.0, 2.0],
+                   [3.0, 4.0]])
+    u2 = np.array([[5.0]])  # scalar (1,1) broadcast
+    out = run_two_inputs(u1, u2, signs="++")
+    assert np.allclose(out, u1 + 5.0)
+
+
+# ------------------------------------------------------------
+# 6) Shape mismatch among non-scalars must raise RuntimeError
+#    (sim wraps ValueError into RuntimeError)
+# ------------------------------------------------------------
+def test_sum_shape_mismatch_non_scalars():
     m = Model()
 
-    s1 = Constant("s1", [[1.0], [2.0]])  # 2x1
-    s2 = Constant("s2", [[5.0], [3.0], [4.0]]) # 3x1 → mismatch
+    s1 = Constant("s1", np.zeros((2, 2)))
+    s2 = Constant("s2", np.zeros((2, 3)))  # mismatch
 
     sm = Sum("S", "++")
     m.add_block(s1)
@@ -80,27 +105,60 @@ def test_sum_dimension_mismatch():
     with pytest.raises(RuntimeError) as err:
         sim.run(T=0.1)
 
-    assert "Incompatible input dimensions for element-wise sum" in str(err.value)
+    assert "Inconsistent input shapes for Sum" in str(err.value)
 
 
 # ------------------------------------------------------------
-# 5) Invalid signs list
+# 7) Vector-to-matrix implicit broadcast is NOT allowed
+# ------------------------------------------------------------
+def test_sum_vector_to_matrix_not_allowed():
+    m = Model()
+
+    s1 = Constant("s1", np.zeros((2, 2)))      # non-scalar target shape
+    s2 = Constant("s2", np.zeros((2, 1)))      # non-scalar but different shape (not scalar)
+
+    sm = Sum("S", "++")
+    m.add_block(s1)
+    m.add_block(s2)
+    m.add_block(sm)
+
+    m.connect("s1", "out", "S", "in1")
+    m.connect("s2", "out", "S", "in2")
+
+    dt = 0.1
+    sim_cfg = SimulationConfig(dt, dt, logging=["S.outputs.out"])
+    sim = Simulator(m, sim_cfg)
+
+    with pytest.raises(RuntimeError) as err:
+        sim.run(T=0.1)
+
+    # depending on where it fails, message can be either "Inconsistent input shapes..."
+    # or "Only scalar (1,1) inputs can be broadcast."
+    assert (
+        "Inconsistent input shapes for Sum" in str(err.value)
+        or "Only scalar (1,1) inputs can be broadcast" in str(err.value)
+    )
+
+
+# ------------------------------------------------------------
+# 8) Invalid signs list
 # ------------------------------------------------------------
 def test_sum_invalid_signs():
     with pytest.raises(ValueError):
-        Sum("S", signs="+/")  # 2 is invalid
+        Sum("S", signs="+/")  # invalid character
 
 
 # ------------------------------------------------------------
-# 6) Inferred num_inputs from signs only
+# 9) Inferred num_inputs from signs only
 # ------------------------------------------------------------
 def test_sum_infer_num_inputs_from_signs():
     sm = Sum("S", signs="+")
     assert sm.num_inputs == 1
+    assert sm.signs == [1.0]
 
 
 # ------------------------------------------------------------
-# 7) Check output initialization
+# 10) Check output initialization (inputs connected)
 # ------------------------------------------------------------
 def test_sum_initial_output():
     m = Model()

@@ -13,12 +13,12 @@ description: >
 
 parameters:
   mean:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Mean value of the noise.
 
   std:
-    type: vector
+    type: scalar | vector | matrix
     required: false
     description: Standard deviation of the noise.
 
@@ -41,7 +41,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Gaussian noise output signal.
 
 execution:

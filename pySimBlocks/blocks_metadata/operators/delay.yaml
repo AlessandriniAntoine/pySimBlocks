@@ -19,7 +19,7 @@ parameters:
     default: 1
 
   initial_output:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: false
 
   sample_time:
@@ -33,7 +33,7 @@ ports:
       pattern: in
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signal.
 
   outputs:
@@ -42,7 +42,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Delayed output signal.
 
 execution:

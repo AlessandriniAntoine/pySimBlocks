@@ -11,8 +11,10 @@ blocks:
     signs: ++
   A:
     gain: [[0.9]]
+    multiplication: Matrix (K @ u)
   B:
     gain: [[1.0]]
+    multiplication: Matrix (K @ u)
   delay:
     num_delays: 1
     initial_output: [[0.0]]

@@ -27,10 +27,10 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `amplitude` | scalar or vector | Sinusoidal amplitude. Can be a scalar or vector. | False |
-| `frequency` | scalar or vector | Sinusoidal frequency in Hertz. Can be a scalar or vector. | False |
-| `phase` | scalar or vector | Phase shift in radians. Default is zero. | True |
-| `offset` | scalar or vector | Constant offset added to the signal. Default is zero. | True |
+| `amplitude` | scalar or vector or matrix | Sinusoidal amplitude. Can be a scalar or vector. | False |
+| `frequency` | scalar or vector or matrix | Sinusoidal frequency in Hertz. Can be a scalar or vector. | False |
+| `phase` | scalar or vector or matrix | Phase shift in radians. Default is zero. | True |
+| `offset` | scalar or vector or matrix | Constant offset added to the signal. Default is zero. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

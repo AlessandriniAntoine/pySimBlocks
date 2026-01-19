@@ -53,6 +53,10 @@ operators:
   zero_order_hold:
     class: ZeroOrderHold
     module: pySimBlocks.blocks.operators.zero_order_hold
+optimizers:
+  quadratic_program:
+    class: QuadraticProgram
+    module: pySimBlocks.blocks.optimizers.quadratic_program
 sources:
   constant:
     class: Constant

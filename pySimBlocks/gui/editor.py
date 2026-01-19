@@ -1,7 +1,6 @@
 import sys
 import os
 from pathlib import Path
-import shutil
 from PySide6.QtWidgets import QApplication
 from pySimBlocks.gui.main_window import MainWindow
 
@@ -14,18 +13,13 @@ def main():
     else:
         project_dir = os.getcwd()
     project_path = Path(project_dir).resolve()
+    run_app(project_path)
 
 
+def run_app(project_path: Path):
     app = QApplication(sys.argv)
     window = MainWindow(project_path)
-
-    def cleanup():
-        temp_path = window.project_state.directory_path / ".temp"
-        if temp_path.exists():
-            shutil.rmtree(temp_path, ignore_errors=True)
-
-    app.aboutToQuit.connect(cleanup)
-
+    app.aboutToQuit.connect(window.cleanup)
     window.resize(1100, 600)
     window.show()
     sys.exit(app.exec())

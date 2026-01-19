@@ -9,8 +9,6 @@ from pySimBlocks.blocks.operators.rate_limiter import RateLimiter
 
 
 # ------------------------------------------------------------
-# Helper
-# ------------------------------------------------------------
 def run_sim(src_block, rate_block, dt=0.1, T=0.3):
     m = Model()
     m.add_block(src_block)
@@ -24,15 +22,7 @@ def run_sim(src_block, rate_block, dt=0.1, T=0.3):
 
 
 # ------------------------------------------------------------
-# 1) Passthrough when initial_output is NOT set
-# ------------------------------------------------------------
 def test_rate_limiter_passthrough_without_initial_output():
-    """
-    initial_output not provided → y(-1) = u(0)
-
-    Step with start_time=0 → u(0)=10
-    Output must be immediately equal to input.
-    """
     src = Step("src", start_time=0.0, value_before=0.0, value_after=10.0)
     R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0)
 
@@ -43,28 +33,9 @@ def test_rate_limiter_passthrough_without_initial_output():
 
 
 # ------------------------------------------------------------
-# 2) Rate limiting with explicit initial_output
-# ------------------------------------------------------------
 def test_rate_limiter_scalar_with_initial_output():
-    """
-    initial_output defines y(-1) and is never overridden.
-
-    u = 10 (constant)
-    y(-1) = 0
-    rising_slope = 1, dt = 0.1
-
-    Expected:
-        y(0) = 0
-        y(1) = 0.1
-        y(2) = 0.2
-    """
     src = Constant("src", 10.0)
-    R = RateLimiter(
-        "R",
-        rising_slope=1.0,
-        falling_slope=-1.0,
-        initial_output=0.0
-    )
+    R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0, initial_output=0.0)
 
     logs = run_sim(src, R, dt=0.1, T=0.3)
 
@@ -74,57 +45,88 @@ def test_rate_limiter_scalar_with_initial_output():
 
 
 # ------------------------------------------------------------
-# 3) No active limitation when slope is admissible
-# ------------------------------------------------------------
 def test_rate_limiter_no_active_limitation():
-    """
-    Ramp slope = 0.5
-    Rate limits = ±5 → no limitation
-    """
     src = Ramp("src", slope=0.5, offset=1.0)
     R = RateLimiter("R", rising_slope=5.0, falling_slope=-5.0)
 
     logs = run_sim(src, R, dt=0.1, T=0.3)
 
-    # Output must exactly match input evolution
     for k in range(1, len(logs)):
-        assert np.allclose(logs[k] - logs[k-1], [[0.05]])
+        assert np.allclose(logs[k] - logs[k - 1], [[0.05]])
 
 
-# ------------------------------------------------------------
-# 4) Vector rate limiting
 # ------------------------------------------------------------
 def test_rate_limiter_vector():
-    """
-    Two channels with different slopes.
-    initial_output explicitly set to zero vector.
-    """
     src = Step(
         "src",
         start_time=0.0,
         value_before=[[0.0], [0.0]],
-        value_after=[[4.0], [-4.0]]
+        value_after=[[4.0], [-4.0]],
     )
 
     R = RateLimiter(
         "R",
         rising_slope=[1.0, 0.5],
         falling_slope=[-1.0, -0.5],
-        initial_output=[[0.0], [0.0]]
+        initial_output=[[0.0], [0.0]],
     )
 
     logs = run_sim(src, R, dt=0.1, T=0.2)
 
-    # First step after transition
-    # channel 0: +0.1
-    # channel 1: -0.05
     assert np.allclose(logs[0], [[0.1], [-0.05]])
     assert np.allclose(logs[1], [[0.2], [-0.1]])
     assert np.allclose(logs[2], [[0.3], [-0.15]])
 
 
 # ------------------------------------------------------------
-# 5) Missing input must raise RuntimeError
+def test_rate_limiter_matrix_scalar_slopes():
+    src = Step(
+        "src",
+        start_time=0.0,
+        value_before=[[0.0, 0.0],
+                      [0.0, 0.0]],
+        value_after=[[10.0, -10.0],
+                     [5.0,  -5.0]],
+    )
+
+    R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0, initial_output=0.0)
+
+    logs = run_sim(src, R, dt=0.1, T=0.1)
+
+    # dt=0.1, slopes +/-1 => max delta per step = +/-0.1 everywhere
+    expected = np.array([[0.1, -0.1],
+                         [0.1, -0.1]])
+    assert np.allclose(logs[0], expected)
+
+
+# ------------------------------------------------------------
+def test_rate_limiter_matrix_vector_slopes_broadcast_columns():
+    # input is (2,3)
+    src = Step(
+        "src",
+        start_time=0.0,
+        value_before=[[0.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0]],
+        value_after=[[10.0, -10.0, 2.0],
+                     [5.0,   6.0, -7.0]],
+    )
+
+    # slopes as (2,1) via 1D -> (2,1); should broadcast across 3 columns
+    R = RateLimiter(
+        "R",
+        rising_slope=[1.0, 0.5],
+        falling_slope=[-1.0, -0.5],
+        initial_output=0.0,
+    )
+
+    logs = run_sim(src, R, dt=0.1, T=0.1)
+
+    # row1 limited to +/-0.1, row2 limited to +/-0.05
+    expected = np.array([[0.1, -0.1, 0.1],
+                         [0.05, 0.05, -0.05]])
+    assert np.allclose(logs[0], expected)
+
+
 # ------------------------------------------------------------
 def test_rate_limiter_missing_input():
     R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0)
@@ -139,11 +141,26 @@ def test_rate_limiter_missing_input():
 
 
 # ------------------------------------------------------------
-# 6) Invalid slope signs
-# ------------------------------------------------------------
 def test_rate_limiter_invalid_slopes():
     with pytest.raises(ValueError):
         RateLimiter("R", rising_slope=-1.0, falling_slope=-1.0)
 
     with pytest.raises(ValueError):
         RateLimiter("R", rising_slope=1.0, falling_slope=1.0)
+
+
+# ------------------------------------------------------------
+def test_rate_limiter_input_shape_change_raises():
+    # Direct block test: once initialized with (1,1), shape cannot change
+    R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0, initial_output=0.0)
+
+    R.inputs["in"] = np.array([[1.0]])
+    R.initialize(0.0)
+    R.output_update(0.0, 0.1)
+
+    R.inputs["in"] = np.array([[1.0, 2.0],
+                               [3.0, 4.0]])
+    with pytest.raises(ValueError) as err:
+        R.output_update(0.1, 0.1)
+
+    assert "shape changed" in str(err.value) or "shape" in str(err.value)

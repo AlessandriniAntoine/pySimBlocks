@@ -32,7 +32,7 @@ ports:
         type: parameter
         parameter: signs
         operation: len
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signals.
 
   outputs:
@@ -41,7 +41,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Summed output.
 
 execution:

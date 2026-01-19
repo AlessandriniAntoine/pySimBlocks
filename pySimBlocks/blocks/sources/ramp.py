@@ -5,82 +5,73 @@ from pySimBlocks.core.block_source import BlockSource
 
 class Ramp(BlockSource):
     """
-    Multi-dimensional ramp signal source block.
+    Multi-dimensional ramp signal source block (Option B).
 
     Summary:
-        Generates a ramp signal for each output dimension, starting at a given
-        time with a specified slope and initial offset.
+        Generates a ramp signal element-wise on a 2D output array:
+            y(t) = offset + slope * max(0, t - start_time)
+
+        Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
+        broadcasting is allowed; all non-scalar parameters must share the same
+        shape.
 
     Parameters (overview):
         slope : float or array-like
-            Ramp slope for each output dimension.
+            Ramp slope. Scalar -> broadcast; otherwise fixes output shape.
         start_time : float or array-like, optional
-            Time at which the ramp starts.
+            Ramp start time. Scalar -> broadcast; otherwise must match output shape.
         offset : float or array-like, optional
-            Output value before the ramp starts.
+            Output value before the ramp starts. Scalar -> broadcast; otherwise must match output shape.
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            (none)
-        Outputs:
-            out : ramp output signal.
+    Outputs:
+        out : ramp output signal (2D ndarray)
 
     Notes:
-        - The block has no internal state.
-        - Parameters may be scalar or vector-valued.
-        - Scalar parameters are broadcast to all output dimensions.
-        - Each output dimension may have a different slope and start time.
+        - Stateless block.
+        - Normalization:
+            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n)
+        - Broadcasting:
+            Only (1,1) scalars are broadcast to the common shape.
+            No NumPy broadcasting beyond that.
+        - No implicit flattening is performed.
     """
 
-
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         slope: ArrayLike,
         start_time: ArrayLike = 0.0,
         offset: ArrayLike | None = None,
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # --- Validate and normalize parameters ---
-        S = self._to_column_vector("slope", slope)
-        T = self._to_column_vector("start_time", start_time)
+        S = self._to_2d_array("slope", slope, dtype=float)
+        T = self._to_2d_array("start_time", start_time, dtype=float)
 
         if offset is None:
-            O = np.zeros_like(S)
+            O = np.array([[0.0]], dtype=float)  # scalar, will be broadcast if needed
         else:
-            O = self._to_column_vector("offset", offset)
+            O = self._to_2d_array("offset", offset, dtype=float)
 
-        # Determine common dimension n
-        dims = {S.shape[0], T.shape[0], O.shape[0]}
-        dims.discard(1)  # scalar-like parameters are allowed
-        if len(dims) > 1:
-            raise ValueError(
-                f"[{self.name}] Inconsistent dimensions among parameters "
-                f"slope={S.shape}, start_time={T.shape}, offset={O.shape}."
-            )
-        n = max(S.shape[0], T.shape[0], O.shape[0])
+        # Resolve common shape using strict scalar-only broadcasting policy
+        target_shape = self._resolve_common_shape({"slope": S, "start_time": T, "offset": O})
 
-        # Broadcast scalars into full vectors
-        def expand(x):
-            if x.shape[0] == 1:
-                return np.full((n, 1), x.item(), dtype=float)
-            return x.astype(float)
-
-        self.slope = expand(S)
-        self.start_time = expand(T)
-        self.offset = expand(O)
+        self.slope = self._broadcast_scalar_only("slope", S, target_shape)
+        self.start_time = self._broadcast_scalar_only("start_time", T, target_shape)
+        self.offset = self._broadcast_scalar_only("offset", O, target_shape)
 
         # Output port
-        self.outputs["out"] = np.copy(self.offset)
+        self.outputs["out"] = self.offset.copy()
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        self.outputs["out"] = np.copy(self.offset)
+        self.outputs["out"] = self.offset.copy()
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        dt_vec = np.maximum(0.0, t - self.start_time)
-        self.outputs["out"] = self.offset + self.slope * dt_vec
+        # Element-wise time shift
+        dt_mat = np.maximum(0.0, t - self.start_time)
+        self.outputs["out"] = self.offset + self.slope * dt_mat

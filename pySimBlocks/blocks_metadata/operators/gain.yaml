@@ -16,8 +16,16 @@ parameters:
     type: scalar | vector | matrix
     required: true
     autofill: true
-    description: Gain coefficient.
     default: 1.
+    description: Gain coefficient.
+
+  multiplication:
+    type: enum
+    required: false
+    autofill: true
+    default: Element wise (K * u)
+    enum: [Element wise (K * u), Matrix (K @ u), Matrix (u @ K)]
+    description: Type of multiplication operation.
 
   sample_time:
     type: float
@@ -25,21 +33,21 @@ parameters:
 
 ports:
   inputs:
-    - name: input
+    - name: in
       dynamic: false
       pattern: in
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signal.
 
   outputs:
-    - name: output
+    - name: out
       dynamic: false
       pattern: out
       source:
         type: fixed
-      shape: [m, 1]
+      shape: [m, m]
       description: Output signal.
 
 execution:
