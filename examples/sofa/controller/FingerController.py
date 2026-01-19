@@ -1,6 +1,4 @@
 import numpy as np
-import Sofa
-
 from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
 class FingerController(SofaPysimBlocksController):
@@ -34,7 +32,9 @@ class FingerController(SofaPysimBlocksController):
         self.last_tip = current_tip
 
     def get_outputs(self):
-        tip = self.mo.position[self.tip_index].copy() - self.initial_tip
+        tip = self.mo.position[self.tip_index].copy()
+        if self.IS_READY: 
+            tip -= self.initial_tip
         self.outputs["tip"] = np.asarray(tip).reshape(-1, 1)
         self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)
 

@@ -1,3 +1,5 @@
+import re
+import unicodedata
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
@@ -46,12 +48,7 @@ class Gain(Block):
     ):
         super().__init__(name, sample_time)
 
-        if multiplication not in self.ALLOWED_MULTIPLICATIONS:
-            raise ValueError(
-                f"[{self.name}] Invalid 'multiplication'='{multiplication}'. "
-                f"Allowed values are: {sorted(self.ALLOWED_MULTIPLICATIONS)}"
-            )
-        self.multiplication = multiplication
+        self.multiplication = self._parse_multiplication(multiplication)
 
         # Normalize gain
         if np.isscalar(gain):
@@ -189,3 +186,50 @@ class Gain(Block):
                 f"Got u.shape={u.shape}, gain.shape={K.shape}."
             )
         return u @ K
+
+    # ------------------------------------------------------------------
+    # Static methods
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _normalize_user_string(s: str) -> str:
+        s = unicodedata.normalize("NFKC", s)
+        s = s.strip().lower()
+        s = s.replace("\u00A0", " ")
+        s = re.sub(r"\s+", "", s, flags=re.UNICODE)
+        return s
+
+    @classmethod
+    def _parse_multiplication(cls, multiplication: str) -> str:
+        if not isinstance(multiplication, str):
+            raise TypeError(f"[{cls.__name__}] 'multiplication' must be a str.")
+
+        m = cls._normalize_user_string(multiplication)
+
+        # --- Element-wise
+        if m in {
+            "elementwise(k*u)", "elementwise", "elem", "k*u", "*", "k×u", "kxu"
+        }:
+            return cls.MULT_ELEMENTWISE
+
+        # --- Left: K @ u
+        if m in {
+            "matrix(k@u)", "k@u", "left", "matleft", "@left"
+        }:
+            return cls.MULT_LEFT
+
+        # --- Right: u @ K
+        if m in {
+            "matrix(u@k)", "u@k", "right", "matright", "@right"
+        }:
+            return cls.MULT_RIGHT
+
+        # fallback pattern-based (tolère "matrix(...)" etc.)
+        if "k@u" in m:
+            return cls.MULT_LEFT
+        if "u@k" in m:
+            return cls.MULT_RIGHT
+
+        raise ValueError(
+            f"[{cls.__name__}] Invalid 'multiplication'='{multiplication}'. "
+            f"Examples: '{cls.MULT_ELEMENTWISE}', '{cls.MULT_RIGHT}', '{cls.MULT_LEFT}'."
+        )

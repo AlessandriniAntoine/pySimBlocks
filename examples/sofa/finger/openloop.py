@@ -1,6 +1,4 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
 from pySimBlocks.blocks.systems.sofa import SofaPlant

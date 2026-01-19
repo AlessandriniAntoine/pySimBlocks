@@ -44,6 +44,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
     optional parameter:
         - variables_to_log: list of signal to log
+
+    Note:
+        - get_outputs() MUST ALWAYS WORK AND RETURN CONSISTENT SHAPES.
     """
 
     def __init__(self, root: Sofa.Core.Node, name: str ="SofaControllerGui"):

@@ -38,6 +38,7 @@ blocks:
 logging:
 - sum.outputs.out
 - sofa.outputs.measure
+- ref.outputs.out
 plots:
 - title: Outputs
   signals:

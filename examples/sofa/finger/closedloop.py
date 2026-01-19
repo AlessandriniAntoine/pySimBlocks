@@ -15,7 +15,7 @@ def main():
     # --- Create Blocks ---
     step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=2.)
     error = Sum(name="error", signs="+-")
-    pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
+    pid = Pid("pid", controller="PI", Kp=0.3, Ki=0.8)
 
     sofa_block = SofaPlant(
         name="sofa_finger",

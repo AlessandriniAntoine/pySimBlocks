@@ -11,10 +11,10 @@ def manual_sim(A, B, C, Kp, Ki, Kd, T, dt):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
     error = Sum("error", "+-")
-    kp = Gain("Kp", Kp)
-    ki = Gain("Ki", Ki)
+    kp = Gain("Kp", Kp, multiplication="Matrix (K @ u)")
+    ki = Gain("Ki", Ki, multiplication="Matrix (K @ u)")
     integrator = DiscreteIntegrator("integrator", method="euler backward")
-    kd = Gain("Kd", Kd)
+    kd = Gain("Kd", Kd, multiplication="Matrix (K @ u)")
     derivator = DiscreteDerivator("derivator")
     sum = Sum("sum", "+++")
 

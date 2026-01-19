@@ -10,8 +10,10 @@ blocks:
     signs: +-
   Kp:
     gain: [[0.3]]
+    multiplication: Matrix (K @ u)
   Ki:
     gain: [[0.8]]
+    multiplication: Matrix (K @ u)
   discrete_integrator:
     initial_state: [[0]]
   sum:

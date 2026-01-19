@@ -11,9 +11,9 @@ def manual_sim(A, B, C, T, dt):
     # Blocks
     ref = Step("u", start_time=1., value_before=0., value_after=1.)
     delay_x = Delay("x", num_delays=1, initial_output=np.zeros((A.shape[0], 1)))
-    gain_A = Gain("A", A)
-    gain_B = Gain("B", B)
-    gain_C = Gain("C", C)
+    gain_A = Gain("A", A, multiplication="Matrix (K @ u)")
+    gain_B = Gain("B", B, multiplication="Matrix (K @ u)")
+    gain_C = Gain("C", C, multiplication="Matrix (K @ u)")
     sum_x = Sum("sum_x", "++")
 
     # model

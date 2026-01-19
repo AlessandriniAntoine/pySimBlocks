@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from pathlib import Path
 
 from pySimBlocks import Model, Simulator, SimulationConfig
