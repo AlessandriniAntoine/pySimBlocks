@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict, List
 import shutil
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -7,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from pySimBlocks.gui.services.project_controller import ProjectController
-from pySimBlocks.tools.blocks_registry import load_block_registry
+from pySimBlocks.tools.blocks_registry import load_block_registry, BlockMeta
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
@@ -15,7 +16,7 @@ from pySimBlocks.gui.model.project_state import ProjectState
 
 
 registry = load_block_registry()
-categories = sorted(registry.keys())
+
 
 class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
@@ -48,27 +49,28 @@ class MainWindow(QMainWindow):
 
 
     ####################### Registry ########################
-    def get_categories(self):
-        return categories.copy()
+    def get_categories(self) -> List[str]:
+        return sorted(registry.keys())
 
-    def get_blocks(self, category):
-        return sorted(registry[category].keys())
+    def get_blocks(self, category: str) -> List[str]:
+        return sorted(registry[category].keys()) 
 
-    def resolve_category_meta(self, category):
+    def resolve_category_meta(self, category) -> Dict[str, BlockMeta]:
         return registry[category]
 
-    def resolve_block_meta(self, category, block_type):
+    def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
         return registry[category][block_type]
 
 
     ####################### Auto Load ########################
-    def auto_load_detection(self, project_path: Path):
+    def auto_load_detection(self, project_path: Path) -> bool:
         param_yaml = self._auto_detect_yaml(
             project_path, ["parameters.yaml"])
         model_yaml = self._auto_detect_yaml(
             project_path, ["model.yaml"])
         if param_yaml and model_yaml:
             return True
+        return False
 
     def _auto_detect_yaml(self, project_path: Path, names: list[str]) -> str | None:
         for name in names:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 import yaml
 
 
@@ -19,8 +19,8 @@ class BlockMeta:
     summary: str
     description: str
 
-    parameters: Dict[str, Any]
-    ports: Dict[list, Any]
+    parameters: Dict[str, Dict[str, Any]]
+    ports: Dict[str, List[Dict[str, Any]]]
 
     execution: Dict[str, Any]
     notes: Optional[list[str]]
