@@ -40,7 +40,7 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `initial_state` | scalar or vector | Initial value of the integrated state. If omitted, the state is initialized as a zero vector. | True |
+| `initial_state` | scalar or vector or matrix | Initial value of the integrated state. If omitted, the state is initialized as a zero vector. | True |
 | `method` | string | Numerical integration method: `euler forward` or `euler backward`. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 

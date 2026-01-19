@@ -42,6 +42,9 @@ class Block(ABC):
         self._effective_sample_time = 0.
 
 
+    # ------------------------------------------------------------------
+    # Internal methods
+    # ------------------------------------------------------------------
     def _to_2d_array(self, param_name: str, value, *, dtype=float) -> np.ndarray:
         """
         Normalize into a 2D NumPy array.
@@ -68,7 +71,13 @@ class Block(ABC):
             f"Got ndim={arr.ndim} with shape {arr.shape}."
         )
 
+    @staticmethod
+    def _is_scalar_2d(arr: np.ndarray) -> bool:
+        return arr.shape == (1, 1)
 
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
     @property
     def has_state(self):
         """Specify if block is stateful."""

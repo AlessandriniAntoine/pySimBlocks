@@ -19,12 +19,12 @@ description: >
 
 parameters:
   lower_bound:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: false
     default: 0.0
 
   upper_bound:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: false
     default: 0.0
 
@@ -39,7 +39,7 @@ ports:
       pattern: in
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signal.
 
   outputs:
@@ -48,7 +48,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Output signal after dead-zone operation.
 
 execution:

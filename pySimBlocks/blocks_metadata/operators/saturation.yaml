@@ -14,11 +14,11 @@ description: >
 
 parameters:
   u_min:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: false
 
   u_max:
-    type: scalar | vector
+    type: scalar | vector | matrix
     required: false
 
   sample_time:
@@ -41,7 +41,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Saturated output signal.
 
 execution:

@@ -33,9 +33,9 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `rising_slope` | scalar or vector | Maximum allowed positive rate of change. Default is no positive rate limit. | True |
-| `falling_slope` | scalar or vector | Maximum allowed negative rate of change. Default is no negative rate limit. | True |
-| `initial_output` | scalar or vector | | Initial output value used as $y[-1]$. If not provided, the initial output is set equal to the first input. | True |
+| `rising_slope` | scalar or vector or matrix | Maximum allowed positive rate of change. Default is no positive rate limit. | True |
+| `falling_slope` | scalar or vector or matrix | Maximum allowed negative rate of change. Default is no negative rate limit. | True |
+| `initial_output` | scalar or vector or matrix | | Initial output value used as $y[-1]$. If not provided, the initial output is set equal to the first input. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

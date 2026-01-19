@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -7,55 +8,72 @@ class Mux(Block):
     Vertical signal concatenation block.
 
     Summary:
-        Concatenates multiple input column vectors vertically into a single
-        column vector.
+        Concatenates multiple scalar or column-vector inputs vertically into a
+        single column vector.
 
-    Parameters (overview):
+    Parameters:
         num_inputs : int
             Number of input ports to concatenate.
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            in1, in2, ..., inN : column vectors
-                Defined dynamically by `num_inputs`.
-        Outputs:
-            out : concatenated column vector.
+    Inputs:
+        in1, in2, ..., inN : array
+            Each input must be either:
+              - scalar (will be converted to (1,1))
+              - 1D array (k,) (will be converted to (k,1))
+              - column vector (k,1)
+
+            Any 2D non-column input (k,n) with n != 1 is rejected.
+
+    Outputs:
+        out : array (sum_k, 1)
+            Concatenated column vector.
 
     Notes:
-        - Stateless block.
+        - Stateless.
         - Direct feedthrough.
-        - Input vectors are concatenated vertically without dimension matching
-          constraints between inputs.
+        - This block intentionally enforces vector signals (Simulink-like Mux).
     """
 
+    direct_feedthrough = True
 
-    def __init__(self,
-        name: str,
-        num_inputs: int = 2,
-        sample_time: float | None = None
-    ):
+    def __init__(self, name: str, num_inputs: int = 2, sample_time: float | None = None):
         super().__init__(name, sample_time)
 
         if not isinstance(num_inputs, int) or num_inputs < 1:
             raise ValueError(f"[{self.name}] num_inputs must be a positive integer.")
-
         self.num_inputs = num_inputs
 
-        # Create dynamic input ports: in1, in2, ..., inN
         for i in range(num_inputs):
             self.inputs[f"in{i+1}"] = None
 
-        # Single output
         self.outputs["out"] = None
 
     # ---------------------------------------------------------
-    def initialize(self, t0: float):
-        """
-        If all inputs are available, concatenate them.
-        Otherwise output remains None until first update.
-        """
+    def _to_column_vector(self, input_name: str, value: ArrayLike) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+
+        if arr.ndim == 0:
+            return arr.reshape(1, 1)
+        if arr.ndim == 1:
+            return arr.reshape(-1, 1)
+        if arr.ndim == 2:
+            if arr.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input '{input_name}' must be a column vector (n,1). "
+                    f"Got shape {arr.shape}."
+                )
+            return arr
+
+        raise ValueError(
+            f"[{self.name}] Input '{input_name}' must be scalar, 1D, or a column vector (n,1). "
+            f"Got ndim={arr.ndim} with shape {arr.shape}."
+        )
+
+    # ---------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        # If not all inputs available, defer
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
                 self.outputs["out"] = None
@@ -64,43 +82,23 @@ class Mux(Block):
         self.outputs["out"] = self._compute_output()
 
     # ---------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        """
-        Compute vertical concatenation of all inputs.
-        """
-
+    def output_update(self, t: float, dt: float) -> None:
         self.outputs["out"] = self._compute_output()
 
     # ---------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        pass
-
+    def state_update(self, t: float, dt: float) -> None:
+        return  # stateless
 
     # ---------------------------------------------------------
     def _compute_output(self) -> np.ndarray:
-        """
-        Helper method to compute the vertical concatenation of all inputs.
-        Used during initialization.
-        """
         vectors = []
 
         for i in range(self.num_inputs):
-            u = self.inputs[f"in{i+1}"]
-
+            key = f"in{i+1}"
+            u = self.inputs[key]
             if u is None:
-                raise RuntimeError(
-                    f"[{self.name}] Input 'in{i+1}' is not connected or not set."
-                )
+                raise RuntimeError(f"[{self.name}] Input '{key}' is not connected or not set.")
 
-            u = np.asarray(u)
-
-            # Strict dimensional validation
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"[{self.name}] Input 'in{i+1}' must be a column vector (n,1). "
-                    f"Got shape {u.shape}."
-                )
-
-            vectors.append(u)
+            vectors.append(self._to_column_vector(key, u))
 
         return np.vstack(vectors)

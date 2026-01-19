@@ -66,10 +66,6 @@ class Sum(Block):
         self.outputs["out"] = None
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _is_scalar_2d(arr: np.ndarray) -> bool:
-        return arr.shape == (1, 1)
-
     def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
         """
         Determine target shape among inputs.

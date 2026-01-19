@@ -11,93 +11,141 @@ class Saturation(Block):
         Applies element-wise saturation to the input signal by enforcing
         lower and upper bounds.
 
-    Parameters (overview):
-        u_min : scalar or vector, optional
+    Parameters:
+        u_min : scalar or array-like, optional
             Lower saturation bound.
-        u_max : scalar or vector, optional
+            Accepted: scalar -> (1,1), 1D -> (m,1), 2D -> (m,n).
+            Broadcasting rules are limited and explicit (see Notes).
+        u_max : scalar or array-like, optional
             Upper saturation bound.
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            in : Input signal.
-        Outputs:
-            out : Saturated output signal.
+    Inputs:
+        in : array (m,n)
+            Input signal (must be 2D).
+
+    Outputs:
+        out : array (m,n)
+            Saturated output signal.
 
     Notes:
         - Stateless block.
         - Direct feedthrough.
-        - Bounds are applied component-wise.
-        - Scalar bounds are broadcast to match input dimension.
+        - Input must be 2D. No implicit reshape/flatten.
+        - Broadcasting rules for bounds (to match input shape (m,n)):
+            * scalar (1,1) broadcasts to (m,n)
+            * vector (m,1) broadcasts across columns to (m,n)
+            * matrix (m,n) must match exactly
+        - Any other shape mismatch raises ValueError.
     """
-
 
     direct_feedthrough = True
 
-    # ------------------------------------------------------------------
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         u_min: ArrayLike = -np.inf,
         u_max: ArrayLike = np.inf,
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        self.u_min = self._to_column("u_min", u_min)
-        self.u_max = self._to_column("u_max", u_max)
+        self.u_min_raw = self._to_2d_array("u_min", u_min)
+        self.u_max_raw = self._to_2d_array("u_max", u_max)
 
-        if np.any(self.u_min > self.u_max):
-            raise ValueError(
-                f"[{self.name}] u_min must be <= u_max for all components."
-            )
-
-    # ------------------------------------------------------------------
-    def _to_column(self, name, value):
-        arr = np.asarray(value, dtype=float)
-
-        if arr.ndim == 0:
-            return arr.reshape(1, 1)
-        elif arr.ndim == 1:
-            return arr.reshape(-1, 1)
-        elif arr.ndim == 2 and arr.shape[1] == 1:
-            return arr
-        else:
-            raise ValueError(
-                f"[{self.name}] {name} must be scalar or column vector (n,1), "
-                f"got shape {arr.shape}."
-            )
-
-    def _broadcast(self, ref, bound):
-        if bound.shape[0] == 1 and ref.shape[0] > 1:
-            return np.full_like(ref, bound.item())
-        return bound
+        # These will become "resolved" (broadcasted) once we know input shape
+        self.u_min = None
+        self.u_max = None
+        self._resolved_shape: tuple[int, int] | None = None
 
     # ------------------------------------------------------------------
-    def initialize(self, t0: float):
+    def _resolve_bounds_for_input(self, u: np.ndarray) -> None:
+        """
+        Resolve (broadcast) u_min/u_max to match the current input shape.
+        Resolution is done once (first time input is available). After that,
+        input shape is expected to remain constant.
+        """
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        if self._resolved_shape is None:
+            self._resolved_shape = u.shape
+
+            self.u_min = self._broadcast_bound(self.u_min_raw, u.shape, "u_min")
+            self.u_max = self._broadcast_bound(self.u_max_raw, u.shape, "u_max")
+            
+            if np.any(self.u_min > self.u_max):
+                raise ValueError(f"[{self.name}] u_min must be <= u_max for all components.")
+            return
+
+        # Already resolved => enforce constant input shape
+        if u.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed after bounds were resolved: "
+                f"expected {self._resolved_shape}, got {u.shape}."
+            )
+
+    def _broadcast_bound(self, b: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
+        """
+        Broadcast bound b to target_shape using explicit rules.
+        """
+        m, n = target_shape
+
+        # scalar -> full matrix
+        if self._is_scalar_2d(b):
+            return np.full(target_shape, float(b[0, 0]), dtype=float)
+
+        # vector (m,1) -> broadcast across columns
+        if b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m:
+            if n == 1:
+                return b.astype(float, copy=False)
+            return np.repeat(b.astype(float, copy=False), n, axis=1)
+
+        # matrix -> must match exactly
+        if b.shape == target_shape:
+            return b.astype(float, copy=False)
+
+        raise ValueError(
+            f"[{self.name}] {name} has incompatible shape {b.shape} for input shape {target_shape}. "
+            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
+        )
+
+    # ------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
-        u = self._to_column("input", u)
-        self.u_min = self._broadcast(u, self.u_min)
-        self.u_max = self._broadcast(u, self.u_max)
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
 
+        self._resolve_bounds_for_input(u)
         self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def output_update(self, t: float, dt: float) -> None:
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
-        u = self._to_column("input", u)
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        self._resolve_bounds_for_input(u)
         self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
 
     # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        # Stateless block
-        pass
+    def state_update(self, t: float, dt: float) -> None:
+        return  # stateless

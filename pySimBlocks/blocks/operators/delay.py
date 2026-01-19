@@ -69,10 +69,6 @@ class Delay(Block):
                 self.state["buffer"] = [arr.copy() for _ in range(self.num_delays)]
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _is_scalar_2d(arr: np.ndarray) -> bool:
-        return arr.shape == (1, 1)
-
     def _ensure_buffer_initialized(self, u: np.ndarray) -> None:
         """
         Ensure buffer exists and has a fixed, constant shape.

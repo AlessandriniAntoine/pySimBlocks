@@ -26,8 +26,8 @@ where:
 
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
-| `u_min`     | scalar or vector | Lower saturation bound. If omitted, no lower bound is applied. | True |
-| `u_max`     | scalar or vector | Upper saturation bound. If omitted, no upper bound is applied. | True |
+| `u_min`     | scalar or vector o matrix | Lower saturation bound. If omitted, no lower bound is applied. | True |
+| `u_max`     | scalar or vector or matrix | Upper saturation bound. If omitted, no upper bound is applied. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

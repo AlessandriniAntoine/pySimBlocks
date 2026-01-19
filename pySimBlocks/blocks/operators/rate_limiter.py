@@ -11,109 +11,168 @@ class RateLimiter(Block):
         Limits the rate of change of the output signal by constraining the
         maximum allowed increase and decrease per time step.
 
-    Parameters (overview):
-        rising_slope : scalar or vector, optional
-            Maximum allowed positive rate of change.
-        falling_slope : scalar or vector, optional
-            Maximum allowed negative rate of change.
-        initial_output : scalar or vector, optional
-            Initial output value at the previous time step.
+    Parameters:
+        rising_slope : scalar or array-like, optional
+            Maximum allowed positive rate of change (>= 0).
+        falling_slope : scalar or array-like, optional
+            Maximum allowed negative rate of change (<= 0).
+        initial_output : scalar or array-like, optional
+            Initial output y(-1). If not provided, y(-1) = u(0).
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            in : Input signal.
-        Outputs:
-            out : Rate-limited output signal.
+    Inputs:
+        in : array (m,n)
+            Input signal (must be 2D).
+
+    Outputs:
+        out : array (m,n)
+            Rate-limited output signal.
 
     Notes:
         - Stateful block.
         - Direct feedthrough.
-        - Rate limits are applied symmetrically per component.
-        - Scalar parameters are broadcast to match input dimension.
+        - Broadcasting rules (to match input shape (m,n)):
+            * scalar (1,1) broadcasts to (m,n)
+            * vector (m,1) broadcasts across columns to (m,n)
+            * matrix (m,n) must match exactly
+        - Once resolved, input shape must remain constant.
     """
-
 
     direct_feedthrough = True
 
-    # ------------------------------------------------------------------
-    def __init__(self,
-                 name: str,
-                 rising_slope: ArrayLike =np.inf,
-                 falling_slope: ArrayLike =-np.inf,
-                 initial_output: ArrayLike | None=None,
-                 sample_time: float | None = None
+    def __init__(
+        self,
+        name: str,
+        rising_slope: ArrayLike = np.inf,
+        falling_slope: ArrayLike = -np.inf,
+        initial_output: ArrayLike | None = None,
+        sample_time: float | None = None,
     ):
-
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        self.rising_slope = self._to_column("rising_slope", rising_slope)
-        self.falling_slope = self._to_column("falling_slope", falling_slope)
+        # Raw parameters (2D normalized)
+        self.rising_raw = self._to_2d_array("rising_slope", rising_slope)
+        self.falling_raw = self._to_2d_array("falling_slope", falling_slope)
+        self.y0_raw = None if initial_output is None else self._to_2d_array("initial_output", initial_output)
 
-        if np.any(self.rising_slope < 0):
+        # Basic sign constraints (raw)
+        if np.any(self.rising_raw < 0):
             raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
-        if np.any(self.falling_slope > 0):
+        if np.any(self.falling_raw > 0):
             raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
 
-        self.initial_output = None
-        if initial_output is not None:
-            self.initial_output = self._to_column("initial_output", initial_output)
+        # Resolved parameters (broadcasted to input shape once known)
+        self.rising_slope: ArrayLike | None = None
+        self.falling_slope: ArrayLike | None  = None
+        self._resolved_shape: tuple[int, int] | None = None
 
+        # State
         self.state["y"] = None
         self.next_state["y"] = None
 
     # ------------------------------------------------------------------
-    def _to_column(self, name, value):
-        arr = np.asarray(value, dtype=float)
+    def _broadcast_param(self, p: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
+        """
+        Broadcast p to target_shape using explicit rules:
+            - scalar (1,1) -> (m,n)
+            - vector (m,1) -> repeat along columns to (m,n)
+            - matrix (m,n) -> exact match
+        """
+        m, n = target_shape
 
-        if arr.ndim == 0:
-            return arr.reshape(1, 1)
-        elif arr.ndim == 1:
-            return arr.reshape(-1, 1)
-        elif arr.ndim == 2 and arr.shape[1] == 1:
-            return arr
-        else:
+        if self._is_scalar_2d(p):
+            return np.full(target_shape, float(p[0, 0]), dtype=float)
+
+        if p.ndim == 2 and p.shape[1] == 1 and p.shape[0] == m:
+            if n == 1:
+                return p.astype(float, copy=False)
+            return np.repeat(p.astype(float, copy=False), n, axis=1)
+
+        if p.shape == target_shape:
+            return p.astype(float, copy=False)
+
+        raise ValueError(
+            f"[{self.name}] {name} has incompatible shape {p.shape} for input shape {target_shape}. "
+            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
+        )
+
+    def _resolve_for_input(self, u: np.ndarray) -> None:
+        """
+        Resolve (broadcast) slopes and initial_output to match the current input shape.
+        Done once. After that, input shape is fixed.
+        """
+        if u.ndim != 2:
             raise ValueError(
-                f"[{self.name}] {name} must be scalar or column vector (n,1), "
-                f"got shape {arr.shape}."
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
 
-    def _broadcast(self, ref, target):
-        if target.shape[0] == 1 and ref.shape[0] > 1:
-            return np.full_like(ref, target.item())
-        return target
+        if self._resolved_shape is None:
+            self._resolved_shape = u.shape
+            self.rising_slope = self._broadcast_param(self.rising_raw, u.shape, "rising_slope")
+            self.falling_slope = self._broadcast_param(self.falling_raw, u.shape, "falling_slope")
+
+            # Re-check signs after broadcasting (useful if vector/matrix provided)
+            if np.any(self.rising_slope < 0):
+                raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
+            if np.any(self.falling_slope > 0):
+                raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
+            return
+
+        if u.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed after initialization: "
+                f"expected {self._resolved_shape}, got {u.shape}."
+            )
 
     # ------------------------------------------------------------------
-    def initialize(self, t0: float):
+    def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
-        u = self._to_column("input", u)
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
 
-        self.rising_slope = self._broadcast(u, self.rising_slope)
-        self.falling_slope = self._broadcast(u, self.falling_slope)
+        self._resolve_for_input(u)
 
-        if self.initial_output is not None:
-            y0 = self._broadcast(u, self.initial_output)
+        if self.y0_raw is not None:
+            y0 = self._broadcast_param(self.y0_raw, u.shape, "initial_output")
         else:
             y0 = u.copy()
 
-        self.state["y"] = y0
-        self.outputs["out"] = y0
+        self.state["y"] = y0.copy()
+        self.outputs["out"] = y0.copy()
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def output_update(self, t: float, dt: float) -> None:
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
-        u = self._to_column("input", u)
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        if self.state["y"] is None:
+            raise RuntimeError(f"[{self.name}] RateLimiter not initialized (state 'y' is None).")
+
+        self._resolve_for_input(u)
+
         y_prev = self.state["y"]
+        if y_prev.shape != u.shape:
+            # extra safety: state shape must match input shape
+            raise ValueError(
+                f"[{self.name}] Internal state shape mismatch: y has shape {y_prev.shape}, input has shape {u.shape}."
+            )
 
         du = u - y_prev
         du_min = self.falling_slope * dt
@@ -123,5 +182,5 @@ class RateLimiter(Block):
         self.outputs["out"] = y_prev + du_limited
 
     # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        self.next_state["y"] = self.outputs["out"]
+    def state_update(self, t: float, dt: float) -> None:
+        self.next_state["y"] = None if self.outputs["out"] is None else self.outputs["out"].copy()

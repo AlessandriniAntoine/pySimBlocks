@@ -26,7 +26,7 @@ where:
 | Name        | Type | Description | Optional |
 |------------|-------------|-------------|-------------|
 | `num_delays` | integer | Number of discrete delay steps. Default is 1. | True |
-| `initial_output` | scalar or vector | Initial value to fill the delay buffer. If not provided, the buffer is initialized as zero. | True |
+| `initial_output` | scalar or vector or matrix | Initial value to fill the delay buffer. If not provided, the buffer is initialized as zero. | True |
 | `sample_time` | float | Block sample time. If omitted, the global simulation time step is used. | True |
 
 ---

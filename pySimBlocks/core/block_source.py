@@ -22,10 +22,6 @@ class BlockSource(Block):
     # ------------------------------------------------------------------
     # Strict scalar-only broadcast policy (Option B)
     # ------------------------------------------------------------------
-    @staticmethod
-    def _is_scalar_2d(arr: np.ndarray) -> bool:
-        return arr.shape == (1, 1)
-
     def _resolve_common_shape(self, params: dict[str, np.ndarray]) -> tuple[int, int]:
         """
         Determine the common target shape among parameters.

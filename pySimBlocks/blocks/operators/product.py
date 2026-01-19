@@ -9,130 +9,159 @@ class Product(Block):
     Summary:
         Computes a product/division of multiple input signals.
 
-    Parameters (overview):
-        operations : str of signs */
-            operation bitween each input.
+    Parameters:
+        operations : str
+            String of operators between inputs, using '*' and '/'.
+            If length is L, number of inputs is L+1.
         multiplication : str
-            Type of multiplication: Element-wise (*) or Matrix (@).
+            "Element-wise (*)" or "Matrix (@)".
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            in1, in2, ..., inN : input signals
-        Output:
-            out : product output signal
+    Inputs:
+        in1, in2, ..., inN : array (m,n)
+            Input signals (must be 2D arrays).
+
+    Outputs:
+        out : array (p,q)
+            Product output.
 
     Notes:
-        - All inputs must have the same dimension.
-        - No internal state.
+        - Stateless block.
+        - Direct feedthrough.
+        - Shapes are frozen per input port on first use.
+        - Element-wise mode supports scalar (1,1) broadcasting only.
+        - Matrix mode supports '*' only; '/' is rejected.
     """
 
-    def __init__(self,
+    direct_feedthrough = True
+
+    def __init__(
+        self,
         name: str,
         operations: str | None = None,
         multiplication: str = "Element-wise (*)",
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # --- Validate num_inputs / signs -------------------------------------
         if operations is None:
             operations = "*"
 
         if not isinstance(operations, str):
             raise TypeError(f"[{self.name}] 'operations' must be a str.")
+        if any(op not in ("*", "/") for op in operations):
+            raise ValueError(f"[{self.name}] 'operations' must contain only '*' or '/'.")
 
         if not isinstance(multiplication, str):
             raise TypeError(f"[{self.name}] 'multiplication' must be a str.")
-
-        if any(s not in ("*", "/") for s in operations):
-            raise ValueError(f"[{self.name}] 'operations' must contain only * or /.")
-
         if multiplication not in ("Element-wise (*)", "Matrix (@)"):
-            raise ValueError(f"[{self.name}] 'multiplication' must be 'Element-wise (*)' or 'Matrix (@)'.")
+            raise ValueError(
+                f"[{self.name}] 'multiplication' must be 'Element-wise (*)' or 'Matrix (@)'."
+            )
 
-        if multiplication == "Matrix (@)":
-            raise NotImplementedError(f"[{self.name}] 'Matrix (@)' multiplication is not yet implemented.")
+        if multiplication == "Matrix (@)" and "/" in operations:
+            raise ValueError(f"[{self.name}] Division '/' is not supported in 'Matrix (@)' mode.")
 
         self.operations = operations
         self.multiplication = multiplication
         self.num_inputs = len(self.operations) + 1
 
-        # Create ports
         for i in range(self.num_inputs):
             self.inputs[f"in{i+1}"] = None
 
         self.outputs["out"] = None
 
-    # ----------------------------------------------------------------------
+        # Shape freezing per input port
+        self._input_shapes: dict[str, tuple[int, int]] = {}
+
+    # ------------------------------------------------------------------
+    def _get_input_2d(self, port: str) -> np.ndarray:
+        u = self.inputs[port]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
+        u_arr = self._to_2d_array(port, u)  # uses Block helper
+        # freeze shape per port
+        if port not in self._input_shapes:
+            self._input_shapes[port] = u_arr.shape
+        elif u_arr.shape != self._input_shapes[port]:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' shape changed: expected {self._input_shapes[port]}, got {u_arr.shape}."
+            )
+        return u_arr
+
+    # ------------------------------------------------------------------
     def initialize(self, t0: float):
-        """If inputs are already known at initialization, compute output."""
+        # No "fallback" values: missing inputs should be detected normally
+        # but for init, if any input missing, output stays None
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
-                self.inputs[f"in{i+1}"] = np.ones((1,1))  # dimension fallback
+                self.outputs["out"] = None
+                return
         self.outputs["out"] = self._compute_output()
 
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
-        # Check all inputs & check dimension consistency
-        shapes = set()
-        for i in range(self.num_inputs):
-            u = self.inputs[f"in{i+1}"]
-            if u is None:
-                raise RuntimeError(f"[{self.name}] Input 'in{i+1}' is not connected or not set.")
-
-            u = np.asarray(u)
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"[{self.name}] Input 'in{i+1}' must be a column vector (n,1). Got {u.shape}."
-                )
-
-            shapes.add(u.shape[0])
-
-        # authorize broadcasting of scalars only
-        if len(shapes) > 1:
-            if shapes != {1, max(shapes)}:
-                raise ValueError(f"[{self.name}] All inputs must have same dimension. Got sizes {shapes}.")
-
         self.outputs["out"] = self._compute_output()
 
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         pass
 
-    # ----------------------------------------------------------------------
-    def _compute_output(self):
-        arrays = []
+    # ------------------------------------------------------------------
+    def _compute_output(self) -> np.ndarray:
+        arrays = [self._get_input_2d(f"in{i+1}") for i in range(self.num_inputs)]
 
-        # Collect inputs
-        for i in range(self.num_inputs):
-            u = np.asarray(self.inputs[f"in{i+1}"], dtype=float)
-            u = u.reshape(-1, 1)
-            arrays.append(u)
-
-        # Dimension handling (element-wise)
-        sizes = {a.shape[0] for a in arrays}
-        max_dim = max(sizes)
-
-        if len(sizes) > 1:
-            if sizes == {1, max_dim}:
-                arrays = [
-                    np.full((max_dim, 1), a.item()) if a.shape[0] == 1 else a
-                    for a in arrays
-                ]
-            else:
+        if self.multiplication == "Element-wise (*)":
+            # Only scalar (1,1) broadcasting allowed
+            non_scalar_shapes = {a.shape for a in arrays if not self._is_scalar_2d(a)}
+            if len(non_scalar_shapes) > 1:
                 raise ValueError(
-                    f"[{self.name}] Incompatible input dimensions for element-wise product: {sizes}"
+                    f"[{self.name}] Incompatible input shapes for element-wise product: {sorted(non_scalar_shapes)}."
                 )
 
-        # Compute product/division
-        result = arrays[0].copy()
+            # target shape = the unique non-scalar shape if any, else (1,1)
+            target_shape = (1, 1) if len(non_scalar_shapes) == 0 else next(iter(non_scalar_shapes))
 
-        for op, a in zip(self.operations, arrays[1:]):
-            if op == "*":
-                result *= a
-            elif op == "/":
-                result /= a
+            def expand(a: np.ndarray) -> np.ndarray:
+                if self._is_scalar_2d(a) and target_shape != (1, 1):
+                    return np.full(target_shape, float(a[0, 0]), dtype=float)
+                return a.astype(float)
+
+            arrays = [expand(a) for a in arrays]
+
+            result = arrays[0].copy()
+            for op, a in zip(self.operations, arrays[1:]):
+                if op == "*":
+                    result = result * a
+                else:  # "/"
+                    result = result / a
+            return result
+
+        # -------------------- Matrix (@) mode
+        # Only '*' allowed by __init__ guard
+        result = arrays[0].astype(float)
+
+        for a in arrays[1:]:
+            a = a.astype(float)
+
+            # scalar scaling cases
+            if self._is_scalar_2d(result) and not self._is_scalar_2d(a):
+                result = float(result[0, 0]) * a
+                continue
+            if not self._is_scalar_2d(result) and self._is_scalar_2d(a):
+                result = result * float(a[0, 0])
+                continue
+            if self._is_scalar_2d(result) and self._is_scalar_2d(a):
+                result = np.array([[float(result[0, 0]) * float(a[0, 0])]], dtype=float)
+                continue
+
+            # true matrix multiplication
+            if result.shape[1] != a.shape[0]:
+                raise ValueError(
+                    f"[{self.name}] Incompatible dimensions for matrix product: "
+                    f"{result.shape} @ {a.shape}."
+                )
+            result = result @ a
 
         return result
