@@ -23,13 +23,3 @@ pip install .
 pysimblocks
 ```
 
-## Documentation
-
-Si utilisation variables workspace ecrire: `= var_name`
-
-pour les nom inputs des blocks ou l'utilisateur specifie une valeur. Il faut respecter cette syntaxe:
-Inputs:
-    Dynamic — specified by `input_keys` 
-pareil pour les outputs:
-Outputs:
-    Dynamic — specified by `output_keys`

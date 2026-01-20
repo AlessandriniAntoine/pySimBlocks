@@ -64,6 +64,8 @@ class Block(ABC):
             return arr.reshape(-1, 1)
 
         if arr.ndim == 2:
+            if arr.shape[0] == 1 and arr.shape[1] != 1:
+                return arr.reshape(-1, 1)
             return arr
 
         raise ValueError(

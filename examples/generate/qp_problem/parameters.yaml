@@ -1,0 +1,20 @@
+simulation:
+  dt: 0.1
+  solver: fixed
+  T: 10.0
+blocks:
+  QuadraticProgram:
+    size: 3
+    solver: clarabel
+  P:
+    value: '#P'
+  q:
+    value: '#q'
+logging:
+- QuadraticProgram.outputs.x
+- QuadraticProgram.outputs.status
+- QuadraticProgram.outputs.cost
+- P.outputs.out
+- q.outputs.out
+plots: []
+external: params.py

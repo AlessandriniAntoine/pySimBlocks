@@ -63,7 +63,7 @@ class QuadraticProgram(Block):
 
         self.size = size
 
-        if solver not in available_solvers():
+        if solver not in available_solvers:
             raise ValueError(f"Solver '{solver}' is not available. Available solvers: {available_solvers()}")
         self.solver = solver
 
@@ -128,8 +128,7 @@ class QuadraticProgram(Block):
                 self._set_failure(status=1)
                 return
 
-            x = sol.reshape(-1, 1)
-
+            x = sol.x.reshape(-1, 1)
             cost = 0.5 * float(x.T @ P @ x + q.reshape(-1,1).T @ x)
 
             self.outputs["x"] = x
@@ -137,6 +136,7 @@ class QuadraticProgram(Block):
             self.outputs["cost"] = np.array([[cost]])
 
         except Exception:
+            print(f"[{self.name}] QP solver encountered an error.")
             self._set_failure(status=2)
 
     # ------------------------------------------------------------------
