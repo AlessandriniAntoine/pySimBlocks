@@ -48,7 +48,6 @@ This block is suitable for:
 
 | Name | Type | Description | Optional |
 |------|------|-------------|----------|
-| `size` | int | Number of decision variables of the quadratic program. | False |
 | `solver` | string | QP solver used internally via `qpsolvers` (e.g. `clarabel`). | True |
 
 ---
@@ -88,6 +87,7 @@ This block is suitable for:
 
 ## Notes
 
+- Dimensions of the problem is inferred by the first input `P` and must be consistent across all inputs and steps.
 - All dimension checks are performed before calling the solver.
 - If the problem is infeasible or the solver fails, the output `status` reflects the error and the output vector is safely set to zero.
 - This block relies on the `qpsolvers` Python package for numerical optimization.

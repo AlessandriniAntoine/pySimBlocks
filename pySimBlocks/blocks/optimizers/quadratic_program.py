@@ -22,8 +22,6 @@ class QuadraticProgram(Block):
     Parameters:
         name: str
             Block name.
-        size: int
-            Problem size (number of decision variables).
         solver: str
             QP solver name (default: "clarabel").
 
@@ -31,42 +29,44 @@ class QuadraticProgram(Block):
         Inputs:
             P: array (n,n)
                 Quadratic cost matrix.
-            q: array (n,1)
+            q: array (n,) or (n,1)
                 Linear cost vector.
             G: array (m,n) or None
                 Inequality constraint matrix.
-            h: array (m,1) or None
+            h: array (m,) or (m,1) or None
                 Inequality constraint vector.
             A: array (p,n) or None
                 Equality constraint matrix.
-            b: array (p,1) or None
+            b: array (p,) or (p,1) or None
                 Equality constraint vector.
-            lb: array (n,1) or None
-                Lower bound on x.
-            ub: array (n,1) or None
-                Upper bound on x.
+            lb: array (n,) or (n,1) or None
+                Lower bound on x. (No scalar broadcast.)
+            ub: array (n,) or (n,1) or None
+                Upper bound on x. (No scalar broadcast.)
 
         Outputs:
             x: array (n,1)
-                Optimal solution.
+                Optimal solution (or zeros on failure).
             status: array (1,1)
                 Solver status:
                     0 = optimal
-                    1 = infeasible
+                    1 = infeasible / no solution
                     2 = solver error
+                    3 = input error
             cost: array (1,1)
-                Optimal cost value.
+                Optimal cost value (NaN on failure).
     """
 
-    def __init__(self, name: str, size: int, solver: str = "clarabel"):
+    def __init__(self, name: str, solver: str = "clarabel"):
         super().__init__(name)
 
-        self.size = size
+        self._size: int | None = None
 
         if solver not in available_solvers:
-            raise ValueError(f"Solver '{solver}' is not available. Available solvers: {available_solvers()}")
+            raise ValueError(
+                f"Solver '{solver}' is not available. Available solvers: {available_solvers}"
+            )
         self.solver = solver
-
 
         self.inputs = {
             "P": None,
@@ -89,54 +89,70 @@ class QuadraticProgram(Block):
         self.next_state = {}
 
     # ------------------------------------------------------------------
-    def initialize(self, t0):
-        self.outputs["x"] = np.zeros((self.size, 1))
+    def initialize(self, t0: float):
+        self.outputs["x"] = np.zeros((1, 1))
         self.outputs["status"] = np.array([[2]])
         self.outputs["cost"] = np.array([[np.nan]])
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
-        P = self.inputs.get("P", None)
-        q = self.inputs.get("q", None)
-        G = self.inputs.get("G", None)
-        h = self.inputs.get("h", None)
-        A = self.inputs.get("A", None)
-        b = self.inputs.get("b", None)
-        lb = self.inputs.get("lb", None)
-        ub = self.inputs.get("ub", None)
+        # --- fetch raw
+        P_raw = self.inputs.get("P", None)
+        q_raw = self.inputs.get("q", None)
+        G_raw = self.inputs.get("G", None)
+        h_raw = self.inputs.get("h", None)
+        A_raw = self.inputs.get("A", None)
+        b_raw = self.inputs.get("b", None)
+        lb_raw = self.inputs.get("lb", None)
+        ub_raw = self.inputs.get("ub", None)
 
-        self._check_needed_input(P, q, G, h, A, b)
-        self._check_size_compatibility(P, q, G, h, A, b, lb, ub, self.size)
+        # --- normalize types/shapes (numpy)
+        try:
+            P = self._as_matrix(P_raw) if P_raw is not None else None
+            q = self._as_vector(q_raw) if q_raw is not None else None
 
-        P = self._as_matrix(P)
-        q = self._as_list(q)
+            G = self._as_matrix(G_raw) if G_raw is not None else None
+            h = self._as_vector(h_raw) if h_raw is not None else None
 
-        G = self._as_matrix(G) if G is not None else None
-        h = self._as_list(h) if h is not None else None
+            A = self._as_matrix(A_raw) if A_raw is not None else None
+            b = self._as_vector(b_raw) if b_raw is not None else None
 
-        A = self._as_matrix(A) if A is not None else None
-        b = self._as_list(b) if b is not None else None
+            lb = self._as_vector(lb_raw) if lb_raw is not None else None
+            ub = self._as_vector(ub_raw) if ub_raw is not None else None
 
-        lb = self._as_list(lb) if lb is not None else None
-        ub = self._as_list(ub) if ub is not None else None
+            self._check_needed_input(P, q, G, h, A, b)
+            self._check_size_compatibility(P, q, G, h, A, b, lb, ub)
 
+        except (ValueError, TypeError):
+            self._set_failure(status=3)
+            return
+
+        # Ensure output placeholder x matches resolved size (even before solving)
+        self._ensure_output_x_size()
+
+        # --- build & solve
         try:
             problem = Problem(P, q, G, h, A, b, lb, ub)
             sol = solve_problem(problem, solver=self.solver)
 
-            if sol is None:
+            if sol is None or getattr(sol, "x", None) is None:
                 self._set_failure(status=1)
                 return
 
-            x = sol.x.reshape(-1, 1)
-            cost = 0.5 * float(x.T @ P @ x + q.reshape(-1,1).T @ x)
+            x = np.asarray(sol.x, dtype=float).reshape(-1, 1)
+            if x.shape != (self._size, 1):
+                raise RuntimeError(
+                    f"[{self.name}] Solver returned x with shape {x.shape}, expected ({self._size},1)."
+                )
+
+            # cost = 1/2 x^T P x + q^T x
+            cost = 0.5 * float(x.T @ P @ x) + float(q.reshape(1, -1) @ x)
 
             self.outputs["x"] = x
             self.outputs["status"] = np.array([[0]])
             self.outputs["cost"] = np.array([[cost]])
 
         except Exception:
-            print(f"[{self.name}] QP solver encountered an error.")
             self._set_failure(status=2)
 
     # ------------------------------------------------------------------
@@ -144,91 +160,141 @@ class QuadraticProgram(Block):
         pass
 
     # ------------------------------------------------------------------
+    def _ensure_output_x_size(self) -> None:
+        """
+        Keep outputs['x'] consistent with resolved size if known.
+        This prevents dimension-propagation issues when the solver fails.
+        """
+        size = self._size if self._size is not None else 1
+
+        x = self.outputs.get("x", None)
+        if x is None:
+            self.outputs["x"] = np.zeros((size, 1))
+            return
+
+        x_arr = np.asarray(x)
+        if x_arr.shape != (size, 1):
+            self.outputs["x"] = np.zeros((size, 1))
+
+    # ------------------------------------------------------------------
     def _set_failure(self, status: int):
         self.outputs["status"] = np.array([[status]])
         self.outputs["cost"] = np.array([[np.nan]])
-
-        if self.outputs["x"] is None:
-            self.outputs["x"] = np.zeros((self.size, 1))
+        self._ensure_output_x_size()
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _check_size_compatibility(P, q, G, h, A, b, lb, ub, size):
+    def _check_size_compatibility(self, P, q, G, h, A, b, lb, ub):
+        # P defines the size n
         n = P.shape[0]
-        if P.ndim != 2 or P.shape[1] != n or n != size:
-            raise RuntimeError("Input 'P' must be square and compatible with problem size.")
 
-        if not (
-            (q.ndim == 1 and q.shape[0] == size) or
-            (q.ndim == 2 and q.shape[1] == 1 and q.shape[0] == size)
-            ):
-            raise RuntimeError("Input 'q' must be a vector of length compatible with problem size.")
+        # Freeze size once known
+        if self._size is None:
+            self._size = n
+        elif self._size != n:
+            raise ValueError(
+                f"[{self.name}] Inconsistent QP size across time steps. "
+                f"Previous size: {self._size}, current size: {n}."
+            )
 
+        # P must be square
+        if P.ndim != 2 or P.shape[1] != n:
+            raise ValueError(f"[{self.name}] Input 'P' must be square, got shape {P.shape}.")
+
+        # q must be (n,)
+        if q.ndim != 1 or q.shape[0] != n:
+            raise ValueError(
+                f"[{self.name}] Input 'q' has shape {q.shape}. Must be (n,) with n={n}."
+            )
+
+        # Inequality constraints
         if G is not None:
-            m, n = G.shape[0], G.shape[1]
-            if G.ndim != 2 or n != size:
-                raise RuntimeError("Input 'G' must be 2d matrix with number of columns compatible with problem size.")
-            if not (
-                (h.ndim == 1 and h.shape[0] == m) or
-                (h.ndim == 2 and h.shape[1] == 1 and h.shape[0] == m)
-            ):
-                raise RuntimeError("Input 'h' must be a vector of length compatible with 'G'.")
+            if h is None:
+                raise ValueError(f"[{self.name}] Inequality constraints require both G and h.")
+            if G.ndim != 2 or G.shape[1] != n:
+                raise ValueError(
+                    f"[{self.name}] Input 'G' has shape {G.shape}. Must be (m,n) with n={n}."
+                )
+            m = G.shape[0]
+            if h.ndim != 1 or h.shape[0] != m:
+                raise ValueError(
+                    f"[{self.name}] Input 'h' has shape {h.shape}. Must be (m,) with m={m}."
+                )
+        else:
+            if h is not None:
+                raise ValueError(f"[{self.name}] Inequality constraints G and h must both be provided or both be None.")
 
+        # Equality constraints
         if A is not None:
-            m, n = A.shape[0], A.shape[1]
-            if A.ndim != 2 or n != size:
-                raise RuntimeError("Input 'A' must be 2d matrix with number of columns compatible with problem size.")
-            if not (
-                (b.ndim == 1 and b.shape[0] == m) or
-                (b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m)
-            ):
-                raise RuntimeError("Input 'b' must be a column vector compatible with 'A'.")
+            if b is None:
+                raise ValueError(f"[{self.name}] Equality constraints require both A and b.")
+            if A.ndim != 2 or A.shape[1] != n:
+                raise ValueError(
+                    f"[{self.name}] Input 'A' has shape {A.shape}. Must be (p,n) with n={n}."
+                )
+            p = A.shape[0]
+            if b.ndim != 1 or b.shape[0] != p:
+                raise ValueError(
+                    f"[{self.name}] Input 'b' has shape {b.shape}. Must be (p,) with p={p}."
+                )
+        else:
+            if b is not None:
+                raise ValueError(f"[{self.name}] Equality constraints A and b must both be provided or both be None.")
 
+        # Bounds (no scalar broadcast)
         if lb is not None:
-            if not (
-                (lb.ndim == 1 and lb.shape[0] == size) or
-                (lb.ndim == 2 and lb.shape[1] == 1 and lb.shape[0] == size)
-            ):
-                raise RuntimeError("Input 'lb' has incompatible size with problem size.")
+            if lb.ndim != 1 or lb.shape[0] != n:
+                raise ValueError(
+                    f"[{self.name}] Input 'lb' has shape {lb.shape}. Must be (n,) with n={n}."
+                )
         if ub is not None:
-            if not (
-                (ub.ndim == 1 and ub.shape[0] == size) or
-                (ub.ndim == 2 and ub.shape[1] == 1 and ub.shape[0] == size)
-            ):
-                raise RuntimeError("Input 'ub' has incompatible size with problem size.")
+            if ub.ndim != 1 or ub.shape[0] != n:
+                raise ValueError(
+                    f"[{self.name}] Input 'ub' has shape {ub.shape}. Must be (n,) with n={n}."
+                )
 
     # ------------------------------------------------------------------
     @staticmethod
     def _check_needed_input(P, q, G, h, A, b):
-
         if P is None:
-            raise RuntimeError("Missing required QP input 'P'.")
-
+            raise ValueError("Missing required QP input 'P'.")
         if q is None:
-            raise RuntimeError("Missing required QP input 'q'.")
+            raise ValueError("Missing required QP input 'q'.")
 
+        # paired constraints
         if (G is None) != (h is None):
-            raise RuntimeError("Inequality constraints G and h must both be provided or both be None.")
-
+            raise ValueError("Inequality constraints G and h must both be provided or both be None.")
         if (A is None) != (b is None):
-            raise RuntimeError("Equality constraints A and b must both be provided or both be None.")
-
+            raise ValueError("Equality constraints A and b must both be provided or both be None.")
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _as_matrix(value):
+    def _as_matrix(value) -> np.ndarray:
         arr = np.asarray(value, dtype=float)
         if arr.ndim != 2:
-            raise ValueError("Matrix input must be 2D.")
+            raise ValueError(f"Matrix input must be 2D. Got shape {arr.shape}.")
         return arr
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _as_list(value):
+    def _as_vector(value) -> np.ndarray:
+        """
+        Convert input to a strict 1D vector (n,).
+        Accepts:
+            - (n,) -> ok
+            - (n,1) -> flatten
+        Rejects:
+            - scalar
+            - (1,1)
+            - any other shape
+        """
         arr = np.asarray(value, dtype=float)
-        if arr.ndim == 1:
-            return arr.flatten()
-        if arr.ndim == 2 and arr.shape[1] == 1:
-            return arr.flatten()
-        raise ValueError("Vector input must be shape (n,1) or (n,).")
 
+        if arr.ndim == 1:
+            return arr
+
+        if arr.ndim == 2 and arr.shape[1] == 1:
+            return arr[:, 0]
+
+        raise ValueError(
+            f"Vector input must be shape (n,) or (n,1). Got shape {arr.shape}."
+        )

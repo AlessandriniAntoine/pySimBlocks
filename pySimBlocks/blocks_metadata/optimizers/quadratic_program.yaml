@@ -20,12 +20,6 @@ description: >
   Inequality, equality, and bound constraints are optional.
 
 parameters:
-  size:
-    type: int
-    required: true
-    description: >
-      Number of decision variables of the quadratic program.
-
   solver:
     type: string
     required: false

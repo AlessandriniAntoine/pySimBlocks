@@ -121,7 +121,7 @@ class Gain(Block):
 
         if self._gain_kind == "vector":
             g = self.gain  # shape (m,)
-            if u.shape[0] != g.shape[0]:
+            if if g.shape[0] != 1 and u.shape[0] != g.shape[0]:
                 raise ValueError(
                     f"[{self.name}] Element-wise mode requires u.shape[0] == len(gain). "
                     f"Got u.shape={u.shape}, gain.shape={g.shape}."
@@ -130,7 +130,7 @@ class Gain(Block):
 
         # matrix gain
         g = self.gain
-        if u.shape != g.shape:
+        if not self._is_scalar_2d(g) and u.shape != g.shape:
             raise ValueError(
                 f"[{self.name}] Element-wise mode with matrix gain requires u.shape == gain.shape. "
                 f"Got u.shape={u.shape}, gain.shape={g.shape}."
