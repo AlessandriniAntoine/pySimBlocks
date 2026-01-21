@@ -1,3 +1,4 @@
+from typing import Callable
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainter
@@ -14,7 +15,7 @@ from pySimBlocks.tools.blocks_registry import BlockMeta
 
 class DiagramView(QGraphicsView):
     def __init__(self, 
-                 resolve_block_meta: callable[[str, str], BlockMeta], 
+                 resolve_block_meta: Callable[[str, str], BlockMeta], 
                  project_state:ProjectState
     ):
         super().__init__()

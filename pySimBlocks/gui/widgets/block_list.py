@@ -1,3 +1,4 @@
+from typing import Callable
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtGui import QDrag
@@ -15,9 +16,9 @@ class _PreviewBlock:
 
 class BlockList(QTreeWidget):
     def __init__(self,
-                 get_categories: callable[[], list[str]],
-                 get_blocks: callable[[str], list[str]],
-                 resolve_block_meta: callable[[str, str], BlockMeta]):
+                 get_categories: Callable[[], list[str]],
+                 get_blocks: Callable[[str], list[str]],
+                 resolve_block_meta: Callable[[str, str], BlockMeta]):
         super().__init__()
         self.setHeaderHidden(True)
         self.setDragEnabled(True)
