@@ -18,7 +18,6 @@ class PortItem(QGraphicsEllipseItem):
 
         self.instance = instance
         self.parent_block = parent_block
-        self.block = parent_block
         self.connections: list[ConnectionItem] = []
 
         self.setBrush(QBrush(QColor("white")))
