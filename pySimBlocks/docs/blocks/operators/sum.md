@@ -43,3 +43,5 @@ where each coefficient $ s_i $ is either +1 or −1.
 - The Sum block has no internal state.
 - The number of input ports is determined by the length of `signs`.
 - This block is equivalent to the Simulink **Sum** block.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

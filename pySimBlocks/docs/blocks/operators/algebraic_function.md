@@ -70,3 +70,5 @@ Outputs are dynamically defined by `output_keys`.
 ```python
 g(t, dt, **inputs)
 ```
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

@@ -64,3 +64,5 @@ where:
 - The observer has no direct feedthrough.
 - Matrix $D$ is intentionally not supported to avoid algebraic loops.
 - The state estimate is updated once per simulation step.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

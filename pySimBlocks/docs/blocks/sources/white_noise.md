@@ -52,3 +52,5 @@ This block has **no inputs**.
 - Noise samples are drawn independently at each simulation step.
 - Each output dimension may have a different mean and standard deviation.
 - Scalar parameters are automatically broadcast.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

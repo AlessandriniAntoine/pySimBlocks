@@ -84,3 +84,5 @@ Outputs are dynamically defined by `output_keys`.
   the user-defined functions.
 - Advanced users may instantiate this block directly from Python using callable
   functions instead of file-based definitions.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

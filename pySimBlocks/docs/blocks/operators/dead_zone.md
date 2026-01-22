@@ -61,3 +61,5 @@ where:
 - Bounds are broadcast to match the input dimension when needed.
 - The dead zone must always include zero.
 - This block is equivalent to the Simulink **Dead Zone** block.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

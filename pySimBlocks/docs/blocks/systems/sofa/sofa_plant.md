@@ -56,3 +56,5 @@ Outputs are ynamically defined by `output_keys`.
 - The block has internal state.
 - There is no direct feedthrough.
 - One SOFA simulation step is executed per block activation.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

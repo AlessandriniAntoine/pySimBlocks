@@ -45,3 +45,5 @@ where each coefficient \( oper_i \) is either * (matrix product @) or / (matrix 
 - The Sum block has no internal state.
 - The Sum block is direct-feedthrough.
 - The number of input ports is determined by the length of `operations` + 1 .
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

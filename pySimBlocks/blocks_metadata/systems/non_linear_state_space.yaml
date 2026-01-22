@@ -1,3 +1,6 @@
+# pySimBlocks - LGPL-3.0-or-later
+# Copyright (c) 2026 The pySimBlocks Authors
+
 name: Non Linear State Space
 category: systems
 type: non_linear_state_space

@@ -55,3 +55,5 @@ Between two sampling instants, the output remains constant.
 - The held value is updated when the elapsed time since the last sample
   reaches the specified sampling period.
 - This block is equivalent to the Simulink **Zero-Order Hold** block.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

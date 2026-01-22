@@ -54,3 +54,5 @@ This block has **no inputs**.
 - The block has no internal state.
 - Each output dimension may have its own frequency and phase.
 - Scalar parameters are automatically broadcast.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

@@ -1,3 +1,6 @@
+# pySimBlocks - LGPL-3.0-or-later
+# Copyright (c) 2026 The pySimBlocks Authors
+
 name: SofaPlant
 category: systems
 type: sofa_plant

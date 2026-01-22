@@ -57,3 +57,5 @@ Outputs are dynamically defined by `output_keys`.
 - It is intended to be embedded inside a SOFA controller.
 - The block has no internal state.
 - All data validation is performed at runtime.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

@@ -33,3 +33,5 @@ The External Output block represents a data output point in a simulation model. 
 ## Notes
 
 - The External Output block is **stateless**.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

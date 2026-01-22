@@ -56,3 +56,5 @@ where:
 - Scalar bounds are automatically broadcast to match the input dimension.
 - Absence of saturation is represented by infinite bounds.
 - This block is equivalent to the Simulink **Saturation** block.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

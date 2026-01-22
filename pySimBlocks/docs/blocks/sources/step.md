@@ -57,3 +57,5 @@ This block has **no inputs**.
 - A small numerical tolerance is used to ensure consistent switching
   behavior on discrete time grids.
 - This block is typically used to generate reference signals.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

@@ -58,3 +58,5 @@ The resulting output dimension is $(\sum_i n_i, 1)$.
 - Input vectors are not required to have the same dimension.
 - All input ports must be connected for the block to produce an output.
 - This block is equivalent to the Simulink **Mux** block.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

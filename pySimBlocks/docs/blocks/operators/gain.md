@@ -91,3 +91,5 @@ Right matrix product:
 - Inputs must be **2D** (`ndim == 2`). No implicit reshape/flatten is applied.
 - Dimension mismatches raise an error.
 - This block is conceptually similar to Simulink **Gain**, but the multiplication behavior is made explicit via `multiplication`.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later

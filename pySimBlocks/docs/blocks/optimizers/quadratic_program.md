@@ -92,3 +92,5 @@ This block is suitable for:
 - If the problem is infeasible or the solver fails, the output `status` reflects the error and the output vector is safely set to zero.
 - This block relies on the `qpsolvers` Python package for numerical optimization.
 - This block is conceptually similar to optimization blocks used in Simulink-based MPC and constrained control designs.
+
+© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
