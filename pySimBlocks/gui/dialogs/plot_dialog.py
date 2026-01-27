@@ -226,4 +226,5 @@ class PlotDialog(QDialog):
             logs=self.project_state.logs,
             plot_cfg=PlotConfig(self.project_state.plots),
             show=True,
+            block=False
         )

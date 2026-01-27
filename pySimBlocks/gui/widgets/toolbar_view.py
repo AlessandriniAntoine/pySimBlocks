@@ -122,7 +122,7 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
-        self._plot_dialog = PlotDialog(self.project_state) # keep ref because of python garbage collector
+        self._plot_dialog = PlotDialog(self.project_state, self.parent()) # keep ref because of python garbage collector
         self._plot_dialog.show()
 
 
