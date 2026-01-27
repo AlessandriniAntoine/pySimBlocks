@@ -32,11 +32,11 @@ try:
 except Exception:
     BASE_DIR = Path("")
 
-sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / "{parameters_path}"{parameters_dir_line})
+sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / {parameters_path!r}{parameters_dir_line})
 
 model = Model(
     name="model",
-    model_yaml=BASE_DIR / "{model_path}",
+    model_yaml=BASE_DIR / {model_path!r},
     model_cfg=model_cfg
 )
 

@@ -76,6 +76,7 @@ def plot_from_config(
     logs: dict,
     plot_cfg: PlotConfig | None,
     show: bool = True,
+    block: bool = True
 ):
     """
     Plot logged simulation signals according to a PlotConfig.
@@ -170,4 +171,4 @@ def plot_from_config(
             plt.title(title)
 
     if show:
-        plt.show()
+        plt.show(block=block)
