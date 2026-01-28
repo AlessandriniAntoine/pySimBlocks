@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -94,61 +95,10 @@ class RateLimiter(Block):
         self.state["y"] = None
         self.next_state["y"] = None
 
-    # ------------------------------------------------------------------
-    def _broadcast_param(self, p: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
-        """
-        Broadcast p to target_shape using explicit rules:
-            - scalar (1,1) -> (m,n)
-            - vector (m,1) -> repeat along columns to (m,n)
-            - matrix (m,n) -> exact match
-        """
-        m, n = target_shape
 
-        if self._is_scalar_2d(p):
-            return np.full(target_shape, float(p[0, 0]), dtype=float)
-
-        if p.ndim == 2 and p.shape[1] == 1 and p.shape[0] == m:
-            if n == 1:
-                return p.astype(float, copy=False)
-            return np.repeat(p.astype(float, copy=False), n, axis=1)
-
-        if p.shape == target_shape:
-            return p.astype(float, copy=False)
-
-        raise ValueError(
-            f"[{self.name}] {name} has incompatible shape {p.shape} for input shape {target_shape}. "
-            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
-        )
-
-    def _resolve_for_input(self, u: np.ndarray) -> None:
-        """
-        Resolve (broadcast) slopes and initial_output to match the current input shape.
-        Done once. After that, input shape is fixed.
-        """
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
-
-        if self._resolved_shape is None:
-            self._resolved_shape = u.shape
-            self.rising_slope = self._broadcast_param(self.rising_raw, u.shape, "rising_slope")
-            self.falling_slope = self._broadcast_param(self.falling_raw, u.shape, "falling_slope")
-
-            # Re-check signs after broadcasting (useful if vector/matrix provided)
-            if np.any(self.rising_slope < 0):
-                raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
-            if np.any(self.falling_slope > 0):
-                raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
-            return
-
-        if u.shape != self._resolved_shape:
-            raise ValueError(
-                f"[{self.name}] Input 'in' shape changed after initialization: "
-                f"expected {self._resolved_shape}, got {u.shape}."
-            )
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
@@ -204,3 +154,61 @@ class RateLimiter(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
         self.next_state["y"] = None if self.outputs["out"] is None else self.outputs["out"].copy()
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _broadcast_param(self, p: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
+        """
+        Broadcast p to target_shape using explicit rules:
+            - scalar (1,1) -> (m,n)
+            - vector (m,1) -> repeat along columns to (m,n)
+            - matrix (m,n) -> exact match
+        """
+        m, n = target_shape
+
+        if self._is_scalar_2d(p):
+            return np.full(target_shape, float(p[0, 0]), dtype=float)
+
+        if p.ndim == 2 and p.shape[1] == 1 and p.shape[0] == m:
+            if n == 1:
+                return p.astype(float, copy=False)
+            return np.repeat(p.astype(float, copy=False), n, axis=1)
+
+        if p.shape == target_shape:
+            return p.astype(float, copy=False)
+
+        raise ValueError(
+            f"[{self.name}] {name} has incompatible shape {p.shape} for input shape {target_shape}. "
+            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
+        )
+
+    # ------------------------------------------------------------------
+    def _resolve_for_input(self, u: np.ndarray) -> None:
+        """
+        Resolve (broadcast) slopes and initial_output to match the current input shape.
+        Done once. After that, input shape is fixed.
+        """
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        if self._resolved_shape is None:
+            self._resolved_shape = u.shape
+            self.rising_slope = self._broadcast_param(self.rising_raw, u.shape, "rising_slope")
+            self.falling_slope = self._broadcast_param(self.falling_raw, u.shape, "falling_slope")
+
+            # Re-check signs after broadcasting (useful if vector/matrix provided)
+            if np.any(self.rising_slope < 0):
+                raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
+            if np.any(self.falling_slope > 0):
+                raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
+            return
+
+        if u.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed after initialization: "
+                f"expected {self._resolved_shape}, got {u.shape}."
+            )

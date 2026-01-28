@@ -86,7 +86,9 @@ class Ramp(BlockSource):
         # Output port
         self.outputs["out"] = self.offset.copy()
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self.outputs["out"] = self.offset.copy()
 

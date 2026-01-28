@@ -140,8 +140,9 @@ def test_gain_right_matrix_product():
                   [4.0, 5.0, 6.0]])
     G = Gain("G", gain=K, multiplication="Matrix (u @ K)")
 
-    out = run_sim(np.array([[10.0, 1.0]]), G)
-    expected = np.array([[10.0, 1.0]]) @ K
+    u = np.array([[10.0, 1.0]])
+    out = run_sim(u, G)
+    expected = (u @ K).T
     assert np.allclose(out, expected)
 
 
@@ -150,7 +151,7 @@ def test_gain_right_matrix_bad_dimensions():
     g = Gain("G", gain=K, multiplication="Matrix (u @ K)")
 
     m = Model()
-    src = Constant("src", np.zeros((1, 4)))  # u.shape[1]=4, expected 2
+    src = Constant("src", np.zeros((2, 4)))  # u.shape[1]=4, expected 2
     m.add_block(src)
     m.add_block(g)
     m.connect("src", "out", "G", "in")

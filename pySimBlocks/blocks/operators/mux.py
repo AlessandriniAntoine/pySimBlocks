@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -70,7 +71,31 @@ class Mux(Block):
 
         self.outputs["out"] = None
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        # If not all inputs available, defer
+        for i in range(self.num_inputs):
+            if self.inputs[f"in{i+1}"] is None:
+                self.outputs["out"] = None
+                return
+
+        self.outputs["out"] = self._compute_output()
+
     # ---------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        self.outputs["out"] = self._compute_output()
+
+    # ---------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        return  # stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _to_column_vector(self, input_name: str, value: ArrayLike) -> np.ndarray:
         arr = np.asarray(value, dtype=float)
 
@@ -90,24 +115,6 @@ class Mux(Block):
             f"[{self.name}] Input '{input_name}' must be scalar, 1D, or a column vector (n,1). "
             f"Got ndim={arr.ndim} with shape {arr.shape}."
         )
-
-    # ---------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        # If not all inputs available, defer
-        for i in range(self.num_inputs):
-            if self.inputs[f"in{i+1}"] is None:
-                self.outputs["out"] = None
-                return
-
-        self.outputs["out"] = self._compute_output()
-
-    # ---------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        self.outputs["out"] = self._compute_output()
-
-    # ---------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
 
     # ---------------------------------------------------------
     def _compute_output(self) -> np.ndarray:

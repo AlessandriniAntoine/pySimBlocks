@@ -90,18 +90,24 @@ class Sinusoidal(BlockSource):
 
         self.outputs["out"] = np.zeros(target_shape, dtype=float)
 
-    # ------------------------------------------------------------------
-    def _compute_output(self, t: float) -> None:
-        self.outputs["out"] = (
-            self.amplitude
-            * np.sin(2.0 * np.pi * self.frequency * t + self.phase)
-            + self.offset
-        )
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self._compute_output(t0)
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
         self._compute_output(t)
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _compute_output(self, t: float) -> None:
+        self.outputs["out"] = (
+            self.amplitude
+            * np.sin(2.0 * np.pi * self.frequency * t + self.phase)
+            + self.offset
+        )

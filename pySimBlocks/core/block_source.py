@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import numpy as np
+
 from pySimBlocks.core.block import Block
 
 
@@ -39,9 +40,16 @@ class BlockSource(Block):
         super().__init__(name, sample_time)
 
 
-    # ------------------------------------------------------------------
-    # Strict scalar-only broadcast policy (Option B)
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        pass  # all sources are stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _resolve_common_shape(self, params: dict[str, np.ndarray]) -> tuple[int, int]:
         """
         Determine the common target shape among parameters.
@@ -66,6 +74,7 @@ class BlockSource(Block):
             f"All non-scalar parameters must have the same (m,n) shape. Got: {details}"
         )
 
+    # ------------------------------------------------------------------
     def _broadcast_scalar_only(self, param_name: str, arr: np.ndarray, target_shape: tuple[int, int]) -> np.ndarray:
         """
         Broadcast only scalar (1,1) to target_shape.
@@ -83,7 +92,3 @@ class BlockSource(Block):
             )
 
         return arr.astype(float, copy=False)
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        pass  # all sources are stateless

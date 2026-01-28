@@ -89,27 +89,9 @@ class StateFeedback(Block):
         # freeze input shapes once seen (optional but consistent)
         self._input_shapes = {}
 
-    # ------------------------------------------------------------------
-    def _require_col_vector(self, port: str, expected_rows: int) -> np.ndarray:
-        u = self.inputs[port]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
-
-        arr = np.asarray(u, dtype=float)
-
-        if arr.ndim != 2 or arr.shape[1] != 1:
-            raise ValueError(
-                f"[{self.name}] Input '{port}' must be a column vector (n,1). Got shape {arr.shape}."
-            )
-
-        if arr.shape[0] != expected_rows:
-            raise ValueError(
-                f"[{self.name}] Input '{port}' has wrong dimension: expected ({expected_rows},1), got {arr.shape}."
-            )
-
-        return arr
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         r = self.inputs["r"]
         x = self.inputs["x"]
@@ -132,3 +114,28 @@ class StateFeedback(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         pass
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _require_col_vector(self, port: str, expected_rows: int) -> np.ndarray:
+        u = self.inputs[port]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
+
+        arr = np.asarray(u, dtype=float)
+
+        if arr.ndim != 2 or arr.shape[1] != 1:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' must be a column vector (n,1). Got shape {arr.shape}."
+            )
+
+        if arr.shape[0] != expected_rows:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' has wrong dimension: expected ({expected_rows},1), got {arr.shape}."
+            )
+
+        return arr
+
+

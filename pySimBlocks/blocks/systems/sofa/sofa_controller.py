@@ -31,7 +31,7 @@ from pySimBlocks.project.build_model import build_model_from_dict
 
 try:
     import Sofa.ImGui as MyGui
-    _imgui = True
+    _imgui = hasattr(MyGui, "MyRobotWindow")
 except ImportError:
     _imgui = False
 
@@ -90,9 +90,10 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.model_yaml: str | None = None
         self.parameters_yaml: str | None = None
 
-    # ----------------------------------------------------------------------
-    # Common             ---------------------------------------------------
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    # --- Mandatory methods. ---
     def prepare_scene(self):
         """
         Optional initialization hook executed before pySimBlocks starts.
@@ -107,6 +108,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         self.IS_READY = True
 
+    # ------------------------------------------------------------------
     def set_inputs(self):
         """
         Apply inputs from pySimBlocks to SOFA components.
@@ -114,6 +116,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         raise NotImplementedError("set_inputs() must be implemented by subclass.")
 
+    # ------------------------------------------------------------------
     def get_outputs(self):
         """
         Read state from SOFA components and populate self.outputs.
@@ -122,9 +125,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         raise NotImplementedError("get_outputs() must be implemented by subclass.")
 
-    # ----------------------------------------------------------------------
-    # Optionnal methods. --------------
-    # ----------------------------------------------------------------------
+    # --- Optionnal methods. ---
     def save(self):
         """
         Optional: executed at each control step.
@@ -134,7 +135,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         pass
 
     # ----------------------------------------------------------------------
-    # SOFA event callback --------------------------------------------------
+    # SOFA event callback 
     # ----------------------------------------------------------------------
     def onAnimateBeginEvent(self, event):
         """
@@ -178,9 +179,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         self.step_index += 1
 
-    # ----------------------------------------------------------------------
-    # Internal methods -----------------------------------------------------
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _build_model(self):
         """
         Define the internal pySimBlocks controller model.
@@ -194,11 +195,12 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if self.parameters_yaml is not None:
             self.sim_cfg, self.model_cfg, self.plot_cfg = load_project_config(self.parameters_yaml)
         if self.model_yaml is not None:
-            model_dict = adapt_model_for_sofa(self.model_yaml)
+            model_dict = self._adapt_model_for_sofa(self.model_yaml)
             self.model = Model("sofa_model")
             build_model_from_dict(self.model, model_dict, self.model_cfg)
 
 
+    # ------------------------------------------------------------------
     def _prepare_pysimblocks(self):
         """
         Called once SOFA is initialized AND if SOFA is the master.
@@ -226,6 +228,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.counter = 0
 
 
+    # ------------------------------------------------------------------
     def _print_logs(self):
         """
         Optional: print selected logged variables at each control step.
@@ -236,6 +239,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             print(f"{variable}: {self.sim.logs[variable][-1]}")
 
 
+    # ------------------------------------------------------------------
     def _detect_sofa_exchange_block(self):
         """
         Detect the SofaExchangeIO block inside self.model.
@@ -259,6 +263,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         self._sofa_block = candidates[0]
 
+    # ------------------------------------------------------------------
     def _get_sofa_outputs(self):
         """
         Read outputs from SOFA components and push them to pySimBlocks.
@@ -267,6 +272,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         for keys, val in self.outputs.items():
             self._sofa_block.outputs[keys] = val
 
+    # ------------------------------------------------------------------
     def _set_sofa_inputs(self):
         """
         Apply inputs from pySimBlocks to SOFA components.
@@ -275,6 +281,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             self.inputs[key] = val
         self.set_inputs()
 
+    # ------------------------------------------------------------------
     def _set_sofa_plot(self):
         """
         Setup ImGui plotting for selected variables.
@@ -296,7 +303,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                     self._plot_data[f"{block_name}.{key}"].addData(name=f"value{i}", type="float", value=value[i])
                     MyGui.PlottingWindow.addData(f"{block_name}.{key}[{i}]", self._plot_data[f"{block_name}.{key}"].getData(f"value{i}"))
 
-
+    # ------------------------------------------------------------------
     def _update_sofa_plot(self):
         """
         Update ImGui plotting for selected variables.
@@ -310,7 +317,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             for i in range(len(value)):
                 node.getData(f"value{i}").value = float(value[i])
 
-
+    # ------------------------------------------------------------------
     def _set_sofa_slider(self):
         """
         Setup ImGui sliders for selected variables.
@@ -336,6 +343,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                 d = node.addData(name=f"value{i}", type="float", value=value[i])
                 MyGui.MyRobotWindow.addSettingInGroup( f"{key}[{i}]", d, extremum[0], extremum[1], f"{block_name}")
 
+    # ------------------------------------------------------------------
     def _update_sofa_slider(self):
         """
         Update ImGui sliders for selected variables.
@@ -350,43 +358,43 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                 new_values.append(node.getData(f"value{i}").value)
             setattr(block, key, np.array(new_values).reshape(shape))
 
+    # ------------------------------------------------------------------
+    def _adapt_model_for_sofa(self, model_yaml: str) -> Dict[str, Any]:
+        """
+        Load model.yaml and adapt it for SOFA execution.
 
-def adapt_model_for_sofa(model_yaml: str) -> Dict[str, Any]:
-    """
-    Load model.yaml and adapt it for SOFA execution.
+        This replaces any SofaPlant block by a SofaExchangeIO block,
+        while preserving block name and connections.
 
-    This replaces any SofaPlant block by a SofaExchangeIO block,
-    while preserving block name and connections.
+        Parameters
+        ----------
+        model_yaml : Path
+            Path to model.yaml
 
-    Parameters
-    ----------
-    model_yaml : Path
-        Path to model.yaml
+        Returns
+        -------
+        dict
+            Adapted model dictionary
+        """
+        model_path = Path(model_yaml)
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model YAML file not found: {model_yaml}")
 
-    Returns
-    -------
-    dict
-        Adapted model dictionary
-    """
-    model_path = Path(model_yaml)
-    if not model_path.exists():
-        raise FileNotFoundError(f"Model YAML file not found: {model_yaml}")
+        with model_path.open("r") as f:
+            model_data = yaml.safe_load(f) or {}
 
-    with model_path.open("r") as f:
-        model_data = yaml.safe_load(f) or {}
+        adapted = dict(model_data)
+        adapted_blocks = []
 
-    adapted = dict(model_data)
-    adapted_blocks = []
+        for block in model_data.get("blocks", []):
+            if block["type"].lower() == "sofa_plant":
+                adapted_blocks.append({
+                    "name": block["name"],
+                    "category": "systems",
+                    "type": "sofa_exchange_i_o",
+                })
+            else:
+                adapted_blocks.append(block)
 
-    for block in model_data.get("blocks", []):
-        if block["type"].lower() == "sofa_plant":
-            adapted_blocks.append({
-                "name": block["name"],
-                "category": "systems",
-                "type": "sofa_exchange_i_o",
-            })
-        else:
-            adapted_blocks.append(block)
-
-    adapted["blocks"] = adapted_blocks
-    return adapted
+        adapted["blocks"] = adapted_blocks
+        return adapted

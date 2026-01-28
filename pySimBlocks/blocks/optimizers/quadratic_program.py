@@ -108,7 +108,10 @@ class QuadraticProgram(Block):
         self.state = {}
         self.next_state = {}
 
-    # ------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         self.outputs["x"] = np.zeros((1, 1))
         self.outputs["status"] = np.array([[2]])
@@ -178,6 +181,56 @@ class QuadraticProgram(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         pass
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    @staticmethod
+    def _check_needed_input(P, q, G, h, A, b):
+        if P is None:
+            raise ValueError("Missing required QP input 'P'.")
+        if q is None:
+            raise ValueError("Missing required QP input 'q'.")
+
+        # paired constraints
+        if (G is None) != (h is None):
+            raise ValueError("Inequality constraints G and h must both be provided or both be None.")
+        if (A is None) != (b is None):
+            raise ValueError("Equality constraints A and b must both be provided or both be None.")
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _as_matrix(value) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+        if arr.ndim != 2:
+            raise ValueError(f"Matrix input must be 2D. Got shape {arr.shape}.")
+        return arr
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _as_vector(value) -> np.ndarray:
+        """
+        Convert input to a strict 1D vector (n,).
+        Accepts:
+            - (n,) -> ok
+            - (n,1) -> flatten
+        Rejects:
+            - scalar
+            - (1,1)
+            - any other shape
+        """
+        arr = np.asarray(value, dtype=float)
+
+        if arr.ndim == 1:
+            return arr
+
+        if arr.ndim == 2 and arr.shape[1] == 1:
+            return arr[:, 0]
+
+        raise ValueError(
+            f"Vector input must be shape (n,) or (n,1). Got shape {arr.shape}."
+        )
 
     # ------------------------------------------------------------------
     def _ensure_output_x_size(self) -> None:
@@ -271,50 +324,3 @@ class QuadraticProgram(Block):
                 raise ValueError(
                     f"[{self.name}] Input 'ub' has shape {ub.shape}. Must be (n,) with n={n}."
                 )
-
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _check_needed_input(P, q, G, h, A, b):
-        if P is None:
-            raise ValueError("Missing required QP input 'P'.")
-        if q is None:
-            raise ValueError("Missing required QP input 'q'.")
-
-        # paired constraints
-        if (G is None) != (h is None):
-            raise ValueError("Inequality constraints G and h must both be provided or both be None.")
-        if (A is None) != (b is None):
-            raise ValueError("Equality constraints A and b must both be provided or both be None.")
-
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _as_matrix(value) -> np.ndarray:
-        arr = np.asarray(value, dtype=float)
-        if arr.ndim != 2:
-            raise ValueError(f"Matrix input must be 2D. Got shape {arr.shape}.")
-        return arr
-
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _as_vector(value) -> np.ndarray:
-        """
-        Convert input to a strict 1D vector (n,).
-        Accepts:
-            - (n,) -> ok
-            - (n,1) -> flatten
-        Rejects:
-            - scalar
-            - (1,1)
-            - any other shape
-        """
-        arr = np.asarray(value, dtype=float)
-
-        if arr.ndim == 1:
-            return arr
-
-        if arr.ndim == 2 and arr.shape[1] == 1:
-            return arr[:, 0]
-
-        raise ValueError(
-            f"Vector input must be shape (n,) or (n,1). Got shape {arr.shape}."
-        )

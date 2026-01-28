@@ -22,6 +22,8 @@ def make_block(func, input_keys=("u",), output_keys=("y",)):
 # ---------------------------------------------------------------------
 def test_algebraic_function_pass_through_scalar():
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return {"y": u}
 
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
@@ -38,6 +40,8 @@ def test_algebraic_function_pass_through_scalar():
 # ---------------------------------------------------------------------
 def test_algebraic_function_matrix_support():
     def f(t, dt, A, B):
+        if A is None or B is None:
+            return {"Y": np.zeros((1, 1))}
         return {"Y": A @ B}
 
     blk = make_block(f, input_keys=("A", "B"), output_keys=("Y",))
@@ -61,6 +65,8 @@ def test_algebraic_function_matrix_support():
 # ---------------------------------------------------------------------
 def test_algebraic_function_multiple_outputs():
     def f(t, dt, u):
+        if u is None:
+            return {"y1": np.zeros((1, 1)), "y2": np.zeros((1, 1))}
         return {"y1": u, "y2": 2.0 * u}
 
     blk = make_block(f, input_keys=("u",), output_keys=("y1", "y2"))
@@ -79,6 +85,8 @@ def test_algebraic_function_multiple_outputs():
 # ---------------------------------------------------------------------
 def test_algebraic_function_missing_input_raises():
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return {"y": u}
 
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
@@ -97,6 +105,8 @@ def test_algebraic_function_missing_input_raises():
 def test_algebraic_function_signature_mismatch_raises():
     # function declares 'u', but block expects 'x'
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return {"y": u}
 
     blk = make_block(f, input_keys=("x",), output_keys=("y",))
@@ -111,6 +121,8 @@ def test_algebraic_function_signature_mismatch_raises():
 # ---------------------------------------------------------------------
 def test_algebraic_function_return_not_dict_raises():
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return u  # invalid
 
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
@@ -128,6 +140,8 @@ def test_algebraic_function_return_not_dict_raises():
 # ---------------------------------------------------------------------
 def test_algebraic_function_output_keys_mismatch_raises():
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return {"z": u}  # wrong key
 
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
@@ -137,7 +151,7 @@ def test_algebraic_function_output_keys_mismatch_raises():
     with pytest.raises(RuntimeError) as err:
         blk.output_update(0.0, 0.1)
 
-    assert "output keys mismatch" in str(err.value).lower()
+    assert "missing output keys" in str(err.value).lower()
 
 
 # ---------------------------------------------------------------------
@@ -162,6 +176,8 @@ def test_algebraic_function_output_must_be_2d():
 # ---------------------------------------------------------------------
 def test_algebraic_function_input_shape_change_raises():
     def f(t, dt, u):
+        if u is None:
+            return {"y": np.zeros((1, 1))}
         return {"y": u}
 
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
@@ -198,3 +214,17 @@ def test_algebraic_function_output_shape_change_raises():
         blk.output_update(0.1, 0.1)
 
     assert "shape changed" in str(err.value).lower()
+
+
+def test_algebraic_function_func_error():
+    def f(t, dt, u):
+        return 2 * u  # invalid
+
+    blk = make_block(f, input_keys=("u",), output_keys=("y",))
+    with pytest.raises(RuntimeError) as err:
+        blk.initialize(0.0)
+
+    assert "function call error" in str(err.value).lower()
+
+if __name__ == "__main__":
+    test_algebraic_function_func_error()

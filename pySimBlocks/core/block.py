@@ -63,10 +63,80 @@ class Block(ABC):
         self.next_state = {}
 
         self._effective_sample_time = 0.
-
+        
+        
+    # --------------------------------------------------------------------------
+    # Class Methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        By default, does nothing.
+        """
+        return params
+        
+        
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    @property
+    def has_state(self) -> bool:
+        """Specify if block is stateful."""
+        return bool(self.state) or bool(self.next_state)
 
     # ------------------------------------------------------------------
-    # Internal methods
+    @abstractmethod
+    def initialize(self, t0: float):
+        """
+        Initialize internal state x[0] and outputs y[0].
+        Must fill:
+            - self.state[...]        (initial state)
+            - self.outputs[...]      (initial outputs)
+        """
+
+    # ------------------------------------------------------------------
+    @abstractmethod
+    def output_update(self, t: float, dt: float):
+        """
+        Compute outputs y[k] from x[k] and inputs u[k].
+        Called before state_update.
+        Must write to self.outputs[...].
+        """
+
+    # ------------------------------------------------------------------
+    @abstractmethod
+    def state_update(self, t: float, dt: float):
+        """
+        Compute next state x[k+1] from x[k] and inputs u[k].
+        Must write to self.next_state[...].
+        """
+
+    # ------------------------------------------------------------------
+    def commit_state(self):
+        """
+        Finalize the step by copying x[k+1] into x[k].
+        Called by the simulator after all blocks completed state_update().
+        """
+        for key, value in self.next_state.items():
+            self.state[key] = np.copy(value)
+
+    # ------------------------------------------------------------------
+    def finalize(self):
+        """
+        Optional cleanup method called at the end of the simulation.
+        """
+        
+        
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    @staticmethod
+    def _is_scalar_2d(arr: np.ndarray) -> bool:
+        return arr.shape == (1, 1)
+
     # ------------------------------------------------------------------
     def _to_2d_array(self, param_name: str, value, *, dtype=float) -> np.ndarray:
         """
@@ -95,67 +165,3 @@ class Block(ABC):
             f"[{self.name}] '{param_name}' must be scalar, 1D, or 2D array-like. "
             f"Got ndim={arr.ndim} with shape {arr.shape}."
         )
-
-    @staticmethod
-    def _is_scalar_2d(arr: np.ndarray) -> bool:
-        return arr.shape == (1, 1)
-
-    # ------------------------------------------------------------------
-    # Public interface
-    # ------------------------------------------------------------------
-    @classmethod
-    def adapt_params(cls, 
-                     params: Dict[str, Any], 
-                     params_dir: Path | None = None) -> Dict[str, Any]:
-        """
-        Adapt parameters from yaml format to class constructor format.
-        By default, does nothing.
-        """
-        return params
-
-    @property
-    def has_state(self):
-        """Specify if block is stateful."""
-        return bool(self.state) or bool(self.next_state)
-
-
-    @abstractmethod
-    def initialize(self, t0: float):
-        """
-        Initialize internal state x[0] and outputs y[0].
-        Must fill:
-            - self.state[...]        (initial state)
-            - self.outputs[...]      (initial outputs)
-        """
-
-
-    @abstractmethod
-    def output_update(self, t: float, dt: float):
-        """
-        Compute outputs y[k] from x[k] and inputs u[k].
-        Called before state_update.
-        Must write to self.outputs[...].
-        """
-
-
-    @abstractmethod
-    def state_update(self, t: float, dt: float):
-        """
-        Compute next state x[k+1] from x[k] and inputs u[k].
-        Must write to self.next_state[...].
-        """
-
-
-    def commit_state(self):
-        """
-        Finalize the step by copying x[k+1] into x[k].
-        Called by the simulator after all blocks completed state_update().
-        """
-        for key, value in self.next_state.items():
-            self.state[key] = np.copy(value)
-
-     
-    def finalize(self):
-        """
-        Optional cleanup method called at the end of the simulation.
-        """

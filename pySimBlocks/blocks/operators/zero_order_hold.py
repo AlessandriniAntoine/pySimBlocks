@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import numpy as np
+
 from pySimBlocks.core.block import Block
 
 
@@ -69,21 +70,10 @@ class ZeroOrderHold(Block):
 
         self._resolved_shape: tuple[int, int] | None = None
 
-    # ------------------------------------------------------------------
-    def _ensure_shape(self, u: np.ndarray) -> None:
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
-        if self._resolved_shape is None:
-            self._resolved_shape = u.shape
-            return
-        if u.shape != self._resolved_shape:
-            raise ValueError(
-                f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u.shape}."
-            )
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         u = self.inputs["in"]
         if u is None:
@@ -132,3 +122,20 @@ class ZeroOrderHold(Block):
         else:
             self.next_state["y"] = self.state["y"].copy()
             self.next_state["t_last"] = float(t_last)
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _ensure_shape(self, u: np.ndarray) -> None:
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+        if self._resolved_shape is None:
+            self._resolved_shape = u.shape
+            return
+        if u.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u.shape}."
+            )

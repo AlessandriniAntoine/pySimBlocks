@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import numpy as np
+
 from pySimBlocks.core.block import Block
 
 
@@ -85,47 +86,10 @@ class Sum(Block):
 
         self.outputs["out"] = None
 
-    # ------------------------------------------------------------------
-    def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
-        """
-        Determine target shape among inputs.
 
-        - Scalars (1,1) are broadcastable
-        - Any non-scalar fixes the target shape
-        - If multiple non-scalars exist, they must all match exactly
-        - If all scalars => target is (1,1)
-        """
-        non_scalar_shapes = {a.shape for a in arrays if not self._is_scalar_2d(a)}
-
-        if len(non_scalar_shapes) == 0:
-            return (1, 1)
-
-        if len(non_scalar_shapes) == 1:
-            return next(iter(non_scalar_shapes))
-
-        raise ValueError(
-            f"[{self.name}] Inconsistent input shapes for Sum: "
-            f"{[a.shape for a in arrays]}. All non-scalar inputs must have the same shape."
-        )
-
-    def _broadcast_scalar_only(self, arr: np.ndarray, target_shape: tuple[int, int], input_name: str) -> np.ndarray:
-        """
-        Broadcast only scalar (1,1) to target_shape.
-        Non-scalar must match target_shape exactly.
-        """
-        if self._is_scalar_2d(arr):
-            if target_shape == (1, 1):
-                return arr.astype(float, copy=False)
-            return np.full(target_shape, float(arr[0, 0]), dtype=float)
-
-        if arr.shape != target_shape:
-            raise ValueError(
-                f"[{self.name}] Input '{input_name}' shape {arr.shape} is incompatible with target shape {target_shape}. "
-                f"Only scalar (1,1) inputs can be broadcast."
-            )
-        return arr.astype(float, copy=False)
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         """
         If all inputs are already available, compute output.
@@ -159,6 +123,50 @@ class Sum(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
         return  # stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
+        """
+        Determine target shape among inputs.
+
+        - Scalars (1,1) are broadcastable
+        - Any non-scalar fixes the target shape
+        - If multiple non-scalars exist, they must all match exactly
+        - If all scalars => target is (1,1)
+        """
+        non_scalar_shapes = {a.shape for a in arrays if not self._is_scalar_2d(a)}
+
+        if len(non_scalar_shapes) == 0:
+            return (1, 1)
+
+        if len(non_scalar_shapes) == 1:
+            return next(iter(non_scalar_shapes))
+
+        raise ValueError(
+            f"[{self.name}] Inconsistent input shapes for Sum: "
+            f"{[a.shape for a in arrays]}. All non-scalar inputs must have the same shape."
+        )
+
+    # ------------------------------------------------------------------
+    def _broadcast_scalar_only(self, arr: np.ndarray, target_shape: tuple[int, int], input_name: str) -> np.ndarray:
+        """
+        Broadcast only scalar (1,1) to target_shape.
+        Non-scalar must match target_shape exactly.
+        """
+        if self._is_scalar_2d(arr):
+            if target_shape == (1, 1):
+                return arr.astype(float, copy=False)
+            return np.full(target_shape, float(arr[0, 0]), dtype=float)
+
+        if arr.shape != target_shape:
+            raise ValueError(
+                f"[{self.name}] Input '{input_name}' shape {arr.shape} is incompatible with target shape {target_shape}. "
+                f"Only scalar (1,1) inputs can be broadcast."
+            )
+        return arr.astype(float, copy=False)
 
     # ------------------------------------------------------------------
     def _compute_output(self, prevalidated_arrays: list[np.ndarray] | None = None) -> np.ndarray:

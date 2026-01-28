@@ -20,8 +20,10 @@
 
 import re
 import unicodedata
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -87,7 +89,48 @@ class Gain(Block):
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Class methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def _parse_multiplication(cls, multiplication: str) -> str:
+        if not isinstance(multiplication, str):
+            raise TypeError(f"[{cls.__name__}] 'multiplication' must be a str.")
+
+        m = cls._normalize_user_string(multiplication)
+
+        # --- Element-wise
+        if m in {
+            "elementwise(k*u)", "elementwise", "elem", "k*u", "*", "k×u", "kxu"
+        }:
+            return cls.MULT_ELEMENTWISE
+
+        # --- Left: K @ u
+        if m in {
+            "matrix(k@u)", "k@u", "left", "matleft", "@left"
+        }:
+            return cls.MULT_LEFT
+
+        # --- Right: u @ K
+        if m in {
+            "matrix(u@k)", "u@k", "right", "matright", "@right"
+        }:
+            return cls.MULT_RIGHT
+
+        # fallback pattern-based (tolère "matrix(...)" etc.)
+        if "k@u" in m:
+            return cls.MULT_LEFT
+        if "u@k" in m:
+            return cls.MULT_RIGHT
+
+        raise ValueError(
+            f"[{cls.__name__}] Invalid 'multiplication'='{multiplication}'. "
+            f"Examples: '{cls.MULT_ELEMENTWISE}', '{cls.MULT_RIGHT}', '{cls.MULT_LEFT}'."
+        )
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
@@ -113,13 +156,23 @@ class Gain(Block):
     def state_update(self, t: float, dt: float) -> None:
         return  # stateless
 
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    @staticmethod
+    def _normalize_user_string(s: str) -> str:
+        s = unicodedata.normalize("NFKC", s)
+        s = s.strip().lower()
+        s = s.replace("\u00A0", " ")
+        s = re.sub(r"\s+", "", s, flags=re.UNICODE)
+        return s
+
     # ------------------------------------------------------------------
     def _resolve_initialize(self, u) -> np.ndarray:
         u = u.flatten()
-        if self.multiplication == self.MULT_LEFT:
+        if self.multiplication != self.MULT_ELEMENTWISE:
             u = np.full((self.gain.shape[1], 1), u[0], dtype=float)
-        elif self.multiplication == self.MULT_RIGHT:
-            u = np.full((1, self.gain.shape[0]), u[0], dtype=float)
         elif self.multiplication == self.MULT_ELEMENTWISE:
             if self._gain_kind == "vector":
                 u = np.full((self.gain.shape[0], 1), u[0], dtype=float)
@@ -213,6 +266,7 @@ class Gain(Block):
             - u must be 2D (nrows,m)
             - output is (nrows,q)
         """
+
         if self._gain_kind != "matrix":
             raise ValueError(
                 f"[{self.name}] Multiplication mode '{self.MULT_RIGHT}' requires a 2D matrix gain. "
@@ -221,56 +275,20 @@ class Gain(Block):
 
         K = self.gain
         m, q = K.shape
+
+        # --- Special case: u is a vector (n,1)
+        if u.shape[1] == 1:
+            if u.shape[0] != m:
+                raise ValueError(
+                    f"[{self.name}] Right matrix product with vector requires u.shape[0] == gain.shape[0]."
+                    f"Got u.shape={u.shape}, gain.shape={K.shape}."
+                )
+            return (u.T @ K).T
+
+        # --- General case: u is a matrix (nrows,m)
         if u.shape[1] != m:
             raise ValueError(
                 f"[{self.name}] Right matrix product requires u.shape[1] == gain.shape[0]. "
                 f"Got u.shape={u.shape}, gain.shape={K.shape}."
             )
         return u @ K
-
-    # ------------------------------------------------------------------
-    # Static methods
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _normalize_user_string(s: str) -> str:
-        s = unicodedata.normalize("NFKC", s)
-        s = s.strip().lower()
-        s = s.replace("\u00A0", " ")
-        s = re.sub(r"\s+", "", s, flags=re.UNICODE)
-        return s
-
-    @classmethod
-    def _parse_multiplication(cls, multiplication: str) -> str:
-        if not isinstance(multiplication, str):
-            raise TypeError(f"[{cls.__name__}] 'multiplication' must be a str.")
-
-        m = cls._normalize_user_string(multiplication)
-
-        # --- Element-wise
-        if m in {
-            "elementwise(k*u)", "elementwise", "elem", "k*u", "*", "k×u", "kxu"
-        }:
-            return cls.MULT_ELEMENTWISE
-
-        # --- Left: K @ u
-        if m in {
-            "matrix(k@u)", "k@u", "left", "matleft", "@left"
-        }:
-            return cls.MULT_LEFT
-
-        # --- Right: u @ K
-        if m in {
-            "matrix(u@k)", "u@k", "right", "matright", "@right"
-        }:
-            return cls.MULT_RIGHT
-
-        # fallback pattern-based (tolère "matrix(...)" etc.)
-        if "k@u" in m:
-            return cls.MULT_LEFT
-        if "u@k" in m:
-            return cls.MULT_RIGHT
-
-        raise ValueError(
-            f"[{cls.__name__}] Invalid 'multiplication'='{multiplication}'. "
-            f"Examples: '{cls.MULT_ELEMENTWISE}', '{cls.MULT_RIGHT}', '{cls.MULT_LEFT}'."
-        )

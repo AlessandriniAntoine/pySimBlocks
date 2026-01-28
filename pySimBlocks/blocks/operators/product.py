@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import numpy as np
+
 from pySimBlocks.core.block import Block
 
 
@@ -95,22 +96,10 @@ class Product(Block):
         # Shape freezing per input port
         self._input_shapes: dict[str, tuple[int, int]] = {}
 
-    # ------------------------------------------------------------------
-    def _get_input_2d(self, port: str) -> np.ndarray:
-        u = self.inputs[port]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
-        u_arr = self._to_2d_array(port, u)  # uses Block helper
-        # freeze shape per port
-        if port not in self._input_shapes:
-            self._input_shapes[port] = u_arr.shape
-        elif u_arr.shape != self._input_shapes[port]:
-            raise ValueError(
-                f"[{self.name}] Input '{port}' shape changed: expected {self._input_shapes[port]}, got {u_arr.shape}."
-            )
-        return u_arr
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         # No "fallback" values: missing inputs should be detected normally
         # but for init, if any input missing, output stays None
@@ -127,6 +116,24 @@ class Product(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         pass
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _get_input_2d(self, port: str) -> np.ndarray:
+        u = self.inputs[port]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
+        u_arr = self._to_2d_array(port, u)  # uses Block helper
+        # freeze shape per port
+        if port not in self._input_shapes:
+            self._input_shapes[port] = u_arr.shape
+        elif u_arr.shape != self._input_shapes[port]:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' shape changed: expected {self._input_shapes[port]}, got {u_arr.shape}."
+            )
+        return u_arr
 
     # ------------------------------------------------------------------
     def _compute_output(self) -> np.ndarray:

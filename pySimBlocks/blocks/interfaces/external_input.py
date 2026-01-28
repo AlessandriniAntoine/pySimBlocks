@@ -55,7 +55,34 @@ class ExternalInput(Block):
         self.outputs["out"] = None
         self._resolved_shape: tuple[int, int] | None = None
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        u = self.inputs["in"]
+        if u is None:
+            # Keep None at init (like your current behavior)
+            self.outputs["out"] = None
+            return
+
+        self.outputs["out"] = self._to_col_vec(u)
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        u = self.inputs["in"]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Missing input 'in'.")
+        self.outputs["out"] = self._to_col_vec(u)
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        pass
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _to_col_vec(self, value) -> np.ndarray:
         arr = np.asarray(value, dtype=float)
 
@@ -80,23 +107,4 @@ class ExternalInput(Block):
 
         return arr
 
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        u = self.inputs["in"]
-        if u is None:
-            # Keep None at init (like your current behavior)
-            self.outputs["out"] = None
-            return
 
-        self.outputs["out"] = self._to_col_vec(u)
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Missing input 'in'.")
-        self.outputs["out"] = self._to_col_vec(u)
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        pass

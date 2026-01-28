@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -82,7 +83,47 @@ class Saturation(Block):
         self.u_max = None
         self._resolved_shape: tuple[int, int] | None = None
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        u = self.inputs["in"]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
+
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        self._resolve_bounds_for_input(u)
+        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        u = self.inputs["in"]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input 'in' is None.")
+
+        u = np.asarray(u, dtype=float)
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        self._resolve_bounds_for_input(u)
+        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        return  # stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _resolve_bounds_for_input(self, u: np.ndarray) -> None:
         """
         Resolve (broadcast) u_min/u_max to match the current input shape.
@@ -135,37 +176,3 @@ class Saturation(Block):
             f"[{self.name}] {name} has incompatible shape {b.shape} for input shape {target_shape}. "
             f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
         )
-
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
-
-        u = np.asarray(u, dtype=float)
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
-
-        self._resolve_bounds_for_input(u)
-        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' is None.")
-
-        u = np.asarray(u, dtype=float)
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
-
-        self._resolve_bounds_for_input(u)
-        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        return  # stateless

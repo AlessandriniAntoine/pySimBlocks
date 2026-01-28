@@ -70,7 +70,10 @@ class Constant(BlockSource):
         self.value = arr
         self.outputs["out"] = arr.copy()
 
-    # ------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self.outputs["out"] = self.value.copy()
 

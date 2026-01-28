@@ -19,11 +19,12 @@
 # ******************************************************************************
 
 from typing import Dict, List
+
 import numpy as np
 
 from pySimBlocks.core.config import SimulationConfig
-from pySimBlocks.core.model import Model
 from pySimBlocks.core.fixed_time_manager import FixedStepTimeManager
+from pySimBlocks.core.model import Model
 from pySimBlocks.core.scheduler import Scheduler
 from pySimBlocks.core.task import Task
 
@@ -67,117 +68,10 @@ class Simulator:
 
         self.logs: Dict[str, List[np.ndarray]] = {"time": []}
 
-    # ----------------------------------------------------------------------
-    # COMPILE
-    # ----------------------------------------------------------------------
-    def _compile(self):
-        """Prepare the simulator for execution.
-        - Build execution order.
-        - Group blocks into tasks by sample time.
-        - Initialize the scheduler and time manager.
-        """
-        self.output_order = self.model.build_execution_order()
-        self.model.resolve_sample_times(self.sim_cfg.dt)
-        sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
 
-        # regroup blocks by sample time
-        tasks_by_ts = {}
-        for b in self.model.blocks.values():
-            sample_time = b._effective_sample_time
-            tasks_by_ts.setdefault(sample_time, []).append(b)
-
-        self.tasks = [
-            Task(sample_time, blocks, self.output_order)
-            for sample_time, blocks in tasks_by_ts.items()
-        ]
-
-        self.scheduler = Scheduler(self.tasks)
-
-        if self.sim_cfg.solver == "fixed":
-            self.time_manager = FixedStepTimeManager(
-                dt_base=self.sim_cfg.dt,
-                sample_times=list(set(sample_times))
-            )
-        elif self.sim_cfg.solver == "variable":
-            raise NotImplementedError(
-                "Variable-step simulation is not implemented yet."
-            )
-        else:
-            raise ValueError(
-                f"Unknown simulation mode '{self.sim_cfg.solver}'. "
-                "Supported modes are: 'fixed', 'variable'."
-            )
-
-    # ----------------------------------------------------------------------
-    # PROPAGATION
-    # ----------------------------------------------------------------------
-    def _propagate_from(self, block):
-        """
-        Propagate outputs of `block` to its direct downstream blocks.
-        """
-        for (src, dst) in self.model.downstream_of(block.name):
-            src_block, src_port = src
-            dst_block, dst_port = dst
-
-            value = self.model.blocks[src_block].outputs[src_port]
-            if value is not None:
-                self.model.blocks[dst_block].inputs[dst_port] = value
-
-    # ----------------------------------------------------------------------
-    # LOG
-    # ----------------------------------------------------------------------
-    def _log(self, variables_to_log):
-        """Log specified variables at the current time step.
-
-        Enforces:
-            - logged values must be 2D numpy arrays
-            - shape must stay constant over time for each logged variable
-        """
-        for var in variables_to_log:
-            block_name, container, key = var.split(".")
-            block = self.model.blocks[block_name]
-
-            if container == "outputs":
-                value = block.outputs[key]
-            elif container == "state":
-                value = block.state[key]
-            else:
-                raise ValueError(f"Unknown container '{container}' in '{var}'.")
-
-            if value is None:
-                raise RuntimeError(
-                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: value is None."
-                )
-
-            arr = np.asarray(value)
-
-            if arr.ndim != 2:
-                raise RuntimeError(
-                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: expected a 2D array, "
-                    f"got ndim={arr.ndim} with shape {arr.shape}."
-                )
-
-            # Enforce constant shape over time for this variable
-            if var not in self._log_shapes:
-                self._log_shapes[var] = arr.shape
-            else:
-                expected_shape = self._log_shapes[var]
-                if arr.shape != expected_shape:
-                    raise RuntimeError(
-                        f"[Simulator] Logged signal '{var}' changed shape over time at t={self.t_step}: "
-                        f"expected {expected_shape}, got {arr.shape}."
-                    )
-
-            if var not in self.logs:
-                self.logs[var] = []
-            self.logs[var].append(np.copy(arr))
-
-        self.logs["time"].append(np.array([self.t_step]))
-
-
-    # ----------------------------------------------------------------------
-    # INITIALIZATION
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float = 0.0):
         """Initialize all blocks and propagate initial outputs."""
         self.t = float(t0)
@@ -197,9 +91,7 @@ class Simulator:
         for task in self.tasks:
             task.update_state_blocks()
 
-    # ----------------------------------------------------------------------
-    # ONE SIMULATION STEP
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def step(self, dt_override: float | None = None) -> None:
         """
         Perform one simulation step.
@@ -250,9 +142,7 @@ class Simulator:
         self.t_step = self.t
         self.t += dt_scheduler
 
-    # ----------------------------------------------------------------------
-    # RUN MULTIPLE STEPS
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def run(
         self,
         T: float | None = None,
@@ -294,3 +184,107 @@ class Simulator:
 
 
         return self.logs
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _compile(self):
+        """Prepare the simulator for execution.
+        - Build execution order.
+        - Group blocks into tasks by sample time.
+        - Initialize the scheduler and time manager.
+        """
+        self.output_order = self.model.build_execution_order()
+        self.model.resolve_sample_times(self.sim_cfg.dt)
+        sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
+
+        # regroup blocks by sample time
+        tasks_by_ts = {}
+        for b in self.model.blocks.values():
+            sample_time = b._effective_sample_time
+            tasks_by_ts.setdefault(sample_time, []).append(b)
+
+        self.tasks = [
+            Task(sample_time, blocks, self.output_order)
+            for sample_time, blocks in tasks_by_ts.items()
+        ]
+
+        self.scheduler = Scheduler(self.tasks)
+
+        if self.sim_cfg.solver == "fixed":
+            self.time_manager = FixedStepTimeManager(
+                dt_base=self.sim_cfg.dt,
+                sample_times=list(set(sample_times))
+            )
+        elif self.sim_cfg.solver == "variable":
+            raise NotImplementedError(
+                "Variable-step simulation is not implemented yet."
+            )
+        else:
+            raise ValueError(
+                f"Unknown simulation mode '{self.sim_cfg.solver}'. "
+                "Supported modes are: 'fixed', 'variable'."
+            )
+
+    # ------------------------------------------------------------------
+    def _propagate_from(self, block):
+        """
+        Propagate outputs of `block` to its direct downstream blocks.
+        """
+        for (src, dst) in self.model.downstream_of(block.name):
+            src_block, src_port = src
+            dst_block, dst_port = dst
+
+            value = self.model.blocks[src_block].outputs[src_port]
+            if value is not None:
+                self.model.blocks[dst_block].inputs[dst_port] = value
+
+    # ------------------------------------------------------------------
+    def _log(self, variables_to_log):
+        """Log specified variables at the current time step.
+
+        Enforces:
+            - logged values must be 2D numpy arrays
+            - shape must stay constant over time for each logged variable
+        """
+        for var in variables_to_log:
+            block_name, container, key = var.split(".")
+            block = self.model.blocks[block_name]
+
+            if container == "outputs":
+                value = block.outputs[key]
+            elif container == "state":
+                value = block.state[key]
+            else:
+                raise ValueError(f"Unknown container '{container}' in '{var}'.")
+
+            if value is None:
+                raise RuntimeError(
+                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: value is None."
+                )
+
+            arr = np.asarray(value)
+
+            if arr.ndim != 2:
+                raise RuntimeError(
+                    f"[Simulator] Cannot log '{var}' at t={self.t_step}: expected a 2D array, "
+                    f"got ndim={arr.ndim} with shape {arr.shape}."
+                )
+
+            # Enforce constant shape over time for this variable
+            if var not in self._log_shapes:
+                self._log_shapes[var] = arr.shape
+            else:
+                expected_shape = self._log_shapes[var]
+                if arr.shape != expected_shape:
+                    raise RuntimeError(
+                        f"[Simulator] Logged signal '{var}' changed shape over time at t={self.t_step}: "
+                        f"expected {expected_shape}, got {arr.shape}."
+                    )
+
+            if var not in self.logs:
+                self.logs[var] = []
+            self.logs[var].append(np.copy(arr))
+
+        self.logs["time"].append(np.array([self.t_step]))

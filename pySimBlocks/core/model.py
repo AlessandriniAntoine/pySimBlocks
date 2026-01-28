@@ -21,9 +21,9 @@
 from collections import deque
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 from pySimBlocks.core.block import Block
 from pySimBlocks.core.config import ModelConfig
-
 
 # A connection is:
 #    ( (src_block, src_port), (dst_block, dst_port) )
@@ -72,9 +72,9 @@ class Model:
             if model_cfg is not None:
                 model_cfg.validate(list(self.blocks.keys()))
 
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Public methods
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def add_block(self, block: Block) -> Block:
         """Add a block to the model."""
         if block.name in self.blocks:
@@ -83,6 +83,7 @@ class Model:
         self.blocks[block.name] = block
         return block
 
+    # ------------------------------------------------------------------
     def get_block_by_name(self, name: str) -> Block:
         """Get a block by its name."""
         if name not in self.blocks:
@@ -91,7 +92,7 @@ class Model:
             )
         return self.blocks[name]
 
-
+    # ------------------------------------------------------------------
     def connect(self, src_block: str, src_port: str,
                       dst_block: str, dst_port: str) -> None:
         """
@@ -115,7 +116,7 @@ class Model:
             ((src_block, src_port), (dst_block, dst_port))
         )
 
-
+    # ------------------------------------------------------------------
     def build_execution_order(self):
         """
         Build Simulink-like execution order based solely on direct-feedthrough
@@ -201,9 +202,7 @@ class Model:
 
         return self._output_execution_order
 
-    # ----------------------------------------------------------------------
-    # HELPERS FOR THE SIMULATOR
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def downstream_of(self, block_name: str):
         """
         Returns all connections where block_name is the source.
@@ -212,20 +211,21 @@ class Model:
             if src[0] == block_name:
                 yield (src, dst)
 
+    # ------------------------------------------------------------------
     def execution_order(self):
         """Get execution order, building it if necessary."""
         if not self._output_execution_order:
             return self.build_execution_order()
         return self._output_execution_order
 
-
+    # ------------------------------------------------------------------
     def predecessors_of(self, block_name):
         """Get all blocks that feed into block_name."""
         for (src, dst) in self.connections:
             if dst[0] == block_name:
                 yield src[0]
 
-
+    # ------------------------------------------------------------------
     def resolve_sample_times(self, dt):
         """
         Resolve effective sample times for all blocks.

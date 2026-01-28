@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -97,70 +98,10 @@ class DiscreteDerivator(Block):
         else:
             self.outputs["out"] = self._placeholder.copy()
 
-    # -------------------------------------------------------
-    def _maybe_freeze_shape_from(self, u: np.ndarray) -> None:
-        """
-        Freeze shape if:
-          - no initial_output has already frozen it
-          - shape unresolved
-          - u is non-scalar (shape != (1,1))
-        """
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
 
-        # If shape is already frozen (by initial_output), nothing to do
-        if self._resolved_shape is not None:
-            return
-
-        # Only freeze when a non-scalar appears
-        if u.shape != (1, 1):
-            self._resolved_shape = u.shape
-
-            # Upgrade current output placeholder to correct shape (keep current scalar value)
-            y = np.asarray(self.outputs["out"], dtype=float)
-            if y.shape == (1, 1):
-                scalar = float(y[0, 0])
-                self.outputs["out"] = np.full(self._resolved_shape, scalar, dtype=float)
-
-            # Initialize u_prev to current u to avoid a derivative spike
-            self.state["u_prev"] = u.copy()
-            self.next_state["u_prev"] = u.copy()
-
-    # -------------------------------------------------------
-    def _normalize_input(self, u: ArrayLike | None) -> np.ndarray:
-        """
-        Normalize u to 2D, apply freezing rule and scalar broadcasting.
-        If u is None: return zeros of resolved shape if known, else (1,1) zeros.
-        """
-        if u is None:
-            if self._resolved_shape is not None:
-                return np.zeros(self._resolved_shape, dtype=float)
-            return self._placeholder.copy()
-
-        u_arr = np.asarray(u, dtype=float)
-        if u_arr.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u_arr.ndim} with shape {u_arr.shape}."
-            )
-
-        # If shape not frozen yet and u is non-scalar -> freeze now
-        self._maybe_freeze_shape_from(u_arr)
-
-        # If shape is frozen: enforce or broadcast
-        if self._resolved_shape is not None:
-            if u_arr.shape == (1, 1) and self._resolved_shape != (1, 1):
-                return np.full(self._resolved_shape, float(u_arr[0, 0]), dtype=float)
-
-            if u_arr.shape != self._resolved_shape:
-                raise ValueError(
-                    f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u_arr.shape}."
-                )
-
-        return u_arr
-
-    # -------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         """
         Never propagate None:
@@ -228,3 +169,69 @@ class DiscreteDerivator(Block):
     def state_update(self, t: float, dt: float) -> None:
         u_arr = self._normalize_input(self.inputs["in"])
         self.next_state["u_prev"] = u_arr.copy()
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _maybe_freeze_shape_from(self, u: np.ndarray) -> None:
+        """
+        Freeze shape if:
+          - no initial_output has already frozen it
+          - shape unresolved
+          - u is non-scalar (shape != (1,1))
+        """
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        # If shape is already frozen (by initial_output), nothing to do
+        if self._resolved_shape is not None:
+            return
+
+        # Only freeze when a non-scalar appears
+        if u.shape != (1, 1):
+            self._resolved_shape = u.shape
+
+            # Upgrade current output placeholder to correct shape (keep current scalar value)
+            y = np.asarray(self.outputs["out"], dtype=float)
+            if y.shape == (1, 1):
+                scalar = float(y[0, 0])
+                self.outputs["out"] = np.full(self._resolved_shape, scalar, dtype=float)
+
+            # Initialize u_prev to current u to avoid a derivative spike
+            self.state["u_prev"] = u.copy()
+            self.next_state["u_prev"] = u.copy()
+
+    # -------------------------------------------------------
+    def _normalize_input(self, u: ArrayLike | None) -> np.ndarray:
+        """
+        Normalize u to 2D, apply freezing rule and scalar broadcasting.
+        If u is None: return zeros of resolved shape if known, else (1,1) zeros.
+        """
+        if u is None:
+            if self._resolved_shape is not None:
+                return np.zeros(self._resolved_shape, dtype=float)
+            return self._placeholder.copy()
+
+        u_arr = np.asarray(u, dtype=float)
+        if u_arr.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u_arr.ndim} with shape {u_arr.shape}."
+            )
+
+        # If shape not frozen yet and u is non-scalar -> freeze now
+        self._maybe_freeze_shape_from(u_arr)
+
+        # If shape is frozen: enforce or broadcast
+        if self._resolved_shape is not None:
+            if u_arr.shape == (1, 1) and self._resolved_shape != (1, 1):
+                return np.full(self._resolved_shape, float(u_arr[0, 0]), dtype=float)
+
+            if u_arr.shape != self._resolved_shape:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u_arr.shape}."
+                )
+
+        return u_arr

@@ -82,11 +82,34 @@ class Step(BlockSource):
         self.outputs["out"] = None
         self.EPS = float(eps)
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        self.outputs["out"] = (
+            self.value_before.copy()
+            if t0 < self.start_time - self.EPS
+            else self.value_after.copy()
+        )
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        self.outputs["out"] = (
+            self.value_before.copy()
+            if t < self.start_time - self.EPS
+            else self.value_after.copy()
+        )
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     @staticmethod
     def _is_scalar_2d(arr: np.ndarray) -> bool:
         return arr.shape == (1, 1)
 
+    # ------------------------------------------------------------------
     def _match_shapes_with_scalar_broadcast(
         self,
         a: np.ndarray,
@@ -112,20 +135,4 @@ class Step(BlockSource):
         raise ValueError(
             f"[{self.name}] 'value_before' and 'value_after' must have compatible shapes. "
             f"Got {a.shape} vs {b.shape}. Only scalar-to-shape broadcasting is allowed."
-        )
-
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        self.outputs["out"] = (
-            self.value_before.copy()
-            if t0 < self.start_time - self.EPS
-            else self.value_after.copy()
-        )
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        self.outputs["out"] = (
-            self.value_before.copy()
-            if t < self.start_time - self.EPS
-            else self.value_after.copy()
         )

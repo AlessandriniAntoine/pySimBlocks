@@ -18,9 +18,10 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 
 # ---------------------------------------------------------------------
 # Classes

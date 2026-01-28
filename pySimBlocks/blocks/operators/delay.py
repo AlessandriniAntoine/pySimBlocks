@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -109,7 +110,58 @@ class Delay(Block):
         self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
         self.next_state["buffer"] = None
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        # Output always defined from buffer (important for loops)
+        self.outputs["out"] = self.state["buffer"][0].copy()
+
+        # If an input is already available at init, fix shape immediately
+        u = self.inputs["in"]
+        if u is not None:
+            u_arr = np.asarray(u, dtype=float)
+            self._ensure_shape_and_buffer(u_arr)
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        if not self._shape_fixed:
+            u = self.inputs["in"]
+            if u is not None:
+                u_arr = np.asarray(u, dtype=float)
+                self._ensure_shape_and_buffer(u_arr)
+
+        self.outputs["out"] = self.state["buffer"][0].copy()
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        if self._is_reset_active():
+            self._apply_reset()
+            return
+
+        u = self.inputs["in"]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
+
+        u_arr = np.asarray(u, dtype=float)
+
+        # Fix shape on first available input; then enforce forever
+        self._ensure_shape_and_buffer(u_arr)
+
+        buffer = self.state["buffer"]
+
+        # Shift left and append u
+        new_buffer = []
+        for i in range(self.num_delays - 1):
+            new_buffer.append(buffer[i + 1].copy())
+        new_buffer.append(u_arr.copy())
+
+        self.next_state["buffer"] = new_buffer
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _ensure_shape_and_buffer(self, u: np.ndarray) -> None:
         """
         Ensure:
@@ -122,7 +174,7 @@ class Delay(Block):
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
-
+        
         buf0 = self.state["buffer"][0]
         assert buf0 is not None
 
@@ -193,50 +245,3 @@ class Delay(Block):
 
         self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
         self.next_state["buffer"] = [init.copy() for _ in range(self.num_delays)]
-
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        # Output always defined from buffer (important for loops)
-        self.outputs["out"] = self.state["buffer"][0].copy()
-
-        # If an input is already available at init, fix shape immediately
-        u = self.inputs["in"]
-        if u is not None:
-            u_arr = np.asarray(u, dtype=float)
-            self._ensure_shape_and_buffer(u_arr)
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        if not self._shape_fixed:
-            u = self.inputs["in"]
-            if u is not None:
-                u_arr = np.asarray(u, dtype=float)
-                self._ensure_shape_and_buffer(u_arr)
-
-        self.outputs["out"] = self.state["buffer"][0].copy()
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        if self._is_reset_active():
-            self._apply_reset()
-            return
-
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
-
-        u_arr = np.asarray(u, dtype=float)
-
-        # Fix shape on first available input; then enforce forever
-        self._ensure_shape_and_buffer(u_arr)
-
-        buffer = self.state["buffer"]
-
-        # Shift left and append u
-        new_buffer = []
-        for i in range(self.num_delays - 1):
-            new_buffer.append(buffer[i + 1].copy())
-        new_buffer.append(u_arr.copy())
-
-        self.next_state["buffer"] = new_buffer
-

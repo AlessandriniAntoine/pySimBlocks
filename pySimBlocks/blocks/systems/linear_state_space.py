@@ -126,30 +126,10 @@ class LinearStateSpace(Block):
         self.outputs["y"] = None
         self.outputs["x"] = None
 
-    # ------------------------------------------------------------------
-    def _to_col_vec(self, name: str, value: ArrayLike, expected_rows: int) -> np.ndarray:
-        arr = np.asarray(value, dtype=float)
 
-        if arr.ndim == 0:
-            arr = arr.reshape(1, 1)
-        elif arr.ndim == 1:
-            arr = arr.reshape(-1, 1)
-        elif arr.ndim == 2:
-            pass
-        else:
-            raise ValueError(f"[{self.name}] {name} must be 1D or 2D. Got shape {arr.shape}.")
-
-        if arr.shape[1] != 1:
-            raise ValueError(f"[{self.name}] {name} must be a column vector (k,1). Got {arr.shape}.")
-
-        if arr.shape[0] != expected_rows:
-            raise ValueError(
-                f"[{self.name}] {name} must have shape ({expected_rows},1). Got {arr.shape}."
-            )
-
-        return arr
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         x = self.state["x"]
         self.outputs["y"] = self.C @ x
@@ -172,3 +152,29 @@ class LinearStateSpace(Block):
         x = self.state["x"]
 
         self.next_state["x"] = self.A @ x + self.B @ u_vec
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _to_col_vec(self, name: str, value: ArrayLike, expected_rows: int) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+
+        if arr.ndim == 0:
+            arr = arr.reshape(1, 1)
+        elif arr.ndim == 1:
+            arr = arr.reshape(-1, 1)
+        elif arr.ndim == 2:
+            pass
+        else:
+            raise ValueError(f"[{self.name}] {name} must be 1D or 2D. Got shape {arr.shape}.")
+
+        if arr.shape[1] != 1:
+            raise ValueError(f"[{self.name}] {name} must be a column vector (k,1). Got {arr.shape}.")
+
+        if arr.shape[0] != expected_rows:
+            raise ValueError(
+                f"[{self.name}] {name} must have shape ({expected_rows},1). Got {arr.shape}."
+            )
+
+        return arr

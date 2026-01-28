@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -116,7 +117,66 @@ class DiscreteIntegrator(Block):
             self.next_state["x"] = self._placeholder.copy()
             self.outputs["out"] = self._placeholder.copy()
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        # Never propagate None: guarantee placeholders even when no initial_state.
+        if self._initial_state_raw is not None:
+            x0 = self._initial_state_raw.copy()
+
+            # If initial_state is non-scalar, freeze is already set in __init__.
+            # If scalar, keep unresolved unless later a non-scalar input appears.
+            self.state["x"] = x0.copy()
+            self.next_state["x"] = x0.copy()
+
+            # output at init:
+            # forward -> y=x
+            # backward -> y=x + dt*u, but u may be unknown at init; we take u=0 (consistent with "no None")
+            if self.method == "euler forward":
+                self.outputs["out"] = x0.copy()
+            else:
+                self.outputs["out"] = x0.copy()
+
+        else:
+            self.state["x"] = self._placeholder.copy()
+            self.next_state["x"] = self._placeholder.copy()
+            self.outputs["out"] = self._placeholder.copy()
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        x = self._normalize_state()
+
+        if self.method == "euler forward":
+            self.outputs["out"] = x.copy()
+            return
+
+        # euler backward: y = x + dt*u
+        u = self._normalize_input(self.inputs["in"])
+        self.outputs["out"] = x + dt * u
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        # Even if input is not available due to execution order, do not crash:
+        # treat missing as zeros (same idea: "0 if not defined").
+        u = self._normalize_input(self.inputs["in"])
+
+        x = self._normalize_state()
+
+        # ensure x matches u when shape resolved by u
+        if self._resolved_shape is not None:
+            if x.shape != u.shape:
+                raise ValueError(
+                    f"[{self.name}] Shape mismatch between state and input: x={x.shape}, u={u.shape}."
+                )
+
+        self.next_state["x"] = x + dt * u
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _maybe_freeze_shape_from(self, u: np.ndarray) -> None:
         """
         Freeze shape if:
@@ -203,56 +263,3 @@ class DiscreteIntegrator(Block):
                 )
 
         return x
-
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        # Never propagate None: guarantee placeholders even when no initial_state.
-        if self._initial_state_raw is not None:
-            x0 = self._initial_state_raw.copy()
-
-            # If initial_state is non-scalar, freeze is already set in __init__.
-            # If scalar, keep unresolved unless later a non-scalar input appears.
-            self.state["x"] = x0.copy()
-            self.next_state["x"] = x0.copy()
-
-            # output at init:
-            # forward -> y=x
-            # backward -> y=x + dt*u, but u may be unknown at init; we take u=0 (consistent with "no None")
-            if self.method == "euler forward":
-                self.outputs["out"] = x0.copy()
-            else:
-                self.outputs["out"] = x0.copy()
-
-        else:
-            self.state["x"] = self._placeholder.copy()
-            self.next_state["x"] = self._placeholder.copy()
-            self.outputs["out"] = self._placeholder.copy()
-
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        x = self._normalize_state()
-
-        if self.method == "euler forward":
-            self.outputs["out"] = x.copy()
-            return
-
-        # euler backward: y = x + dt*u
-        u = self._normalize_input(self.inputs["in"])
-        self.outputs["out"] = x + dt * u
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        # Even if input is not available due to execution order, do not crash:
-        # treat missing as zeros (same idea: "0 if not defined").
-        u = self._normalize_input(self.inputs["in"])
-
-        x = self._normalize_state()
-
-        # ensure x matches u when shape resolved by u
-        if self._resolved_shape is not None:
-            if x.shape != u.shape:
-                raise ValueError(
-                    f"[{self.name}] Shape mismatch between state and input: x={x.shape}, u={u.shape}."
-                )
-
-        self.next_state["x"] = x + dt * u

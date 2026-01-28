@@ -88,14 +88,20 @@ class WhiteNoise(BlockSource):
 
         self.outputs["out"] = np.zeros(target_shape, dtype=float)
 
-    # ------------------------------------------------------------------
-    def _draw(self) -> np.ndarray:
-        return self.mean + self.std * self.rng.standard_normal(self.mean.shape)
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self.outputs["out"] = self._draw()
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
         self.outputs["out"] = self._draw()
+    
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _draw(self) -> np.ndarray:
+        return self.mean + self.std * self.rng.standard_normal(self.mean.shape)

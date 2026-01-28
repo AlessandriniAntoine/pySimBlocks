@@ -19,8 +19,10 @@
 # ******************************************************************************
 
 import warnings
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -64,9 +66,6 @@ class Pid(Block):
         - Output saturation is applied only if u_min and/or u_max are defined.
     """
 
-
-
-    # ---------------------------------------------------------------------
     def __init__(
         self,
         name: str,
@@ -134,49 +133,10 @@ class Pid(Block):
         self.next_state["x_i"] = np.zeros((1, 1), dtype=float)
         self.next_state["e_prev"] = np.zeros((1, 1), dtype=float)
 
-    # ------------------------------------------------------------------
-    def _to_siso(self, name: str, value: ArrayLike) -> np.ndarray:
-        """
-        Normalize scalar-like into (1,1). Reject anything else (strict SISO).
-        """
-        if np.isscalar(value):
-            return np.array([[float(value)]], dtype=float)
 
-        arr = np.asarray(value, dtype=float)
-
-        if arr.shape == ():
-            return np.array([[float(arr)]], dtype=float)
-        if arr.shape == (1,):
-            return arr.reshape(1, 1)
-        if arr.shape == (1, 1):
-            return arr
-
-        raise ValueError(
-            f"[{self.name}] '{name}' must be scalar-like ((), (1,), or (1,1)). Got shape {arr.shape}."
-        )
-
-    def _validate_gains(self) -> None:
-        kp = float(self.Kp[0, 0])
-        ki = float(self.Ki[0, 0])
-        kd = float(self.Kd[0, 0])
-
-        if "P" in self.controller and kp == 0.0:
-            warnings.warn(
-                f"[{self.name}] Kp=0 while controller '{self.controller}' includes a P term.",
-                UserWarning,
-            )
-        if "I" in self.controller and ki == 0.0:
-            warnings.warn(
-                f"[{self.name}] Ki=0 while controller '{self.controller}' includes an I term.",
-                UserWarning,
-            )
-        if "D" in self.controller and kd == 0.0:
-            warnings.warn(
-                f"[{self.name}] Kd=0 while controller '{self.controller}' includes a D term.",
-                UserWarning,
-            )
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         # Start at zero command, keep internal states at zero.
         self.outputs["u"] = np.zeros((1, 1), dtype=float)
@@ -242,3 +202,49 @@ class Pid(Block):
 
         self.next_state["x_i"] = x_i_next
         self.next_state["e_prev"] = e.copy()
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _to_siso(self, name: str, value: ArrayLike) -> np.ndarray:
+        """
+        Normalize scalar-like into (1,1). Reject anything else (strict SISO).
+        """
+        if np.isscalar(value):
+            return np.array([[float(value)]], dtype=float)
+
+        arr = np.asarray(value, dtype=float)
+
+        if arr.shape == ():
+            return np.array([[float(arr)]], dtype=float)
+        if arr.shape == (1,):
+            return arr.reshape(1, 1)
+        if arr.shape == (1, 1):
+            return arr
+
+        raise ValueError(
+            f"[{self.name}] '{name}' must be scalar-like ((), (1,), or (1,1)). Got shape {arr.shape}."
+        )
+
+    # ------------------------------------------------------------------
+    def _validate_gains(self) -> None:
+        kp = float(self.Kp[0, 0])
+        ki = float(self.Ki[0, 0])
+        kd = float(self.Kd[0, 0])
+
+        if "P" in self.controller and kp == 0.0:
+            warnings.warn(
+                f"[{self.name}] Kp=0 while controller '{self.controller}' includes a P term.",
+                UserWarning,
+            )
+        if "I" in self.controller and ki == 0.0:
+            warnings.warn(
+                f"[{self.name}] Ki=0 while controller '{self.controller}' includes an I term.",
+                UserWarning,
+            )
+        if "D" in self.controller and kd == 0.0:
+            warnings.warn(
+                f"[{self.name}] Kd=0 while controller '{self.controller}' includes a D term.",
+                UserWarning,
+            )

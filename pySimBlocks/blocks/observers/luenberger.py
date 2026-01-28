@@ -118,7 +118,36 @@ class Luenberger(Block):
         # Freeze input shapes once first seen
         self._input_shapes = {}
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
+        x_hat = self.state["x_hat"]
+        self.outputs["x_hat"] = x_hat.copy()
+        self.outputs["y_hat"] = self.C @ x_hat
+        self.next_state["x_hat"] = x_hat.copy()
+
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float) -> None:
+        x_hat = self.state["x_hat"]
+        self.outputs["x_hat"] = x_hat.copy()
+        self.outputs["y_hat"] = self.C @ x_hat
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float) -> None:
+        u = self._require_col_vector("u", self._m)
+        y = self._require_col_vector("y", self._p)
+
+        x_hat = self.state["x_hat"]
+        y_hat = self.C @ x_hat
+
+        self.next_state["x_hat"] = self.A @ x_hat + self.B @ u + self.L @ (y - y_hat)
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def _require_col_vector(self, port: str, expected_rows: int) -> np.ndarray:
         val = self.inputs[port]
         if val is None:
@@ -145,25 +174,4 @@ class Luenberger(Block):
 
         return arr
 
-    # ------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        x_hat = self.state["x_hat"]
-        self.outputs["x_hat"] = x_hat.copy()
-        self.outputs["y_hat"] = self.C @ x_hat
-        self.next_state["x_hat"] = x_hat.copy()
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float) -> None:
-        x_hat = self.state["x_hat"]
-        self.outputs["x_hat"] = x_hat.copy()
-        self.outputs["y_hat"] = self.C @ x_hat
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float) -> None:
-        u = self._require_col_vector("u", self._m)
-        y = self._require_col_vector("y", self._p)
-
-        x_hat = self.state["x_hat"]
-        y_hat = self.C @ x_hat
-
-        self.next_state["x_hat"] = self.A @ x_hat + self.B @ u + self.L @ (y - y_hat)

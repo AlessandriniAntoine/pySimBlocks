@@ -20,6 +20,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -81,57 +82,10 @@ class DeadZone(Block):
         self.upper_bound = None
         self._resolved_shape: tuple[int, int] | None = None
 
-    # ------------------------------------------------------------------
-    def _broadcast_bound(self, b: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
-        m, n = target_shape
 
-        # scalar -> full matrix
-        if self._is_scalar_2d(b):
-            return np.full(target_shape, float(b[0, 0]), dtype=float)
-
-        # vector (m,1) -> broadcast across columns
-        if b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m:
-            if n == 1:
-                return b.astype(float, copy=False)
-            return np.repeat(b.astype(float, copy=False), n, axis=1)
-
-        # matrix -> must match exactly
-        if b.shape == target_shape:
-            return b.astype(float, copy=False)
-
-        raise ValueError(
-            f"[{self.name}] {name} has incompatible shape {b.shape} for input shape {target_shape}. "
-            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
-        )
-
-    def _resolve_for_input(self, u: np.ndarray) -> None:
-        if u.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
-            )
-
-        if self._resolved_shape is None:
-            self._resolved_shape = u.shape
-            self.lower_bound = self._broadcast_bound(self.lower_raw, u.shape, "lower_bound")
-            self.upper_bound = self._broadcast_bound(self.upper_raw, u.shape, "upper_bound")
-
-            # Component-wise validity checks (after broadcasting)
-            if np.any(self.lower_bound > self.upper_bound):
-                raise ValueError(f"[{self.name}] lower_bound must be <= upper_bound (component-wise).")
-            if np.any(self.lower_bound > 0):
-                raise ValueError(f"[{self.name}] lower_bound must be <= 0 (component-wise).")
-            if np.any(self.upper_bound < 0):
-                raise ValueError(f"[{self.name}] upper_bound must be >= 0 (component-wise).")
-
-            return
-
-        if u.shape != self._resolved_shape:
-            raise ValueError(
-                f"[{self.name}] Input 'in' shape changed after initialization: "
-                f"expected {self._resolved_shape}, got {u.shape}."
-            )
-
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
@@ -164,6 +118,60 @@ class DeadZone(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
         return  # stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _broadcast_bound(self, b: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
+        m, n = target_shape
+
+        # scalar -> full matrix
+        if self._is_scalar_2d(b):
+            return np.full(target_shape, float(b[0, 0]), dtype=float)
+
+        # vector (m,1) -> broadcast across columns
+        if b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m:
+            if n == 1:
+                return b.astype(float, copy=False)
+            return np.repeat(b.astype(float, copy=False), n, axis=1)
+
+        # matrix -> must match exactly
+        if b.shape == target_shape:
+            return b.astype(float, copy=False)
+
+        raise ValueError(
+            f"[{self.name}] {name} has incompatible shape {b.shape} for input shape {target_shape}. "
+            f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
+        )
+
+    # ------------------------------------------------------------------
+    def _resolve_for_input(self, u: np.ndarray) -> None:
+        if u.ndim != 2:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
+            )
+
+        if self._resolved_shape is None:
+            self._resolved_shape = u.shape
+            self.lower_bound = self._broadcast_bound(self.lower_raw, u.shape, "lower_bound")
+            self.upper_bound = self._broadcast_bound(self.upper_raw, u.shape, "upper_bound")
+
+            # Component-wise validity checks (after broadcasting)
+            if np.any(self.lower_bound > self.upper_bound):
+                raise ValueError(f"[{self.name}] lower_bound must be <= upper_bound (component-wise).")
+            if np.any(self.lower_bound > 0):
+                raise ValueError(f"[{self.name}] lower_bound must be <= 0 (component-wise).")
+            if np.any(self.upper_bound < 0):
+                raise ValueError(f"[{self.name}] upper_bound must be >= 0 (component-wise).")
+
+            return
+
+        if u.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed after initialization: "
+                f"expected {self._resolved_shape}, got {u.shape}."
+            )
 
     # ------------------------------------------------------------------
     def _apply_dead_zone(self, u: np.ndarray) -> np.ndarray:
