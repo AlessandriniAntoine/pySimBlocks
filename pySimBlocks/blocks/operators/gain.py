@@ -171,10 +171,8 @@ class Gain(Block):
     # ------------------------------------------------------------------
     def _resolve_initialize(self, u) -> np.ndarray:
         u = u.flatten()
-        if self.multiplication == self.MULT_LEFT:
+        if self.multiplication != self.MULT_ELEMENTWISE:
             u = np.full((self.gain.shape[1], 1), u[0], dtype=float)
-        elif self.multiplication == self.MULT_RIGHT:
-            u = np.full((1, self.gain.shape[0]), u[0], dtype=float)
         elif self.multiplication == self.MULT_ELEMENTWISE:
             if self._gain_kind == "vector":
                 u = np.full((self.gain.shape[0], 1), u[0], dtype=float)
@@ -268,6 +266,7 @@ class Gain(Block):
             - u must be 2D (nrows,m)
             - output is (nrows,q)
         """
+
         if self._gain_kind != "matrix":
             raise ValueError(
                 f"[{self.name}] Multiplication mode '{self.MULT_RIGHT}' requires a 2D matrix gain. "
@@ -276,6 +275,17 @@ class Gain(Block):
 
         K = self.gain
         m, q = K.shape
+
+        # --- Special case: u is a vector (n,1)
+        if u.shape[1] == 1:
+            if u.shape[0] != m:
+                raise ValueError(
+                    f"[{self.name}] Right matrix product with vector requires u.shape[0] == gain.shape[0]."
+                    f"Got u.shape={u.shape}, gain.shape={K.shape}."
+                )
+            return (u.T @ K).T
+
+        # --- General case: u is a matrix (nrows,m)
         if u.shape[1] != m:
             raise ValueError(
                 f"[{self.name}] Right matrix product requires u.shape[1] == gain.shape[0]. "

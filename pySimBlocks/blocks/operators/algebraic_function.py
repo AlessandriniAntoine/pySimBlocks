@@ -149,7 +149,7 @@ class AlgebraicFunction(Block):
     def initialize(self, t0: float):
         self._validate_signature()
 
-        out = self._func(t0, 0, **self.inputs)
+        out = self._call_func(t0, 0, **self.inputs)
         if not isinstance(out, dict):
             raise RuntimeError(f"[{self.name}] function must return a dict.")
 
@@ -174,17 +174,9 @@ class AlgebraicFunction(Block):
             kwargs[k] = u
 
         # call function
-        out = self._func(t, dt, **kwargs)
+        out = self._call_func(t, dt, **kwargs)
 
-        if not isinstance(out, dict):
-            raise RuntimeError(f"[{self.name}] function must return a dict.")
 
-        # Ici on verifie juste que les clés de sorties sont dans la sortie (mais certaines peuvent etre non utilisées)
-        if not set(self.output_keys).issubset(out.keys()):
-            raise RuntimeError(
-                f"[{self.name}] missing output keys "
-                f"(expected {self.output_keys}, got {list(out.keys())})."
-            )
 
         # assign outputs
         for k in self.output_keys:
@@ -201,6 +193,31 @@ class AlgebraicFunction(Block):
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
+    def _call_func(self, t: float, dt: float, **kwargs) -> Dict[str, np.ndarray]:
+        try:
+            out =  self._func(t, dt, **kwargs)
+        except Exception as e:
+            raise RuntimeError(f"[{self.name}] function call error: {e}\n"
+                               f"Must always return a dict with output keys: {self.output_keys}") 
+
+        if not isinstance(out, dict):
+            raise RuntimeError(f"[{self.name}] function must return a dict.")
+
+        if not set(self.output_keys).issubset(out.keys()):
+            raise RuntimeError(
+                f"[{self.name}] missing output keys "
+                f"(expected {self.output_keys}, got {list(out.keys())})."
+            )
+
+        for k in self.output_keys:
+            y = out[k]
+            if not isinstance(y, np.ndarray):
+                raise RuntimeError(f"{self.name}: output '{k}' is not a numpy array")
+            if y.ndim > 2:
+                raise RuntimeError(f"{self.name}: output '{k}' must be at most 2D (got shape {y.shape})")
+        return out
+
+    # ------------------------------------------------------------------
     def _validate_signature(self) -> None:
         sig = inspect.signature(self._func)
         params = list(sig.parameters.values())

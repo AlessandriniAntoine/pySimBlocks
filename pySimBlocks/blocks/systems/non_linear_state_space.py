@@ -197,32 +197,11 @@ class NonLinearStateSpace(Block):
 
         # ---- call function
         x = self.state["x"]
-        out = self._output_func(t, dt, x=x)
-
-        if not isinstance(out, dict):
-            raise RuntimeError(
-                f"{self.name}: function must return a dict"
-            )
-
-        if set(out.keys()) != set(self.output_keys):
-            raise RuntimeError(
-                f"{self.name}: output keys mismatch "
-                f"(expected {self.output_keys}, got {list(out.keys())})"
-            )
+        out = self._call_output_func(t, dt, x=x)
 
         # ---- assign outputs
         for k in self.output_keys:
-            y = out[k]
-            if not isinstance(y, np.ndarray):
-                raise TypeError(
-                    f"{self.name}: output '{k}' is not a numpy array"
-                )
-            if y.ndim != 2 or y.shape[1] != 1:
-                raise ValueError(
-                    f"{self.name}: output '{k}' must have shape (n,1)"
-                )
-
-            self.outputs[k] = y
+            self.outputs[k] = out[k]
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
@@ -254,6 +233,45 @@ class NonLinearStateSpace(Block):
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
+    def _call_state_func(self, t, dt, x, **kwargs):
+        try:
+            out = self._state_func(t, dt, x, **kwargs)
+        except Exception as e:
+            raise RuntimeError(f"{self.name}: state function call error: {e}\n"
+                               f"Must always return the next state as a column vector array.")
+
+        if not isinstance(out, np.ndarray):
+            raise RuntimeError(f"{self.name}: state function must return a numpy array")
+        if out.ndim != 2 or out.shape[1] != 1:
+            raise RuntimeError(f"{self.name}: state function must return an array of shape (n,1)")
+
+        return out
+
+    # ------------------------------------------------------------------
+    def _call_output_func(self, t, dt, x):
+        try:
+            out = self._output_func(t, dt, x)
+        except Exception as e:
+            raise RuntimeError(f"{self.name}: output function call error: {e}\n"
+                               f"Must always return a dict with output keys: {self.output_keys}")
+
+        if not isinstance(out, dict):
+            raise RuntimeError(f"{self.name}: output function must return a dict")
+        if set(out.keys()) != set(self.output_keys):
+            raise RuntimeError(
+                f"{self.name}: output keys mismatch "
+                f"(expected {self.output_keys}, got {list(out.keys())})"
+            )
+        for k in self.output_keys:
+            y = out[k]
+            if not isinstance(y, np.ndarray):
+                raise RuntimeError(f"{self.name}: output '{k}' is not a numpy array")
+            if y.ndim != 2 or y.shape[1] != 1:
+                raise RuntimeError(f"{self.name}: output '{k}' must have shape (n,1)")
+
+        return out
+
+    # ------------------------------------------------------------------
     def _validate_signature(self):
         """
         Validate function signature against input_keys.

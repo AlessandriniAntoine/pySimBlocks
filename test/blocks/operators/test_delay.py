@@ -84,10 +84,11 @@ def test_delay_with_initial_output_matrix():
 # ------------------------------------------------------------
 def test_delay_dimension_mismatch_initial_output_non_scalar_vs_input():
     # initial_output non-scalar fixes buffer shape; if input shape differs -> error
-    d = Delay("D", num_delays=1, initial_output=[[1.0, 2.0]])  # shape (1,2)
+    d = Delay("D", num_delays=1, initial_output=[[1.0], [2.0]])  # shape (2, 1)
 
     m = Model()
-    src = Step("src", start_time=0.1, value_before=[[0.0], [0.0]], value_after=[[1.0], [1.0]])  # shape (2,1)
+    src = Step("src", start_time=0.1, value_before=[[0.0], [0.0], [0.]],
+               value_after=[[1.0], [1.0], [1.]])  # shape (3, 1)
     m.add_block(src)
     m.add_block(d)
     m.connect("src", "out", "D", "in")

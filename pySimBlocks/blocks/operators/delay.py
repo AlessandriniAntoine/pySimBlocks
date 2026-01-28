@@ -174,7 +174,7 @@ class Delay(Block):
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
-
+        
         buf0 = self.state["buffer"][0]
         assert buf0 is not None
 
