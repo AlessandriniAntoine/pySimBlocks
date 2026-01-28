@@ -19,6 +19,9 @@
 # ******************************************************************************
 
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Dict
+
 import numpy as np
 
 
@@ -100,6 +103,16 @@ class Block(ABC):
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        By default, does nothing.
+        """
+        return params
+
     @property
     def has_state(self):
         """Specify if block is stateful."""

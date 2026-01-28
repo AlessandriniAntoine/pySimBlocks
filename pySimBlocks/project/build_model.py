@@ -27,92 +27,6 @@ from pySimBlocks.core.model import Model
 from pySimBlocks.core.config import ModelConfig
 
 # ============================================================
-# Metadata lazy cache
-# ============================================================
-
-_METADATA_CACHE: dict[str, dict] = {}
-
-
-def _metadata_path_from_module(module: str) -> Path:
-    """
-    Convert a block python module path into its metadata yaml path.
-
-    Example:
-        pySimBlocks.blocks.operators.algebraic_function
-        -> pySimBlocks/blocks_metadata/operators/algebraic_function.yaml
-    """
-    parts = module.split(".")
-    parts[1] = "blocks_metadata"
-    return Path(__file__).parents[2].joinpath(*parts).with_suffix(".yaml")
-
-
-def _get_block_metadata(block_info: dict) -> dict:
-    """
-    Lazy-load and cache block metadata.
-    """
-    module = block_info["module"]
-
-    if module in _METADATA_CACHE:
-        return _METADATA_CACHE[module]
-
-    meta_path = _metadata_path_from_module(module)
-
-    if meta_path.exists():
-        with meta_path.open("r") as f:
-            meta = yaml.safe_load(f) or {}
-    else:
-        meta = {}
-
-    _METADATA_CACHE[module] = meta
-    return meta
-
-
-def _apply_block_adapter(
-    block_type: str,
-    params: dict,
-    *,
-    parameters_dir: Path | None,
-) -> dict:
-    """
-    Dynamically import and apply a block adapter.
-
-    Adapter naming convention:
-        <block_type>_adapter in pySimBlocks.project.block_adapter
-    """
-    if parameters_dir is None:
-        raise RuntimeError(
-            f"Adapter required for block '{block_type}' "
-            "but ModelConfig.parameters_dir is not set"
-        )
-
-    adapter_module_name = (
-        f"pySimBlocks.project.block_adapter.{block_type}_adapter"
-    )
-
-    try:
-        adapter_module = importlib.import_module(adapter_module_name)
-    except ImportError as e:
-        raise ImportError(
-            f"Block '{block_type}' requires an adapter but "
-            f"no adapter module '{adapter_module_name}' was found"
-        ) from e
-
-    adapter_func_name = f"{block_type}_adapter"
-    try:
-        adapter_func = getattr(adapter_module, adapter_func_name)
-    except AttributeError as e:
-        raise AttributeError(
-            f"Adapter module '{adapter_module_name}' must define "
-            f"function '{adapter_func_name}'"
-        ) from e
-
-    return adapter_func(
-        params,
-        parameters_dir=parameters_dir,
-    )
-
-
-# ============================================================
 # Public API
 # ============================================================
 
@@ -187,25 +101,10 @@ def build_model_from_dict(
             params = desc.get("parameters", {})
 
         # --------------------------------------------------------
-        # Lazy metadata + adapter handling
-        # --------------------------------------------------------
-        metadata = _get_block_metadata(block_info)
-        needs_adapter = (
-            metadata
-            .get("execution", {})
-            .get("adapter", False)
-        )
-
-        if needs_adapter:
-            params = _apply_block_adapter(
-                block_type=block_type,
-                params=params,
-                parameters_dir=model_cfg.parameters_dir if model_cfg else None,
-            )
-
-        # --------------------------------------------------------
         # Instantiate block
         # --------------------------------------------------------
+        params_dir = model_cfg.parameters_dir if model_cfg else None
+        params = BlockClass.adapt_params(params, params_dir=params_dir)
         block = BlockClass(name=name, **params)
         model.add_block(block)
 

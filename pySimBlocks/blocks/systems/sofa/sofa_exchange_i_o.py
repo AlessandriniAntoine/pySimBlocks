@@ -18,8 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import numpy as np
-from typing import Dict, List
+from pathlib import Path
+from typing import Any, Dict, List
 from pySimBlocks.core.block import Block
 
 
@@ -77,9 +77,30 @@ class SofaExchangeIO(Block):
         for k in output_keys:
             self.outputs[k] = None
 
+
+    # --------------------------------------------------------------------------
+    # Class Methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        Adapt function file and name in a yaml format into callable.
+        """
+        adapted = dict(params)
+        adapted.pop("scene_file", None)
+        return adapted
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         pass
 
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
         """
         Outputs are produced by upstream blocks (controller).
@@ -93,6 +114,7 @@ class SofaExchangeIO(Block):
         # Outputs are set by other blocks (controller chain) through normal propagation.
         pass
 
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         # Stateless block: no internal state
         pass

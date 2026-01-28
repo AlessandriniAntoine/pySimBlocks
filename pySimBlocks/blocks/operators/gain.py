@@ -93,10 +93,13 @@ class Gain(Block):
         if u is None:
             self.outputs["out"] = None
             return
-        if u.ndim == 1 and u.shape[0] == 1:
-            u = u.reshape(1, 1)
-        if u.ndim == 2 and u.shape == (1, 1) and not self._gain_kind == "scalar":
-            u = np.full((self.gain.shape[0], 1), u[0, 0], dtype=float)
+
+        if not self._gain_kind == "scalar":
+            if u.ndim == 1 and u.shape[0] == 1:
+                u = self._resolve_initialize(u)
+            if u.ndim == 2 and u.shape == (1, 1):
+                u = self._resolve_initialize(u)
+            
         self.outputs["out"] = self._compute(u)
 
     # ------------------------------------------------------------------
@@ -109,6 +112,20 @@ class Gain(Block):
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
         return  # stateless
+
+    # ------------------------------------------------------------------
+    def _resolve_initialize(self, u) -> np.ndarray:
+        u = u.flatten()
+        if self.multiplication == self.MULT_LEFT:
+            u = np.full((self.gain.shape[1], 1), u[0], dtype=float)
+        elif self.multiplication == self.MULT_RIGHT:
+            u = np.full((1, self.gain.shape[0]), u[0], dtype=float)
+        elif self.multiplication == self.MULT_ELEMENTWISE:
+            if self._gain_kind == "vector":
+                u = np.full((self.gain.shape[0], 1), u[0], dtype=float)
+            elif self._gain_kind == "matrix":
+                u = np.full(self.gain.shape, u[0], dtype=float)
+        return u
 
     # ------------------------------------------------------------------
     def _compute(self, u) -> np.ndarray:

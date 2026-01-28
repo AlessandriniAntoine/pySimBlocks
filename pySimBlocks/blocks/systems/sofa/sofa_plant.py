@@ -18,9 +18,10 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from pathlib import Path
 from multiprocessing import Process, Pipe
 import numpy as np
-from typing import Dict, List
+from typing import Any, Dict, List
 from pySimBlocks.core.block import Block
 
 
@@ -140,7 +141,37 @@ class SofaPlant(Block):
         self.conn = None
 
 
+    # --------------------------------------------------------------------------
+    # Class Methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        Adapt function file and name in a yaml format into callable.
+        """
+        if params_dir is None:
+            raise ValueError("params_dir must be provided for SofaPlant adaptation")
 
+        scene_file = params.get("scene_file")
+        if scene_file is None:
+            raise ValueError("Missing 'scene_file' parameter")
+
+        path = Path(scene_file)
+        if not path.is_absolute():
+            path = (params_dir / path).resolve()
+
+        adapted = dict(params)
+        adapted["scene_file"] = str(path)
+
+        return adapted
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
 
         # Start worker
@@ -163,6 +194,7 @@ class SofaPlant(Block):
             self.next_state[k] = initial_outputs[k]
 
 
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
         """
         Outputs were already updated during the previous state_update().
@@ -173,6 +205,7 @@ class SofaPlant(Block):
             self.outputs[key] = self.state[key]
 
 
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
 
         # Send inputs
@@ -194,6 +227,7 @@ class SofaPlant(Block):
             self.next_state[k] = outputs[k]
 
 
+    # ------------------------------------------------------------------
     def finalize(self):
         """Ensure worker process is shutdown cleanly."""
         if self.conn:
@@ -212,6 +246,9 @@ class SofaPlant(Block):
                 self.process.kill()
 
 
+    # --------------------------------------------------------------------------
+    # Destructor
+    # --------------------------------------------------------------------------
     def __del__(self):
         if self.conn:
             try:
