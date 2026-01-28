@@ -122,8 +122,8 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
-        dialog = PlotDialog(self.project_state)
-        dialog.exec()
+        self._plot_dialog = PlotDialog(self.project_state, self.parent()) # keep ref because of python garbage collector
+        self._plot_dialog.show()
 
 
     def set_running(self, running: bool):

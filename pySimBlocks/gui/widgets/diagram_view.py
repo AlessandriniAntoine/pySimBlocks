@@ -45,7 +45,7 @@ class DiagramView(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
 
         self.pending_port: PortItem | None = None
-        self.copied_block = None
+        self.copied_block: BlockItem | None = None
         self.resolve_block_meta = resolve_block_meta
         self.project_state = project_state
         self.block_items: dict[str, BlockItem] = {}
