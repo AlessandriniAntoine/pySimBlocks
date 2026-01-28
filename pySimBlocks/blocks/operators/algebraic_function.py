@@ -18,8 +18,10 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+import importlib.util
 import inspect
-from typing import Callable, List, Dict
+from pathlib import Path
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 
@@ -83,7 +85,67 @@ class AlgebraicFunction(Block):
         self._in_shapes: Dict[str, tuple[int, int] | None] = {k: None for k in self.input_keys}
         self._out_shapes: Dict[str, tuple[int, int] | None] = {k: None for k in self.output_keys}
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Class Methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        Adapt function file and name in a yaml format into callable.
+        """
+        # --- 1. Extract function file and name
+        if params_dir is None:
+            raise ValueError("parameters_dir must be provided for AlgebraicFunction adapter.")
+        try:
+            file_path = params["file_path"]
+            func_name = params["function_name"]
+        except KeyError as e:
+            raise ValueError(
+                f"AlgebraicFunction adapter missing parameter: {e}"
+            )
+
+        # --- 2. Resolve file path (RELATIVE TO parameters.yaml)
+        path = Path(file_path)
+        if not path.is_absolute():
+            path = (params_dir / path).resolve()
+
+        if not path.exists():
+            raise FileNotFoundError(f"Function file not found: {path}")
+
+        # --- 3. Load module
+        spec = importlib.util.spec_from_file_location(path.stem, path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+
+        # --- 4. Extract function
+        try:
+            func = getattr(module, func_name)
+        except AttributeError:
+            raise AttributeError(
+                f"Function '{func_name}' not found in {path}"
+            )
+
+        if not callable(func):
+            raise TypeError(
+                f"'{func_name}' in {path} is not callable"
+            )
+
+        # --- 5. Build adapted parameter dict
+        adapted = dict(params)
+        adapted.pop("file_path", None)
+        adapted.pop("function_name", None)
+        adapted["function"] = func
+
+        return adapted
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         self._validate_signature()
 
@@ -100,6 +162,45 @@ class AlgebraicFunction(Block):
             self.outputs[k] = out[k]
 
     # ------------------------------------------------------------------
+    def output_update(self, t: float, dt: float):
+        # collect inputs
+        kwargs: Dict[str, np.ndarray] = {}
+        for k in self.input_keys:
+            u = self.inputs[k]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] input '{k}' is not set.")
+            u = np.asarray(u)  # allow array-like injection, but freeze as ndarray 2D
+            self._check_freeze_shape("input", k, u, self._in_shapes)
+            kwargs[k] = u
+
+        # call function
+        out = self._func(t, dt, **kwargs)
+
+        if not isinstance(out, dict):
+            raise RuntimeError(f"[{self.name}] function must return a dict.")
+
+        # Ici on verifie juste que les clés de sorties sont dans la sortie (mais certaines peuvent etre non utilisées)
+        if not set(self.output_keys).issubset(out.keys()):
+            raise RuntimeError(
+                f"[{self.name}] missing output keys "
+                f"(expected {self.output_keys}, got {list(out.keys())})."
+            )
+
+        # assign outputs
+        for k in self.output_keys:
+            y = out[k]
+            y = np.asarray(y)
+            self._check_freeze_shape("output", k, y, self._out_shapes)
+            self.outputs[k] = y
+
+    # ------------------------------------------------------------------
+    def state_update(self, t: float, dt: float):
+        return  # stateless
+
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
     def _validate_signature(self) -> None:
         sig = inspect.signature(self._func)
         params = list(sig.parameters.values())
@@ -139,38 +240,4 @@ class AlgebraicFunction(Block):
                 f"[{self.name}] {which} '{key}' shape changed: expected {store[key]}, got {arr.shape}."
             )
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        # collect inputs
-        kwargs: Dict[str, np.ndarray] = {}
-        for k in self.input_keys:
-            u = self.inputs[k]
-            if u is None:
-                raise RuntimeError(f"[{self.name}] input '{k}' is not set.")
-            u = np.asarray(u)  # allow array-like injection, but freeze as ndarray 2D
-            self._check_freeze_shape("input", k, u, self._in_shapes)
-            kwargs[k] = u
-
-        # call function
-        out = self._func(t, dt, **kwargs)
-
-        if not isinstance(out, dict):
-            raise RuntimeError(f"[{self.name}] function must return a dict.")
-
-        # Ici on verifie juste que les clés de sorties sont dans la sortie (mais certaines peuvent etre non utilisées)
-        if not set(self.output_keys).issubset(out.keys()):
-            raise RuntimeError(
-                f"[{self.name}] missing output keys "
-                f"(expected {self.output_keys}, got {list(out.keys())})."
-            )
-
-        # assign outputs
-        for k in self.output_keys:
-            y = out[k]
-            y = np.asarray(y)
-            self._check_freeze_shape("output", k, y, self._out_shapes)
-            self.outputs[k] = y
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        return  # stateless
+    

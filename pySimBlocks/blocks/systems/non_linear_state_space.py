@@ -19,7 +19,8 @@
 # ******************************************************************************
 
 import inspect
-from typing import Callable, List, Dict
+from pathlib import Path
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 
@@ -63,7 +64,6 @@ class NonLinearStateSpace(Block):
     direct_feedthrough = False
     is_source = False
 
-    # ------------------------------------------------------------------
     def __init__(
         self,
         name: str,
@@ -96,7 +96,85 @@ class NonLinearStateSpace(Block):
         self.state["x"] = x0.copy()
         self.next_state["x"] = x0.copy()
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Class Methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def adapt_params(cls, 
+                     params: Dict[str, Any], 
+                     params_dir: Path | None = None) -> Dict[str, Any]:
+        """
+        Adapt parameters from yaml format to class constructor format.
+        Adapt function file and name in a yaml format into callable.
+        """
+        # --- 1. Validate required fields
+        if params_dir is None:
+            raise ValueError("parameters_dir must be provided for AlgebraicFunction adapter.")
+        try:
+            file_path = params["file_path"]
+            state_func_name = params["state_function_name"]
+            output_func_name = params["output_function_name"]
+        except KeyError as e:
+            raise ValueError(
+                f"NonLinearStateSpace adapter missing parameter: {e}"
+            )
+
+        # --- 2. Resolve file path (relative to parameters.yaml)
+        path = Path(file_path)
+        if not path.is_absolute():
+            path = (params_dir / path).resolve()
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"NonLinearStateSpace function file not found: {path}"
+            )
+
+        # --- 3. Load module
+        spec = importlib.util.spec_from_file_location(path.stem, path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+
+        # --- 4. Extract functions
+        try:
+            state_func: Callable = getattr(module, state_func_name)
+        except AttributeError:
+            raise AttributeError(
+                f"State function '{state_func_name}' not found in {path}"
+            )
+
+        try:
+            output_func: Callable = getattr(module, output_func_name)
+        except AttributeError:
+            raise AttributeError(
+                f"Output function '{output_func_name}' not found in {path}"
+            )
+
+        if not callable(state_func):
+            raise TypeError(
+                f"'{state_func_name}' in {path} is not callable"
+            )
+
+        if not callable(output_func):
+            raise TypeError(
+                f"'{output_func_name}' in {path} is not callable"
+            )
+
+        # --- 5. Build adapted parameter dict
+        adapted = dict(params)
+
+        adapted.pop("file_path", None)
+        adapted.pop("state_function_name", None)
+        adapted.pop("output_function_name", None)
+        adapted["state_function"] = state_func
+        adapted["output_function"] = output_func
+
+        return adapted
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
     def initialize(self, t0: float):
         """
         Load the user function and validate its signature.
@@ -109,42 +187,6 @@ class NonLinearStateSpace(Block):
 
         for k in self.output_keys:
             self.outputs[k] = None
-
-    # ------------------------------------------------------------------
-    def _validate_signature(self):
-        """
-        Validate function signature against input_keys.
-        """
-        assert self._state_func is not None
-        assert self._output_func is not None
-
-        for f in [self._state_func, self._output_func]:
-            sig = inspect.signature(f)
-            params = list(sig.parameters.values())
-
-            # ---- minimum signature: (t, dt, ...)
-            if len(params) < 3:
-                raise ValueError(
-                    f"{self.name}: function must have at least arguments (t, dt, x)"
-                )
-
-            if params[0].name != "t" or params[1].name != "dt" or params[2].name != "x":
-                raise ValueError(
-                    f"{self.name}: first arguments must be (t, dt, x)"
-                )
-
-            # ---- no *args / **kwargs / defaults
-            for p in params:
-                if p.kind not in (
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                ):
-                    raise ValueError(
-                        f"{self.name}: *args and **kwargs are not allowed"
-                    )
-                if p.default is not inspect.Parameter.empty:
-                    raise ValueError(
-                        f"{self.name}: default arguments are not allowed"
-                    )
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
@@ -182,6 +224,7 @@ class NonLinearStateSpace(Block):
 
             self.outputs[k] = y
 
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         """
         Compute next state from current inputs.
@@ -206,3 +249,42 @@ class NonLinearStateSpace(Block):
         x = self.state["x"]
         out = self._state_func(t, dt, x=x, **kwargs)
         self.next_state["x"] = out
+
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+    def _validate_signature(self):
+        """
+        Validate function signature against input_keys.
+        """
+        assert self._state_func is not None
+        assert self._output_func is not None
+
+        for f in [self._state_func, self._output_func]:
+            sig = inspect.signature(f)
+            params = list(sig.parameters.values())
+
+            # ---- minimum signature: (t, dt, ...)
+            if len(params) < 3:
+                raise ValueError(
+                    f"{self.name}: function must have at least arguments (t, dt, x)"
+                )
+
+            if params[0].name != "t" or params[1].name != "dt" or params[2].name != "x":
+                raise ValueError(
+                    f"{self.name}: first arguments must be (t, dt, x)"
+                )
+
+            # ---- no *args / **kwargs / defaults
+            for p in params:
+                if p.kind not in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                ):
+                    raise ValueError(
+                        f"{self.name}: *args and **kwargs are not allowed"
+                    )
+                if p.default is not inspect.Parameter.empty:
+                    raise ValueError(
+                        f"{self.name}: default arguments are not allowed"
+                    )
