@@ -55,16 +55,6 @@ class BlockInstance:
 
         return params
 
-    def serialize(self) -> dict:
-        return {
-            "uid": self.uid,
-            "name": self.name,
-            "category": self.meta.category,
-            "type": self.meta.type,
-            "parameters": {k: v for k, v in self.parameters.items() if v is not None},
-            "ports": [p.serialize() for p in self.ports],
-        }
-
     def resolve_ports(self) -> None:
         ports: List[PortInstance] = []
 

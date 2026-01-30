@@ -20,7 +20,7 @@
 
 from pathlib import Path
 
-from pySimBlocks.gui.model.block_instance import BlockInstance
+from pySimBlocks.gui.model.block_instance import BlockInstance, PortInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 from pySimBlocks.gui.model.project_simulation_params import ProjectSimulationParams
 
@@ -79,8 +79,11 @@ class ProjectState:
         if conn in self.connections:
             self.connections.remove(conn)
 
-    def get_connections_of_block(self, block_instance: BlockInstance) -> list[ConnectionInstance]:
-        return [c for c in self.connections if block_instance is c.src_block() or block_instance is c.dst_block()]
+    def get_connections_of_port(self, port_instance: PortInstance) -> list[ConnectionInstance]:
+        return [
+            c for c in self.connections
+            if port_instance is c.src_port or port_instance is c.dst_port
+        ]
 
     # -------------------------
     # Signals

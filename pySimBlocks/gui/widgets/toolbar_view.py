@@ -32,6 +32,7 @@ from pySimBlocks.gui.services.project_controller import ProjectController
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 from pySimBlocks.gui.services.project_saver import ProjectSaver
+from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
@@ -39,11 +40,13 @@ class ToolBarView(QToolBar):
 
     def __init__(self, 
                  saver: ProjectSaver,
+                 runner: SimulationRunner,
                  project_state: ProjectState, 
                  project_view: DiagramView):
         super().__init__()
 
         self.saver = saver
+        self.runner = runner
         self.project_state = project_state
         self.project_view = project_view
 
@@ -104,7 +107,7 @@ class ToolBarView(QToolBar):
         QApplication.processEvents()
 
         self.set_running(True)
-        logs, flag, msg = self.project_controller.run()
+        logs, flag, msg = self.runner.run(self.project_state)
         dlg.close()
         self.set_running(False)
         self.project_state.logs = logs

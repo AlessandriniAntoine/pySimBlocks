@@ -48,11 +48,4 @@ class PortInstance:
         already linked to this PortInstance.
         """
         return self.direction == "output" or not connections
-    
-    def serialize(self) -> dict:
-        return {
-            "name": self.name,
-            "direction": self.direction,
-            "meta": self.meta,
-        }
 

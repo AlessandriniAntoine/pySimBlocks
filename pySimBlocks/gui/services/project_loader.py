@@ -76,6 +76,7 @@ class ProjectLoaderYaml(ProjectLoader):
         connections = model_data.get("connections", [])
 
         for src, dst in connections:
+            
             src_block_name, src_port_name = src.split(".")
             dst_block_name, dst_port_name = dst.split(".")
 

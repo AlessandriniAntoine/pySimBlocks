@@ -41,9 +41,3 @@ class ConnectionInstance:
     
     def is_block_involved(self, block: "BlockInstance") -> bool:
         return block in (self.src_port.block, self.dst_port.block)
-
-    def serialize(self) -> list[str]:
-        return [
-            f"{self.src_block().name}.{self.src_port.name}",
-            f"{self.dst_block().name}.{self.dst_port.name}",
-        ]

@@ -99,6 +99,7 @@ def dump_parameter_yaml(
         raise ValueError("project or raw must be set")
 
     data = _wrap_flow_matrices(data)
+
     return yaml.dump(
         data,
         Dumper=ModelYamlDumper,
@@ -137,6 +138,7 @@ def dump_layout_yaml(
         data = raw
     else:
         raise ValueError("block_items or raw must be set")
+    
     return yaml.dump(
         data,
         Dumper=ModelYamlDumper,
@@ -187,8 +189,20 @@ def build_parameters_yaml(project_state: ProjectState) -> dict:
 
 def build_model_yaml(project_state: ProjectState) -> dict:
     return {
-        "blocks": [b.serialize() for b in project_state.blocks],
-        "connections": [c.serialize() for c in project_state.connections],
+        "blocks": [
+            {
+                "name": b.name,
+                "category": b.meta.category,
+                "type": b.meta.type,
+            }
+            for b in project_state.blocks
+        ],
+        "connections": [
+             [f"{c.src_block().name}.{c.src_port.name}",
+              f"{c.dst_block().name}.{c.dst_port.name}",
+            ]
+            for c in project_state.connections
+        ],
     }
 
 def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:

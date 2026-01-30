@@ -87,6 +87,7 @@ class ProjectController:
         self.view.remove_block(block_instance)
 
     def add_connection(self, port1: PortInstance, port2: PortInstance):
+    
 
         if not port1.is_compatible(port2):
             return
@@ -95,7 +96,8 @@ class ProjectController:
             (port1, port2) if port1.direction == "output" else (port2, port1)
         )
 
-        port_dst_connections = self.project_state.get_connections_of_block(dst_port.block)
+        port_dst_connections = self.project_state.get_connections_of_port(dst_port.block)
+
 
         if not dst_port.can_accept_connection(port_dst_connections):
             return
@@ -133,48 +135,6 @@ class ProjectController:
             if b.name == name:
                 return False
         return True
-
-    def run(self):
-        project_dir = self.project_state.directory_path
-        if project_dir is None:
-            return (
-                {},
-                False,
-                "Project directory is not set.\nPlease define it in settings.",
-            )
-
-        temp_dir = project_dir / ".temp"
-
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        temp_dir.mkdir(parents=True)
-        save_yaml(project_state=self.project_state, temp=True)
-
-        model_path = temp_dir / "model.yaml"
-        param_path = temp_dir / "parameters.yaml"
-
-        code = generate_python_content(
-            model_yaml_path=str(model_path),
-            parameters_yaml_path=str(param_path),
-            parameters_dir=str(project_dir),
-            enable_plots=False,
-        )
-
-        old_cwd = os.getcwd()
-        old_sys_path = list(sys.path)
-        env = {}
-        try:
-            os.chdir(temp_dir)
-            sys.path.insert(0, str(project_dir))
-            exec(code, env, env)
-            logs = env.get("logs")
-            return logs, True, "Simulation success."
-        except Exception as e:
-            logs = {}
-            return logs, False, f"Error: {e}"
-        finally:
-            os.chdir(old_cwd)
-            sys.path[:] = old_sys_path
 
     def can_plot(self):
         if not bool(self.project_state.logs):
