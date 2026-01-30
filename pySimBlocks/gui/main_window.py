@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
 
         flag = self.auto_load_detection(project_path)
         if flag:
-            self.loader.load(self.project_controller, project_path)
+            self.project_controller.load_project(self.loader)
 
     def cleanup(self):
         temp_path = self.project_state.directory_path / ".temp"

@@ -153,10 +153,10 @@ class DiagramView(QGraphicsView):
 
     def clear_scene(self):
 
-        for block in self.block_items.values():
+        for block in list(self.block_items.values()):
             self.project_controller.remove_block(block.instance)
         
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             self.project_controller.remove_connection(connection.instance)
 
         self.pending_port = None

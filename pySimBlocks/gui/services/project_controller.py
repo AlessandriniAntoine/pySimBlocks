@@ -25,9 +25,13 @@ from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, PortInstanc
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.tools.blocks_registry import BlockMeta
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pySimBlocks.gui.services.project_loader import ProjectLoader
+
 
 class ProjectController:
-    def __init__(self, 
+    def __init__(self,
                  project_state: ProjectState,
                  view: DiagramView,
                  resolve_block_meta: Callable[[str, str], BlockMeta]
@@ -134,3 +138,6 @@ class ProjectController:
             if temp.exists():
                 shutil.rmtree(temp, ignore_errors=True)
         self.project_state.directory_path = new_path
+
+    def load_project(self, loader: 'ProjectLoader'):
+        loader.load(self, self.project_state.directory_path)

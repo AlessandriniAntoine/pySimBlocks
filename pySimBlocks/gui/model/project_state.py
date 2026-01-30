@@ -79,6 +79,12 @@ class ProjectState:
         if conn in self.connections:
             self.connections.remove(conn)
 
+    def get_connections_of_block(self, block_instance: BlockInstance) -> list[ConnectionInstance]: 
+        return [
+            c for c in self.connections
+            if block_instance is c.src_block() or block_instance is c.dst_block()
+        ]
+
     def get_connections_of_port(self, port_instance: PortInstance) -> list[ConnectionInstance]:
         return [
             c for c in self.connections

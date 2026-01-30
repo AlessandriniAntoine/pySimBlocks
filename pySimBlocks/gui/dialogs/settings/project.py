@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 
 
 class ProjectSettingsWidget(QWidget):
@@ -69,7 +70,7 @@ class ProjectSettingsWidget(QWidget):
 
     def load_project(self):
         self.apply()
-        self.project_controller.load_project(self.project_state.directory_path)
+        self.project_controller.load_project(ProjectLoaderYaml())
         ext = self.project_state.external
         self.external_edit.setText("" if ext is None else ext)
         self.settings_dialog.refresh_tabs_from_project()
