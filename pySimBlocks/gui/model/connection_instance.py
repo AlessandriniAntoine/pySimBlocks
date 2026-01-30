@@ -40,4 +40,4 @@ class ConnectionInstance:
         return self.dst_port.block
     
     def is_block_involved(self, block: "BlockInstance") -> bool:
-        return block is self.src_block() or block is self.dst_block()
+        return block in (self.src_port.block, self.dst_port.block)
