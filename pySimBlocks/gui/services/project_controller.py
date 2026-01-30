@@ -128,18 +128,6 @@ class ProjectController:
                 return False
         return True
 
-    def save(self):
-        save_yaml(self.project_state, self.view.block_items)
-
-    def export(self):
-        save_yaml(self.project_state, self.view.block_items)
-        run_py = self.project_state.directory_path / "run.py"
-        run_py.write_text(
-            generate_python_content(
-                model_yaml_path="model.yaml", parameters_yaml_path="parameters.yaml"
-            )
-        )
-
     def run(self):
         project_dir = self.project_state.directory_path
         if project_dir is None:

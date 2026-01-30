@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
 from pySimBlocks.tools.blocks_registry import BlockRegistry, load_block_registry, BlockMeta
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
@@ -45,15 +46,15 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("pySimBlocks — Qt Edition")
 
         self.project_state = ProjectState(project_path)
-        self.diagram = DiagramView()
-        self.project_controller = ProjectController(self.project_state, self.diagram, self.resolve_block_meta)
-        self.diagram.project_controller = self.project_controller
+        self.view = DiagramView()
+        self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
+        self.view.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
-        self.toolbar = ToolBarView(self.project_state, self.project_controller)
+        self.toolbar = ToolBarView(ProjectSaverYaml().project_state, self.view)
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.blocks)
-        splitter.addWidget(self.diagram)
+        splitter.addWidget(self.view)
         splitter.setSizes([180, 800])
         
         self.setCentralWidget(splitter)

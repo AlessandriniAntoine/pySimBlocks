@@ -31,61 +31,67 @@ from pySimBlocks.gui.services.project_controller import ProjectController
 # Add ons
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
+from pySimBlocks.gui.services.project_saver import ProjectSaver
+from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class ToolBarView(QToolBar):
 
-    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
+    def __init__(self, 
+                 saver: ProjectSaver,
+                 project_state: ProjectState, 
+                 project_view: DiagramView):
         super().__init__()
 
+        self.saver = saver
         self.project_state = project_state
-        self.project_controller = project_controller
+        self.project_view = project_view
 
         save_action = QAction("Save", self)
-        save_action.triggered.connect(self.save_yaml)
+        save_action.triggered.connect(self.on_save)
         self.addAction(save_action)
 
         export_action = QAction("Export", self)
-        export_action.triggered.connect(self.export_project)
+        export_action.triggered.connect(self.on_export_project)
         self.addAction(export_action)
 
         display_action = QAction("Display files", self)
-        display_action.triggered.connect(self.open_display_yaml)
+        display_action.triggered.connect(self.on_open_display_yaml)
         self.addAction(display_action)
 
         sim_settings_action = QAction("Settings", self)
-        sim_settings_action.triggered.connect(self.open_simulation_settings)
+        sim_settings_action.triggered.connect(self.on_open_simulation_settings)
         self.addAction(sim_settings_action)
 
         run_action = QAction("Run", self)
-        run_action.triggered.connect(self.run_sim)
+        run_action.triggered.connect(self.on_run_sim)
         self.addAction(run_action)
 
         plot_action = QAction("Plot", self)
-        plot_action.triggered.connect(self.plot_logs)
+        plot_action.triggered.connect(self.on_plot_logs)
         self.addAction(plot_action)
 
         # add ons
-        self.sofa_service = SofaService(self.project_state, self.project_controller)
+        self.sofa_service = SofaService(self.project_state, self.project_view)
         self.sofa_action = QAction("Sofa", self)
-        self.sofa_action.triggered.connect(self.open_sofa_dialog)
+        self.sofa_action.triggered.connect(self.on_open_sofa_dialog)
         self.addAction(self.sofa_action)
 
-    def save_yaml(self):
-        self.project_controller.save()
+    def on_save(self):
+        self.saver.save(self.project_state, self.project_view.block_items)
 
-    def export_project(self):
-        self.project_controller.export()
+    def on_export_project(self):
+        self.saver.export(self.project_state, self.project_view.block_items)
 
-    def open_display_yaml(self):
-        dialog = DisplayYamlDialog(self.project_state, self.project_controller.view)
+    def on_open_display_yaml(self):
+        dialog = DisplayYamlDialog(self.project_state, self.project_view)
         dialog.exec()
 
-    def open_simulation_settings(self):
+    def on_open_simulation_settings(self):
         dialog = SettingsDialog(self.project_state, self.project_controller)
         dialog.exec()
 
-    def run_sim(self):
+    def on_run_sim(self):
         dlg = QProgressDialog(self)
         dlg.setWindowTitle("Simulation")
         dlg.setLabelText("Running simulation...\nPlease wait.")
@@ -112,7 +118,7 @@ class ToolBarView(QToolBar):
             )
 
 
-    def plot_logs(self):
+    def on_plot_logs(self):
         flag, msg = self.project_controller.can_plot()
         if not flag:
             QMessageBox.warning(
@@ -140,7 +146,7 @@ class ToolBarView(QToolBar):
             if self.sofa_action in self.actions():
                 self.removeAction(self.sofa_action)
 
-    def open_sofa_dialog(self):
+    def on_open_sofa_dialog(self):
         ok, msg, details = self.sofa_service.can_use_sofa()
         if not ok:
             QMessageBox.warning(
