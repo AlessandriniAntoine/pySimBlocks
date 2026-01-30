@@ -122,7 +122,7 @@ class ToolBarView(QToolBar):
 
 
     def on_plot_logs(self):
-        flag, msg = self.project_controller.can_plot()
+        flag, msg = self.project_state.can_plot()
         if not flag:
             QMessageBox.warning(
                 self,

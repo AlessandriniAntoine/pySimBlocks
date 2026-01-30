@@ -97,3 +97,12 @@ class ProjectState:
                     signals.append(f"{block.name}.outputs.{port.name}")
 
         return signals
+    
+    def can_plot(self) -> tuple[bool, str]:
+        if not bool(self.logs):
+            return False, "Simulation has not been done.\nPlease run fist."
+
+        if not ("time" in self.logs):
+            return False, "Time is not in logs."
+
+        return True, "Plotting is available."

@@ -134,16 +134,7 @@ class ProjectController:
                 continue
             if b.name == name:
                 return False
-        return True
-
-    def can_plot(self):
-        if not bool(self.project_state.logs):
-            return False, "Simulation has not been done.\nPlease run fist."
-
-        if not ("time" in self.project_state.logs):
-            return False, "Time is not in logs."
-
-        return True, "Plotting is available."
+        return True        
 
     def change_project_directory(self, new_path: Path):
         if self.project_state.directory_path:
