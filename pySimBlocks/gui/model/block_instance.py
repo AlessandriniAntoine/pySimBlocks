@@ -59,10 +59,8 @@ class BlockInstance:
         return {
             "uid": self.uid,
             "name": self.name,
-            "meta": {
-                "category": self.meta.category,
-                "type": self.meta.type,
-            },
+            "category": self.meta.category,
+            "type": self.meta.type,
             "parameters": {k: v for k, v in self.parameters.items() if v is not None},
             "ports": [p.serialize() for p in self.ports],
         }
