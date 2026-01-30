@@ -154,14 +154,24 @@ def save_yaml(
         temp: bool = False) -> None:
     
     directory = project_state.directory_path
+    params_yaml = build_parameters_yaml(project_state)
+    model_yaml = build_model_yaml(project_state)
+
     if temp:
-        directory = directory / ".temp"
+        temp_dir = directory / ".temp"
+        if "external" in params_yaml:
+            external_abs = directory / params_yaml["external"]
+            external_temp = os.path.relpath(external_abs, temp_dir)
+            params_yaml["external"] = external_temp
+        directory = temp_dir
+    
     directory.mkdir(parents=True, exist_ok=True)
 
-    (directory / "parameters.yaml").write_text(dump_parameter_yaml(project_state))
-    (directory / "model.yaml").write_text(dump_model_yaml(project_state))
-    if block_items and not temp:
-        (directory / "layout.yaml").write_text(dump_layout_yaml(block_items))
+    (directory / "parameters.yaml").write_text(dump_parameter_yaml(raw=params_yaml))
+    (directory / "model.yaml").write_text(dump_model_yaml(raw=model_yaml))
+    if not temp and block_items:
+        layout_yaml = build_layout_yaml(block_items)
+        (directory / "layout.yaml").write_text(dump_layout_yaml(raw=layout_yaml))
     
 # ===============================================================
 # Build function
