@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
         self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
         self.view.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
-        self.toolbar = ToolBarView(self.saver, self.runner, self.project_state, self.view)
+        self.toolbar = ToolBarView(self.saver, self.runner, self.project_controller)
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.blocks)

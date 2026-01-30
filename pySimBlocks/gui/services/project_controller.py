@@ -18,19 +18,11 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import os
-import sys
 from pathlib import Path
 from typing import Callable
 import shutil
-from PySide6.QtCore import QPointF
-
-
-from pySimBlocks.gui.graphics import BlockItem, ConnectionItem
 from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, PortInstance, ProjectState
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
-from pySimBlocks.gui.services.yaml_tools import save_yaml, load_yaml_file
-from pySimBlocks.project.generate_run_script import generate_python_content
 from pySimBlocks.tools.blocks_registry import BlockMeta
 
 

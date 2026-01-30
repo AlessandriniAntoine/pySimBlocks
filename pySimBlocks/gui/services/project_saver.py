@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from pySimBlocks.gui.model import ProjectState
-from pySimBlocks.gui.services.project_controller import BlockItem
+from pySimBlocks.gui.graphics import BlockItem
 from pySimBlocks.gui.services.yaml_tools import save_yaml
 from pySimBlocks.project.generate_run_script import generate_python_content
 

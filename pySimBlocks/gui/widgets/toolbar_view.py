@@ -25,30 +25,25 @@ from PySide6.QtCore import Qt
 from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
-from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.services.project_saver import ProjectSaver
+from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 
 # Add ons
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
-from pySimBlocks.gui.services.project_saver import ProjectSaver
-from pySimBlocks.gui.services.simulation_runner import SimulationRunner
-from pySimBlocks.gui.widgets.diagram_view import DiagramView
-
 
 class ToolBarView(QToolBar):
 
     def __init__(self, 
                  saver: ProjectSaver,
                  runner: SimulationRunner,
-                 project_state: ProjectState, 
-                 project_view: DiagramView):
+                 project_controller: ProjectController):
         super().__init__()
 
         self.saver = saver
         self.runner = runner
-        self.project_state = project_state
-        self.project_view = project_view
+        self.project_controller = project_controller
 
         save_action = QAction("Save", self)
         save_action.triggered.connect(self.on_save)
@@ -75,23 +70,23 @@ class ToolBarView(QToolBar):
         self.addAction(plot_action)
 
         # add ons
-        self.sofa_service = SofaService(self.project_state, self.project_view)
+        self.sofa_service = SofaService(self.project_controller.project_state, self.project_controller.view)
         self.sofa_action = QAction("Sofa", self)
         self.sofa_action.triggered.connect(self.on_open_sofa_dialog)
         self.addAction(self.sofa_action)
 
     def on_save(self):
-        self.saver.save(self.project_state, self.project_view.block_items)
+        self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
 
     def on_export_project(self):
-        self.saver.export(self.project_state, self.project_view.block_items)
+        self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)
 
     def on_open_display_yaml(self):
-        dialog = DisplayYamlDialog(self.project_state, self.project_view)
+        dialog = DisplayYamlDialog(self.project_controller.project_state, self.project_controller.view)
         dialog.exec()
 
     def on_open_simulation_settings(self):
-        dialog = SettingsDialog(self.project_state, self.project_controller)
+        dialog = SettingsDialog(self.project_controller.project_state, self.project_controller)
         dialog.exec()
 
     def on_run_sim(self):
@@ -107,10 +102,10 @@ class ToolBarView(QToolBar):
         QApplication.processEvents()
 
         self.set_running(True)
-        logs, flag, msg = self.runner.run(self.project_state)
+        logs, flag, msg = self.runner.run(self.project_controller.project_state)
         dlg.close()
         self.set_running(False)
-        self.project_state.logs = logs
+        self.project_controller.project_state.logs = logs
 
         if not flag:
             QMessageBox.warning(
@@ -122,7 +117,7 @@ class ToolBarView(QToolBar):
 
 
     def on_plot_logs(self):
-        flag, msg = self.project_state.can_plot()
+        flag, msg = self.project_controller.project_state.can_plot()
         if not flag:
             QMessageBox.warning(
                 self,
@@ -131,7 +126,7 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
-        self._plot_dialog = PlotDialog(self.project_state, self.parent()) # keep ref because of python garbage collector
+        self._plot_dialog = PlotDialog(self.project_controller.project_state, self.parent()) # keep ref because of python garbage collector
         self._plot_dialog.show()
 
 
@@ -142,7 +137,7 @@ class ToolBarView(QToolBar):
     #####################################
     # Adds on
     def refresh_sofa_button(self):
-        if self.project_state.has_sofa_block():
+        if self.project_controller.has_sofa_block():
             if self.sofa_action not in self.actions():
                 self.addAction(self.sofa_action)
         else:
