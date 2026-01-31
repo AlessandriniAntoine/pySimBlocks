@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.model.port_instance import PortInstance
-    from pySimBlocks.gui.project_controller import BlockItem
+    from pySimBlocks.gui.graphics.block_item import BlockItem
 
 class PortItem(QGraphicsEllipseItem):
     R = 6
@@ -74,11 +74,6 @@ class PortItem(QGraphicsEllipseItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemScenePositionHasChanged:
-            """
-            TODO
-            for c in self.connections:
-                c.update_position()
-            """
             self.update_label_position()
 
         return super().itemChange(change, value)
