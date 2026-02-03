@@ -52,6 +52,7 @@ class DiagramView(QGraphicsView):
         app = QGuiApplication.instance()
         if hasattr(app, "paletteChanged"):
             app.paletteChanged.connect(lambda *_: QTimer.singleShot(0, self._apply_theme_from_system))
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
         self.pending_port: PortItem | None = None
         self.temp_connection: ConnectionItem | None = None
