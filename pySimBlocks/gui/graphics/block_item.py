@@ -60,18 +60,20 @@ class BlockItem(QGraphicsRectItem):
 
     # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
-        # --- background ---
+        t = self.view.theme
+
         if option.state & QStyle.State_Selected:
-            painter.setBrush(QColor("#88C0D0"))
-            painter.setPen(QPen(QColor("#2E3440"), 2))
+            painter.setBrush(t.block_bg_selected)
+            painter.setPen(QPen(t.block_border_selected, 3))
         else:
-            painter.setBrush(QColor("#E6F2FF"))
-            painter.setPen(QPen(QColor("#4C566A"), 1))
+            painter.setBrush(t.block_bg)
+            painter.setPen(QPen(t.block_border, 3))
 
         painter.drawRect(self.rect())
-
-        # --- text ---
-        painter.setPen(QColor("#2E3440"))
+        if option.state & QStyle.State_Selected:
+            painter.setPen(t.text_selected)
+        else:
+            painter.setPen(t.text)
         painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
 
     # --------------------------------------------------------------

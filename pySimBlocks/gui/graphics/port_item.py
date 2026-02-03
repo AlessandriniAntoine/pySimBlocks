@@ -28,8 +28,7 @@ from pySimBlocks.gui.model.port_instance import PortInstance
 
 class PortItem(QGraphicsItem):
     R = 6
-    INPUT_COLOR = QColor("#4A90E2")
-    OUTPUT_COLOR = QColor("#E67E22")
+
 
     def __init__(self, instance: PortInstance, parent_block):
         super().__init__(parent_block)
@@ -43,7 +42,7 @@ class PortItem(QGraphicsItem):
 
         # Label
         self.label = QGraphicsTextItem(self.instance.name, parent_block)
-        self.label.setDefaultTextColor(Qt.black)
+        self.label.setDefaultTextColor(self.parent_block.view.theme.text)
         self.label.setFont(QFont("Sans Serif", 8))
 
 
@@ -62,28 +61,23 @@ class PortItem(QGraphicsItem):
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QPainter.Antialiasing)
 
-        color = (
-            self.INPUT_COLOR
-            if self.instance.direction == "input"
-            else self.OUTPUT_COLOR
-        )
+        t = self.parent_block.view.theme
+        fill = t.port_in if self.is_input else t.port_out
 
-        painter.setBrush(QBrush(color))
-        painter.setPen(QPen(Qt.black, 1))
+        painter.setBrush(QBrush(fill))
+        painter.setPen(QPen(t.block_border, 1))
 
-        if self.instance.direction == "input":
-            # ● Cercle
+        if self.is_input:
             painter.drawEllipse(-self.R, -self.R, 2 * self.R, 2 * self.R)
-
         else:
-            # ▶ Triangle (sortie)
             path = QPainterPath()
             path.moveTo(0, -self.R)
             path.lineTo(0,  self.R)
-            tip_x = 2*self.R if not self.is_on_left_side else -2*self.R
-            path.lineTo(tip_x,  0)
+            tip_x = 2 * self.R if not self.is_on_left_side else -2 * self.R
+            path.lineTo(tip_x, 0)
             path.closeSubpath()
             painter.drawPath(path)
+
 
     # --------------------------------------------------------------
     def update_label_position(self):

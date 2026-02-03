@@ -19,18 +19,19 @@
 # ******************************************************************************
 
 from typing import Callable
-from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QPainter
+
+from PySide6.QtCore import QPointF, Qt, QTimer
+from PySide6.QtGui import QGuiApplication, QPainter, QPen
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
 from pySimBlocks.gui.graphics.connection_item import ConnectionItem
 from pySimBlocks.gui.graphics.port_item import PortItem
+from pySimBlocks.gui.graphics.theme import make_theme
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.tools.blocks_registry import BlockMeta
-
 
 
 class DiagramView(QGraphicsView):
@@ -42,7 +43,15 @@ class DiagramView(QGraphicsView):
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
         self.setAcceptDrops(True)
+
         self.setRenderHint(QPainter.Antialiasing)
+        self.theme = make_theme()
+        self.scene.setBackgroundBrush(self.theme.scene_bg)
+        hints = QGuiApplication.styleHints()
+        hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
+        app = QGuiApplication.instance()
+        if hasattr(app, "paletteChanged"):
+            app.paletteChanged.connect(lambda *_: QTimer.singleShot(0, self._apply_theme_from_system))
 
         self.pending_port: PortItem | None = None
         self.copied_block: BlockItem | None = None
@@ -54,16 +63,16 @@ class DiagramView(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
-
+    # --------------------------------------------------------------
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
 
-
+    # --------------------------------------------------------------
     def dragMoveEvent(self, event):
         event.acceptProposedAction()
 
-
+    # --------------------------------------------------------------
     def dropEvent(self, event):
         pos = self.mapToScene(event.position().toPoint())
         dx = BlockItem.GRID_DX
@@ -81,11 +90,11 @@ class DiagramView(QGraphicsView):
         self.block_items[instance.uid] = block_item
         event.acceptProposedAction()
 
-
+    # --------------------------------------------------------------
     def start_connection(self, port: PortItem):
         self.pending_port = port
 
-
+    # --------------------------------------------------------------
     def finish_connection(self, port: PortItem):
         if self.pending_port is None:
             return
@@ -122,7 +131,7 @@ class DiagramView(QGraphicsView):
         dst_port.add_connection(conn_item)
         self.pending_port = None
 
-
+    # --------------------------------------------------------------
     def keyPressEvent(self, event):
         # COPY
         if event.key() == Qt.Key_C and event.modifiers() & Qt.ControlModifier:
@@ -168,7 +177,7 @@ class DiagramView(QGraphicsView):
 
         super().keyPressEvent(event)
 
-
+    # --------------------------------------------------------------
     def delete_selected(self):
         for item in self.scene.selectedItems():
             if isinstance(item, BlockItem):
@@ -182,7 +191,7 @@ class DiagramView(QGraphicsView):
                 item.remove()
                 self.scene.removeItem(item)
 
-
+    # --------------------------------------------------------------
     def clear_scene(self):
         for item in list(self.scene.items()):
             self.scene.removeItem(item)
@@ -190,7 +199,7 @@ class DiagramView(QGraphicsView):
         self.block_items.clear()
         self.pending_port = None
 
-
+    # --------------------------------------------------------------
     def wheelEvent(self, event):
         if event.modifiers() & Qt.ControlModifier:
             zoom_factor = 1.15
@@ -202,7 +211,7 @@ class DiagramView(QGraphicsView):
         else:
             super().wheelEvent(event)
 
-
+    # --------------------------------------------------------------
     def scale_view(self, factor):
         current_scale = self.transform().m11()
         min_scale, max_scale = 0.2, 5.0
@@ -210,3 +219,33 @@ class DiagramView(QGraphicsView):
         new_scale = current_scale * factor
         if min_scale <= new_scale <= max_scale:
             self.scale(factor, factor)
+
+    # --------------------------------------------------------------
+    def _on_color_scheme_changed(self, *_):
+        QTimer.singleShot(0, self._apply_theme_from_system)
+
+    # --------------------------------------------------------------
+    def _apply_theme_from_system(self):
+        self.theme = make_theme()
+        self.scene.setBackgroundBrush(self.theme.scene_bg)
+        self._refresh_theme_items()
+        self.viewport().update()
+        self.scene.update()
+
+    # --------------------------------------------------------------
+    def _refresh_theme_items(self):
+        # Update all block items + port labels + connection pens
+        for block in self.block_items.values():
+            # repaint block (uses self.view.theme in paint)
+            block.update()
+
+            # update port labels color + repaint ports
+            for port in block.port_items:
+                port.label.setDefaultTextColor(self.theme.text)
+                port.update()
+
+                # update wire pen (may update same connection multiple times; OK)
+                for conn in port.connections:
+                    conn.setPen(QPen(self.theme.wire, 2))
+                    conn.update_position()
+                    conn.update()

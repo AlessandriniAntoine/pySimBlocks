@@ -35,9 +35,12 @@ class ConnectionItem(QGraphicsPathItem):
         self.port1 = port1
         self.port2 = port2
         self.instance = instance
-        self.setPen(QPen(Qt.black, 2))
+
+        t = self.port1.parent_block.view.theme
+        self.setPen(QPen(t.wire, 3))
+        self.setZValue(1)
+
         self.update_position()
-        self.setZValue(1)  # les connexions passent sous les blocs
 
     # --------------------------------------------------------------
     def update_position(self):
