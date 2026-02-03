@@ -155,6 +155,12 @@ class DiagramView(QGraphicsView):
             self.scale_view(1 / 1.15)
             return
 
+        # ROTATE BLOCK
+        if event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
+            selected = [i for i in self.scene.selectedItems() if isinstance(i, BlockItem)]
+            if selected:
+                selected[0].toggle_orientation()
+            return
 
         super().keyPressEvent(event)
 

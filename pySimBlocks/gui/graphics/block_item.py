@@ -34,11 +34,13 @@ class BlockItem(QGraphicsRectItem):
     def __init__(self, 
                  instance: BlockInstance, 
                  pos: QPointF | QPoint, 
-                 view: QGraphicsView
+                 view: QGraphicsView,
+                 orientation: str = "normal"
     ):
         super().__init__(0, 0, self.WIDTH, self.HEIGHT)
         self.view = view
         self.instance = instance
+        self.orientation = orientation
 
         self.setPos(pos)
         self.setFlag(QGraphicsRectItem.ItemIsMovable)
@@ -54,6 +56,7 @@ class BlockItem(QGraphicsRectItem):
         self._layout_ports()
 
 
+    # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
         # --- background ---
         if option.state & QStyle.State_Selected:
@@ -69,12 +72,14 @@ class BlockItem(QGraphicsRectItem):
         painter.setPen(QColor("#2E3440"))
         painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
 
+    # --------------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
         dialog = BlockDialog(self, readonly=False)
         dialog.exec()
         self.update()
         event.accept()
 
+    # --------------------------------------------------------------
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
             for port in self.port_items:
@@ -82,17 +87,20 @@ class BlockItem(QGraphicsRectItem):
                     c.update_position()
         return super().itemChange(change, value)
 
+    # --------------------------------------------------------------
     def remove_all_connections(self):
         for port in self.port_items:
             for conn in port.connections[:]:
                 conn.remove()
 
+    # --------------------------------------------------------------
     def get_port_item(self, name:str) -> PortItem | None:
         for port in self.port_items:
             if port.instance.name == name:
                 return port
 
 
+    # --------------------------------------------------------------
     def refresh_ports(self):
         for item in self.port_items:
             self.scene().removeItem(item)
@@ -105,13 +113,22 @@ class BlockItem(QGraphicsRectItem):
 
         self._layout_ports()
 
-    def _layout_ports(self):
-        inputs = [p for p in self.port_items if p.instance.direction == "input"]
-        outputs = [p for p in self.port_items if p.instance.direction == "output"]
 
-        self._layout_side(inputs, x=0)
-        self._layout_side(outputs, x=self.WIDTH)
+    # --------------------------------------------------------------
+    def toggle_orientation(self):
+        self.orientation = "flipped" if self.orientation == "normal" else "normal"
 
+        # reposition ports
+        self._layout_ports()
+
+        # force update connections
+        for port in self.port_items:
+            for c in port.connections:
+                c.update_position()
+
+        self.update()
+
+    # --------------------------------------------------------------
     def _layout_side(self, ports, x):
         if not ports:
             return
@@ -121,3 +138,18 @@ class BlockItem(QGraphicsRectItem):
         for i, port in enumerate(ports, start=1):
             port.setPos(x, i * step)
             port.update_label_position()
+
+
+    # --------------------------------------------------------------
+    def _layout_ports(self):
+        inputs = [p for p in self.port_items if p.instance.direction == "input"]
+        outputs = [p for p in self.port_items if p.instance.direction == "output"]
+
+        flipped = self.orientation == "flipped"
+
+        if not flipped:
+            self._layout_side(inputs, x=0)
+            self._layout_side(outputs, x=self.WIDTH)
+        else:
+            self._layout_side(inputs, x=self.WIDTH)
+            self._layout_side(outputs, x=0)

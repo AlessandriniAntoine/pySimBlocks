@@ -80,36 +80,47 @@ class PortItem(QGraphicsItem):
             path = QPainterPath()
             path.moveTo(0, -self.R)
             path.lineTo(0,  self.R)
-            path.lineTo(2*self.R,  0)
+            tip_x = 2*self.R if not self.is_on_left_side else -2*self.R
+            path.lineTo(tip_x,  0)
             path.closeSubpath()
             painter.drawPath(path)
 
     # --------------------------------------------------------------
     def update_label_position(self):
-        margin = 22
+        margin = 6  # petit margin interne
         label_rect = self.label.boundingRect()
 
-        if self.instance.direction == "input":
+        # port à gauche -> label à droite (dans le bloc)
+        if self.is_on_left_side:
             self.label.setPos(
-                self.x() - label_rect.width() + margin,
+                self.x() + margin,
                 self.y() - label_rect.height() / 2,
             )
+        # port à droite -> label à gauche (dans le bloc)
         else:
             self.label.setPos(
-                self.x() - margin - self.R,
+                self.x() - label_rect.width() - margin,
                 self.y() - label_rect.height() / 2,
             )
 
+
+    # --------------------------------------------------------------
     def connection_anchor(self) -> QPointF:
         """
         Point exact (en coordonnées scène) où une connexion doit s'accrocher.
         """
         if self.is_input:
-            local = QPointF(-self.R, 0)
+            x = -self.R if self.is_on_left_side else self.R
+            local = QPointF(x, 0)
         else:
-            local = QPointF(2*self.R, 0)
+            x = 2*self.R if not self.is_on_left_side else -2*self.R
+            local = QPointF(x, 0)
         return self.mapToScene(local)
 
+    # --------------------------------------------------------------
+    @property
+    def is_on_left_side(self) -> bool:
+        return self.pos().x() < (self.parent_block.WIDTH * 0.5)
 
     # --------------------------------------------------------------------------
     # Interaction
@@ -122,6 +133,7 @@ class PortItem(QGraphicsItem):
             view.finish_connection(self)
         event.accept()
 
+    # --------------------------------------------------------------
     @property
     def is_input(self):
         return self.instance.direction == "input"
@@ -131,18 +143,15 @@ class PortItem(QGraphicsItem):
         path = QPainterPath()
 
         if self.is_input:
-            # Cercle centré
             path.addEllipse(-self.R, -self.R, 2*self.R, 2*self.R)
-
         else:
-            # Triangle de sortie (même géométrie que paint)
+            tip_x = 2*self.R if not self.is_on_left_side else -2*self.R
             path.moveTo(0, -self.R)
             path.lineTo(0,  self.R)
-            path.lineTo(2*self.R, 0)
+            path.lineTo(tip_x, 0)
             path.closeSubpath()
 
         return path
-
 
     # --------------------------------------------------------------
     def is_compatible(self, other: 'PortItem'):

@@ -200,7 +200,10 @@ class ProjectController:
         # --- instantiate blocks ---
         for block in self.project_state.blocks:
             pos = positions[block.name]
-            item = BlockItem(block, pos, self.view)
+            orientation = layout_blocks.get(block.name, {}).get("orientation", "normal") if layout_blocks else "normal"
+            if orientation not in ("normal", "flipped"):
+                print(f"[Layout warning] Invalid orientation for block '{block.name}' in layout.yaml, set to 'normal'.")
+            item = BlockItem(block, pos, self.view, orientation=orientation)
             self.view.scene.addItem(item)
             self.view.block_items[item.instance.uid] = item
 

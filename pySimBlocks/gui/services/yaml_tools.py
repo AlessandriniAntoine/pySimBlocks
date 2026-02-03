@@ -237,6 +237,7 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         data["blocks"][name] = {
             "x": float(pos.x()),
             "y": float(pos.y()),
+            "orientation": item.orientation
         }
 
     return data
