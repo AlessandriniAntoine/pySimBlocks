@@ -18,6 +18,7 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+import importlib.util
 import inspect
 from pathlib import Path
 from typing import Any, Callable, Dict, List
