@@ -167,6 +167,7 @@ class PlotSettingsWidget(QWidget):
 
         if self.edit_index is None:
             self.project_controller.create_plot(title, signals)
+            self.refresh_plot_list()
         else:
             self.project_controller.update_plot(self.edit_index, title, signals)
             self.plot_list.item(self.edit_index).setText(title)
