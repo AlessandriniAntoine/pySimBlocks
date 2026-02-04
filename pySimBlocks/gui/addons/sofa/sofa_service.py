@@ -24,7 +24,7 @@ import shutil
 from PySide6.QtCore import QProcess, QProcessEnvironment
 
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
 from pySimBlocks.gui.services.yaml_tools import save_yaml
 

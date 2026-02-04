@@ -18,10 +18,11 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtCore import QPointF, Qt
-from PySide6.QtGui import QPainterPath, QPainterPathStroker, QPen
+from PySide6.QtCore import Qt, QPointF
+from PySide6.QtGui import QPen, QPainterPath, QPainterPathStroker
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 
+from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
 
@@ -38,18 +39,29 @@ class ConnectionItem(QGraphicsPathItem):
     PICK_TOL = 6
     GRID = 5
 
-
-    def __init__(self, port1, port2, instance: ConnectionInstance | None):
+    def __init__(self, 
+                 src_port: PortItem | None,
+                 dst_port: PortItem | None,
+                 instance: ConnectionInstance,
+                 points: list[QPointF] | None = None):
         super().__init__()
 
-        self.port1 = port1
-        self.port2 = port2
-        self.instance = instance
-        self.is_temporary = port2 is None
-        self.route: OrthogonalRoute | None = None
-        self.is_manual: bool = False
+        if src_port is None and dst_port is None:
+            raise ValueError("At least one of the ports must be provided")
 
-        t = self.port1.parent_block.view.theme
+        self.src_port = src_port
+        self.dst_port = dst_port
+        self.instance = instance
+        self.is_temporary = (src_port is None) or (dst_port is None)
+        self._valid_port = src_port if src_port is not None else dst_port
+        self.is_manual: bool = False
+        self.route: OrthogonalRoute | None = None
+
+        if points and len(points) >= 2:
+            self.apply_manual_route(points)
+
+        t = self._valid_port.parent_block.view.theme
+
 
         if self.is_temporary:
             self.setFlag(QGraphicsItem.ItemIsSelectable, False)
@@ -66,16 +78,14 @@ class ConnectionItem(QGraphicsPathItem):
         self.update_position()
 
     # --------------------------------------------------------------------------
-    # Public update API
+    #  Position methods
     # --------------------------------------------------------------------------
     def update_position(self):
         if self.is_temporary:
-            return
+            return 
 
-        p1 = self.port1.connection_anchor()
-        p2 = self.port2.connection_anchor()
-
-        # si route manuelle déjà appliquée -> recoller les extrémités seulement
+        p1 = self.src_port.connection_anchor()
+        p2 = self.dst_port.connection_anchor()
         if self.is_manual and self.route and len(self.route.points) >= 2:
             self.route.points[0] = p1
             self.route.points[-1] = p2
@@ -88,16 +98,17 @@ class ConnectionItem(QGraphicsPathItem):
 
     # ------------------------------------------------------------------
     def update_temp_position(self, scene_pos: QPointF):
-        p1 = self.port1.connection_anchor()
+        p1 = self._valid_port.connection_anchor()
         pts = [p1, scene_pos]
         self._apply_route(pts)
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Routing methods
+    # --------------------------------------------------------------------------
     def apply_manual_route(self, points: list[QPointF]):
         self.route = OrthogonalRoute(points)
         self.is_manual = True
         self._apply_route(self.route.points)
-        self.port1.parent_block.view.project_state.make_dirty()
 
     # ------------------------------------------------------------------
     def invalidate_manual_route(self):
@@ -108,18 +119,16 @@ class ConnectionItem(QGraphicsPathItem):
         self.is_manual = False
         self.route = None
 
-    # --------------------------------------------------------------------------
-    # Routing logic
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def _compute_auto_route(self, p1: QPointF, p2: QPointF) -> list[QPointF]:
-        src_block = self.port1.parent_block
-        dst_block = self.port2.parent_block
+        src_block = self.src_port.parent_block
+        dst_block = self.dst_port.parent_block
 
         src_rect = src_block.sceneBoundingRect()
         dst_rect = dst_block.sceneBoundingRect()
 
-        src_out_sign = 1 if not self.port1.is_on_left_side else -1
-        dst_in_sign = -1 if self.port2.is_on_left_side else 1
+        src_out_sign = 1 if not self.src_port.is_on_left_side else -1
+        dst_in_sign = -1 if self.dst_port.is_on_left_side else 1
 
         p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
         p2_in = QPointF(p2.x() + dst_in_sign * self.OFFSET, p2.y())
@@ -169,7 +178,7 @@ class ConnectionItem(QGraphicsPathItem):
         return round(v / self.GRID) * self.GRID
 
     # --------------------------------------------------------------------------
-    # Path construction
+    # Path methods
     # --------------------------------------------------------------------------
     def _apply_route(self, points: list[QPointF]):
         path = QPainterPath(points[0])
@@ -177,6 +186,7 @@ class ConnectionItem(QGraphicsPathItem):
             path.lineTo(p)
         self.setPath(path)
 
+    # ------------------------------------------------------------------
     def _path_from(self, pts: list[QPointF]) -> QPainterPath:
         p = QPainterPath(pts[0])
         for pt in pts[1:]:
@@ -205,7 +215,18 @@ class ConnectionItem(QGraphicsPathItem):
                     return i
         return None
 
-    # ------------------------------------------------------------------
+    # --------------------------------------------------------------
+    def shape(self):
+        """
+        Override the default shape to make it easier to click on the connection.
+        """
+        stroker = QPainterPathStroker()
+        stroker.setWidth(6)  # zone cliquable (px)
+        return stroker.createStroke(self.path())
+
+    # --------------------------------------------------------------------------
+    # Events methods
+    # --------------------------------------------------------------------------
     def mousePressEvent(self, event):
         idx = self.segment_at(event.scenePos())
         if idx is not None:
@@ -242,18 +263,3 @@ class ConnectionItem(QGraphicsPathItem):
         if self.route:
             self.route.dragged_index = None
         super().mouseReleaseEvent(event)
-
-    # --------------------------------------------------------------------------
-    # Removal & picking
-    # --------------------------------------------------------------------------
-    def remove(self):
-        if self in self.port1.connections:
-            self.port1.connections.remove(self)
-        if self in self.port2.connections:
-            self.port2.connections.remove(self)
-
-    # ------------------------------------------------------------------
-    def shape(self):
-        stroker = QPainterPathStroker()
-        stroker.setWidth(6)
-        return stroker.createStroke(self.path())

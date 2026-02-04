@@ -1,7 +1,7 @@
 simulation:
   dt: 0.1
-  solver: fixed
   T: 10.0
+  solver: fixed
 blocks:
   Step:
     value_before: [[0.0]]

@@ -26,27 +26,22 @@ from pySimBlocks.gui.dialogs.settings.project import ProjectSettingsWidget
 from pySimBlocks.gui.dialogs.settings.simulation import SimulationSettingsWidget
 from pySimBlocks.gui.dialogs.settings.plots import PlotSettingsWidget
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, 
-                 project_state: ProjectState, 
-                 project_controller: ProjectController,  
-                 parent=None):
+    def __init__(self, project_state: ProjectState, project_controller: ProjectController,  parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
-
-        self.project_state = project_state
 
         layout = QVBoxLayout(self)
 
         # ---------------- Tabs ----------------
         self.tabs = QTabWidget()
         self.project_tab = ProjectSettingsWidget(project_state, project_controller, self)
-        self.simulation_tab = SimulationSettingsWidget(project_state)
-        self.plots_tab = PlotSettingsWidget(project_state)
+        self.simulation_tab = SimulationSettingsWidget(project_state, project_controller)
+        self.plots_tab = PlotSettingsWidget(project_state, project_controller)
 
         self.tabs.addTab(self.project_tab, "Project")
         self.tabs.addTab(self.simulation_tab, "Simulation")
@@ -72,34 +67,21 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(buttons)
 
-        # ---------------- Signals ----------------
-        self.project_tab.project_loaded.connect(
-                self.parent().on_project_loaded
-                )
-
-    # --------------------------------------------------------------------------
-    # Methods
-    # --------------------------------------------------------------------------
     def ok(self):
         self.apply()
         self.accept()
 
     def apply(self):
-        changed = self.project_tab.has_changed()
-        changed = self.simulation_tab.has_changed() or changed
-        changed = self.plots_tab.has_changed() or changed
-
         if not self.project_tab.apply():
             return
         self.simulation_tab.apply()
-        if changed:
-            self.project_state.make_dirty()
 
     def refresh_tabs_from_project(self):
         self.simulation_tab.refresh_from_project()
         self.plots_tab.refresh_from_project()
 
     def _on_tab_changed(self, index):
+        #save curr widget
         widget = self.tabs.widget(index)
 
         if hasattr(widget, "refresh_from_project"):

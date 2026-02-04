@@ -36,8 +36,8 @@ from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
 
 class SofaDialog(QDialog):
-    def __init__(self, sofa_service: SofaService, parent=None):
-        super().__init__(parent)
+    def __init__(self, sofa_service: SofaService):
+        super().__init__()
         self.setWindowTitle("Edit block")
         self.setMinimumWidth(300)
 

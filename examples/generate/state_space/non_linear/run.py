@@ -8,11 +8,11 @@ try:
 except Exception:
     BASE_DIR = Path("")
 
-sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / 'parameters.yaml')
+sim_cfg, model_cfg, plot_cfg = load_project_config(BASE_DIR / "parameters.yaml")
 
 model = Model(
     name="model",
-    model_yaml=BASE_DIR / 'model.yaml',
+    model_yaml=BASE_DIR / "model.yaml",
     model_cfg=model_cfg
 )
 

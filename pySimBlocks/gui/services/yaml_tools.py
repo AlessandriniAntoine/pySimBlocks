@@ -19,14 +19,17 @@
 # ******************************************************************************
 
 import os
+
 import yaml
-from pySimBlocks.gui.model.project_state import ProjectState
+
 from pySimBlocks.gui.graphics.block_item import BlockItem
+from pySimBlocks.gui.model.project_state import ProjectState
 
 
 def load_yaml_file(path: str) -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f) or {}
+
 # ===============================================================
 # Custom list type for flow-style sequences
 # ===============================================================
@@ -83,6 +86,7 @@ def _wrap_flow_matrices(obj):
 
 ModelYamlDumper.add_representer(FlowMatrix, _repr_flow_list)
 ModelYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
+
 # ===============================================================
 # Dump helpers
 # ===============================================================
@@ -98,6 +102,7 @@ def dump_parameter_yaml(
         raise ValueError("project or raw must be set")
 
     data = _wrap_flow_matrices(data)
+
     return yaml.dump(
         data,
         Dumper=ModelYamlDumper,
@@ -136,6 +141,7 @@ def dump_layout_yaml(
         data = raw
     else:
         raise ValueError("block_items or raw must be set")
+    
     return yaml.dump(
         data,
         Dumper=ModelYamlDumper,
@@ -149,6 +155,7 @@ def save_yaml(
         project_state: ProjectState, 
         block_items: dict[str, BlockItem] | None = None, 
         temp: bool = False) -> None:
+    
     directory = project_state.directory_path
     params_yaml = build_parameters_yaml(project_state)
     model_yaml = build_model_yaml(project_state)
@@ -160,21 +167,15 @@ def save_yaml(
             external_temp = os.path.relpath(external_abs, temp_dir)
             params_yaml["external"] = external_temp
         directory = temp_dir
-
+    
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "parameters.yaml").write_text(
-        dump_parameter_yaml(raw=params_yaml)
-    )
-    (directory / "model.yaml").write_text(
-        dump_model_yaml(raw=model_yaml)
-    )
 
+    (directory / "parameters.yaml").write_text(dump_parameter_yaml(raw=params_yaml))
+    (directory / "model.yaml").write_text(dump_model_yaml(raw=model_yaml))
     if not temp and block_items:
         layout_yaml = build_layout_yaml(block_items)
-        (directory / "layout.yaml").write_text(
-            dump_layout_yaml(raw=layout_yaml)
-        )
-
+        (directory / "layout.yaml").write_text(dump_layout_yaml(raw=layout_yaml))
+    
 # ===============================================================
 # Build function
 # ===============================================================
@@ -210,13 +211,12 @@ def build_model_yaml(project_state: ProjectState) -> dict:
             for b in project_state.blocks
         ],
         "connections": [
-             [f"{c.src_block.name}.{c.src_port}",
-              f"{c.dst_block.name}.{c.dst_port}",
+             [f"{c.src_block().name}.{c.src_port.name}",
+              f"{c.dst_block().name}.{c.dst_port.name}",
             ]
             for c in project_state.connections
         ],
     }
-
 
 def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
     """
@@ -243,42 +243,36 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
             "y": float(pos.y()),
             "orientation": block.orientation
         }
+    view = block.view
+    for conn in view.connections.values():
+        if conn in seen:
+            continue
+        seen.add(conn)
 
-        # connections logic
-        for port in block.port_items:
-            for conn in port.connections:
-                if conn in seen:
-                    continue
-                seen.add(conn)
+        if not conn.is_manual:
+            continue
 
-                if not conn.is_manual:
-                    continue
+        src_port = conn.src_port
+        src_bname = src_port.parent_block.instance.name
+        src_pname = src_port.instance.name
+        dst_port = conn.dst_port
+        dst_bname = dst_port.parent_block.instance.name
+        dst_pname = dst_port.instance.name
 
-                port1 = conn.port1
-                port2 = conn.port2
-                if port1.is_input:
-                    src_block = port2.parent_block.instance.name
-                    src_port = port2.instance.name
-                    dst_block = port1.parent_block.instance.name
-                    dst_port = port1.instance.name
-                else:
-                    src_block = port1.parent_block.instance.name
-                    src_port = port1.instance.name
-                    dst_block = port2.parent_block.instance.name
-                    dst_port = port2.instance.name
+        key = f"{src_bname}.{src_pname} -> {dst_bname}.{dst_pname}"
+        value = {
+            "ports": FlowStyleList( [
+                f"{src_bname}.{src_pname}", f"{dst_bname}.{dst_pname}" 
+                ]),
+            "route": FlowStyleList([
+                FlowStyleList([float(p.x()), float(p.y())]) 
+                for p in conn.route.points
+                ])
+            }
 
-                key = f"{src_block}.{src_port} -> {dst_block}.{dst_port}"
-                rout = {
-                    "route": FlowStyleList([
-                        FlowStyleList([float(p.x()), float(p.y())]) 
-                        for p in conn.route.points
-                        ])
-                    }
-
-                manual_connections[key] = rout
+        manual_connections[key] = value
 
     if manual_connections:
         data["connections"] = manual_connections
 
     return data
-

@@ -18,8 +18,6 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import copy
-
 from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QLineEdit, QPushButton, QMessageBox
@@ -27,17 +25,21 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class PlotSettingsWidget(QWidget):
-    def __init__(self, project_state: ProjectState):
+    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
         super().__init__()
         self.project_state = project_state
+        self.project_controller = project_controller
         self.edit_index = None
 
         main = QHBoxLayout(self)
 
-        # ------------- Left: plot list + actions -------
+        # ==================================================
+        # Left: plot list + actions
+        # ==================================================
         left = QVBoxLayout()
 
         left.addWidget(QLabel("Plots"))
@@ -60,7 +62,9 @@ class PlotSettingsWidget(QWidget):
 
         main.addLayout(left, 1)
 
-        # ----------------- Right: editor -----------------
+        # ==================================================
+        # Right: editor
+        # ==================================================
         right = QVBoxLayout()
 
         right.addWidget(QLabel("Title:"))
@@ -78,16 +82,11 @@ class PlotSettingsWidget(QWidget):
         self.populate_signal_list()
         self.update_buttons_state()
 
-    # --------------------------------------------------------------------------
+    # ==================================================
     # Helpers
-    # --------------------------------------------------------------------------
-    def has_changed(self) -> bool:
-        return self._initial_plots != self.project_state.plots
-
-    # ------------------------------------------------------------------
+    # ==================================================
     def refresh_from_project(self):
         """Synchronize the plot editor with the current project state."""
-        self._initial_plots = copy.deepcopy(self.project_state.plots)
         self.edit_index = None
         self.refresh_plot_list()
         self.plot_list.clearSelection()
@@ -95,13 +94,11 @@ class PlotSettingsWidget(QWidget):
         self.title_edit.clear()
         self.update_buttons_state()
 
-    # ------------------------------------------------------------------
     def refresh_plot_list(self):
         self.plot_list.clear()
         for plot in self.project_state.plots:
             self.plot_list.addItem(plot["title"])
 
-    # ------------------------------------------------------------------
     def populate_signal_list(self, checked=None):
         """
         Populate signal list.
@@ -116,27 +113,24 @@ class PlotSettingsWidget(QWidget):
             item.setCheckState(Qt.Checked if sig in checked else Qt.Unchecked)
             self.signal_list.addItem(item)
 
-    # ------------------------------------------------------------------
-    def collect_selected_signals(self):
+    def collect_selected_signals(self) -> list[str]:
         return [
             self.signal_list.item(i).text()
             for i in range(self.signal_list.count())
             if self.signal_list.item(i).checkState() == Qt.Checked
         ]
 
-    # ------------------------------------------------------------------
     def reset_form(self):
         self.title_edit.clear()
         self.populate_signal_list()
 
-    # ------------------------------------------------------------------
     def update_buttons_state(self):
         has_selection = self.plot_list.currentRow() >= 0
         self.del_btn.setEnabled(has_selection)
 
-    # --------------------------------------------------------------------------
+    # ==================================================
     # Selection handling
-    # --------------------------------------------------------------------------
+    # ==================================================
     def load_plot(self, index):
         if index < 0:
             self.edit_index = None
@@ -150,16 +144,16 @@ class PlotSettingsWidget(QWidget):
         self.populate_signal_list(plot["signals"])
         self.update_buttons_state()
 
-    # --------------------------------------------------------------------------
+
+    # ==================================================
     # Actions
-    # --------------------------------------------------------------------------
+    # ==================================================
     def new_plot(self):
         self.edit_index = None
         self.plot_list.clearSelection()
         self.reset_form()
         self.update_buttons_state()
 
-    # ------------------------------------------------------------------
     def save_plot(self):
         title = self.title_edit.text().strip()
         if not title:
@@ -171,34 +165,21 @@ class PlotSettingsWidget(QWidget):
             QMessageBox.warning(self, "Invalid plot", "No signal selected.")
             return
 
-        # Ensure signals are logged
-        for sig in signals:
-            if sig not in self.project_state.logging:
-                self.project_state.logging.append(sig)
-
         if self.edit_index is None:
-            # -------- CREATE --------
-            self.project_state.plots.append({
-                "title": title,
-                "signals": signals,
-            })
+            self.project_controller.create_plot(title, signals)
             self.refresh_plot_list()
-            self.edit_index = len(self.project_state.plots) - 1
-            self.plot_list.setCurrentRow(self.edit_index)
         else:
-            # -------- UPDATE --------
-            self.project_state.plots[self.edit_index]["title"] = title
-            self.project_state.plots[self.edit_index]["signals"] = signals
+            self.project_controller.update_plot(self.edit_index, title, signals)
             self.plot_list.item(self.edit_index).setText(title)
 
         self.update_buttons_state()
 
-    # ------------------------------------------------------------------
+
     def delete_plot(self):
         if self.edit_index is None:
             return
 
-        del self.project_state.plots[self.edit_index]
+        self.project_controller.delete_plot(self.edit_index)
         self.edit_index = None
         self.refresh_plot_list()
         self.plot_list.clearSelection()

@@ -3,12 +3,9 @@ blocks:
   Algebraic Function:
     x: 0.0
     y: 0.0
-    orientation: normal
   Constant:
-    x: -200.0
+    x: -197.0
     y: -35.0
-    orientation: normal
   Step:
-    x: -200.0
-    y: 40.0
-    orientation: normal
+    x: -196.0
+    y: 43.0

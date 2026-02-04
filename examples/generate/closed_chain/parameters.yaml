@@ -1,7 +1,7 @@
 simulation:
   dt: 0.01
-  solver: fixed
   T: 3.0
+  solver: fixed
 blocks:
   ref:
     value_before: [[0.0]]
@@ -21,8 +21,8 @@ blocks:
     x0: [[0.0]]
 logging:
 - ref.outputs.out
-- pid.outputs.u
 - plant.outputs.y
+- pid.outputs.u
 plots:
 - title: Ref vs Output
   signals:

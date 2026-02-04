@@ -16,6 +16,7 @@ dependencies = [
     "matplotlib",
     "pyyaml",
     "PySide6",
+    "typing_extensions; python_version < '3.11'"
 ]
 
 [project.scripts]

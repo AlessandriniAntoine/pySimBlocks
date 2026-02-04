@@ -18,36 +18,81 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtCore import QRectF, Qt, QPointF
-from PySide6.QtGui import QBrush, QFont, QPainterPath, QPen, QPainter
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QBrush, QFont, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem
 
-from pySimBlocks.gui.graphics.connection_item import ConnectionItem
-from pySimBlocks.gui.model.port_instance import PortInstance
+if TYPE_CHECKING:
+    from pySimBlocks.gui.graphics.block_item import BlockItem
+    from pySimBlocks.gui.model.port_instance import PortInstance
 
 
 class PortItem(QGraphicsItem):
+    MARGIN = 4
     R = 6   # radius input port
     L = 15  # length output port
     H = 10  # height output port
     RECT = QRectF(-8, -8, 15, 15) # bounding rect for both port types
 
-
-    def __init__(self, instance: PortInstance, parent_block):
+    def __init__(self, instance: 'PortInstance', parent_block: 'BlockItem'):
         super().__init__(parent_block)
 
         self.instance = instance
         self.parent_block = parent_block
-        self.connections: list[ConnectionItem] = []
 
         self.setFlag(QGraphicsItem.ItemSendsScenePositionChanges)
         self.setAcceptedMouseButtons(Qt.LeftButton)
 
         # Label
+        self.t = parent_block.view.theme
         self.label = QGraphicsTextItem(self.instance.name, parent_block)
-        self.label.setDefaultTextColor(self.parent_block.view.theme.text)
+        self.label.setDefaultTextColor(self.t.text)
         self.label.setFont(QFont("Sans Serif", 8))
 
+    # --------------------------------------------------------------------------
+    # Properties
+    # --------------------------------------------------------------------------
+    @property
+    def is_input(self):
+        return self.instance.direction == "input"
+
+    # --------------------------------------------------------------
+    @property
+    def is_on_left_side(self) -> bool:
+        return self.pos().x() < (self.parent_block.WIDTH * 0.5)
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+    def update_label_position(self):
+        label_rect = self.label.boundingRect()
+
+        if self.is_on_left_side:
+            self.label.setPos(
+                self.x() + self.R + self.MARGIN,
+                self.y() - label_rect.height() / 2,
+            )
+        else:
+            self.label.setPos(
+                self.x() - label_rect.width() - self.R - self.MARGIN,
+                self.y() - label_rect.height() / 2,
+            )
+
+    # --------------------------------------------------------------
+    def connection_anchor(self) -> QPointF:
+        if self.is_input:
+            x = -self.R if self.is_on_left_side else self.R
+            local = QPointF(x, 0)
+        else:
+            x = self.L if not self.is_on_left_side else -self.L
+            local = QPointF(x, 0)
+        return self.mapToScene(local)
+
+    # --------------------------------------------------------------
+    def is_compatible(self, other: 'PortItem'):
+        return self.instance.direction != other.instance.direction
 
     # --------------------------------------------------------------------------
     # Visuals 
@@ -59,11 +104,10 @@ class PortItem(QGraphicsItem):
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QPainter.Antialiasing)
 
-        t = self.parent_block.view.theme
-        fill = t.port_in if self.is_input else t.port_out
+        fill = self.t.port_in if self.is_input else self.t.port_out
 
         painter.setBrush(QBrush(fill))
-        painter.setPen(QPen(t.block_border, 1))
+        painter.setPen(QPen(self.t.block_border, 1))
 
         if self.is_input:
             painter.drawEllipse(-self.R, -self.R, 2 * self.R, 2 * self.R)
@@ -75,60 +119,6 @@ class PortItem(QGraphicsItem):
             path.lineTo(tip_x, 0)
             path.closeSubpath()
             painter.drawPath(path)
-
-
-    # --------------------------------------------------------------
-    def update_label_position(self):
-        margin = 6  # petit margin interne
-        label_rect = self.label.boundingRect()
-
-        # port à gauche -> label à droite (dans le bloc)
-        if self.is_on_left_side:
-            self.label.setPos(
-                self.x() + margin,
-                self.y() - label_rect.height() / 2,
-            )
-        # port à droite -> label à gauche (dans le bloc)
-        else:
-            self.label.setPos(
-                self.x() - label_rect.width() - margin,
-                self.y() - label_rect.height() / 2,
-            )
-
-
-    # --------------------------------------------------------------
-    def connection_anchor(self) -> QPointF:
-        """
-        Point exact (en coordonnées scène) où une connexion doit s'accrocher.
-        """
-        if self.is_input:
-            x = -self.R if self.is_on_left_side else self.R
-            local = QPointF(x, 0)
-        else:
-            x = self.L if not self.is_on_left_side else -self.L
-            local = QPointF(x, 0)
-        return self.mapToScene(local)
-
-    # --------------------------------------------------------------
-    @property
-    def is_on_left_side(self) -> bool:
-        return self.pos().x() < (self.parent_block.WIDTH * 0.5)
-
-    # --------------------------------------------------------------------------
-    # Interaction
-    # --------------------------------------------------------------------------
-    def mousePressEvent(self, event):
-        view = self.parent_block.view
-        if view.pending_port is None:
-            view.start_connection(self)
-        else:
-            view.finish_connection(self)
-        event.accept()
-
-    # --------------------------------------------------------------
-    @property
-    def is_input(self):
-        return self.instance.direction == "input"
 
     # --------------------------------------------------------------
     def shape(self):
@@ -145,25 +135,15 @@ class PortItem(QGraphicsItem):
 
         return path
 
-    # --------------------------------------------------------------
-    def is_compatible(self, other: 'PortItem'):
-        return self.instance.direction != other.instance.direction
-
-    # --------------------------------------------------------------
-    def can_accept_connection(self) -> bool:
-        if self.is_input:
-            return len(self.connections) == 0
-        return True
-
-    # --------------------------------------------------------------
-    def add_connection(self, conn: ConnectionItem):
-        self.connections.append(conn)
+    # --------------------------------------------------------------------------
+    # Event handlers
+    # --------------------------------------------------------------------------
+    def mousePressEvent(self, event):
+        self.parent_block.view.create_connection_event(self)
+        event.accept()
 
     # --------------------------------------------------------------
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemScenePositionHasChanged:
-            for c in self.connections:
-                c.update_position()
             self.update_label_position()
-
         return super().itemChange(change, value)

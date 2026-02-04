@@ -18,35 +18,33 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Callable
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QPointF, Qt, QTimer
 from PySide6.QtGui import QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
-from pySimBlocks.gui.graphics.connection_item import ConnectionItem
+from pySimBlocks.gui.graphics.connection_item import ConnectionItem, OrthogonalRoute
 from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.graphics.theme import make_theme
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.tools.blocks_registry import BlockMeta
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.project_controller import ProjectController
 
 
 class DiagramView(QGraphicsView):
-    def __init__(self, 
-                 resolve_block_meta: Callable[[str, str], BlockMeta], 
-                 project_state:ProjectState
-    ):
+    def __init__(self):
         super().__init__()
-        self.scene = QGraphicsScene(self)
-        self.setScene(self.scene)
+        self.diagram_scene = QGraphicsScene(self)
+        self.setScene(self.diagram_scene)
         self.setAcceptDrops(True)
 
         self.setRenderHint(QPainter.Antialiasing)
         self.theme = make_theme()
-        self.scene.setBackgroundBrush(self.theme.scene_bg)
+        self.diagram_scene.setBackgroundBrush(self.theme.scene_bg)
         hints = QGuiApplication.styleHints()
         hints.colorSchemeChanged.connect(self._on_color_scheme_changed)
         app = QGuiApplication.instance()
@@ -57,13 +55,77 @@ class DiagramView(QGraphicsView):
         self.pending_port: PortItem | None = None
         self.temp_connection: ConnectionItem | None = None
         self.copied_block: BlockItem | None = None
-        self.resolve_block_meta = resolve_block_meta
-        self.project_state = project_state
+        self.project_controller: "ProjectController" | None
         self.block_items: dict[str, BlockItem] = {}
+        self.connections: dict[ConnectionInstance, ConnectionItem] = {}
 
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
+
+    # --------------------------------------------------------------------------
+    # View methods
+    # --------------------------------------------------------------------------
+    def add_block(self, block_instance: BlockInstance, 
+                  block_layout: dict[str, Any] = {}):
+        block_item = BlockItem(block_instance, self.drop_event_pos, self, block_layout)
+        self.diagram_scene.addItem(block_item)
+        self.block_items[block_instance.uid] = block_item
+    
+    # --------------------------------------------------------------
+    def refresh_block_port(self, block_instance: BlockInstance):
+        block_item = self.get_block_item_from_instance(block_instance)
+        if block_item:
+            block_item.refresh_ports()
+
+    # --------------------------------------------------------------
+    def remove_block(self, block_instance: BlockInstance):
+        block_item = self.block_items[block_instance.uid]
+        self.diagram_scene.removeItem(block_item)
+        self.block_items.pop(block_instance.uid, None)
+
+    # --------------------------------------------------------------
+    def add_connection(self, 
+                      connection_instance: ConnectionInstance, 
+                      points: list[QPointF] | None = None
+                      ):
+        src_port_item = self.get_block_item_from_instance(connection_instance.src_block()).get_port_item(connection_instance.src_port.name)
+        dst_port_item = self.get_block_item_from_instance(connection_instance.dst_block()).get_port_item(connection_instance.dst_port.name)
+        connection_item = ConnectionItem(
+                src_port_item, dst_port_item, connection_instance, points
+                )
+        self.connections[connection_instance] = connection_item
+        self.diagram_scene.addItem(connection_item)
+
+    # --------------------------------------------------------------
+    def remove_connection(self, connection_instance: ConnectionInstance):
+        connection_item = self.connections.pop(connection_instance, None)
+        if connection_item:
+            self.diagram_scene.removeItem(connection_item)
+
+    # --------------------------------------------------------------
+    def get_block_item_from_instance(self, block_instance: BlockInstance) -> BlockItem | None:
+        return self.block_items.get(block_instance.uid)
+    
+    # --------------------------------------------------------------
+    def create_connection_event(self, port: PortItem):
+        if not self.pending_port:
+            self.pending_port = port
+            self.temp_connection = ConnectionItem(self.pending_port, None, None)
+            self.diagram_scene.addItem(self.temp_connection)
+            return
+
+    # --------------------------------------------------------------
+    def update_block_param_event(self, block_instance: BlockInstance, params: dict[str, Any]):
+        self.project_controller.update_block_param(block_instance, params)
+
+    # --------------------------------------------------------------
+    def on_block_moved(self, block_item: BlockItem):
+        self.project_controller.make_dirty()
+        for conn_inst, conn_item in self.connections.items():
+            if conn_inst.is_block_involved(block_item.instance):
+                conn_item.invalidate_manual_route()
+                conn_item.update_position()
 
     # --------------------------------------------------------------------------
     # Event handlers
@@ -78,27 +140,16 @@ class DiagramView(QGraphicsView):
 
     # --------------------------------------------------------------
     def dropEvent(self, event):
-        pos = self.mapToScene(event.position().toPoint())
-        dx = BlockItem.GRID_DX
-        dy = BlockItem.GRID_DY
-        pos = QPointF( round(pos.x() / dx) * dx, round(pos.y() / dy) * dy)
-
+        self.drop_event_pos = self.mapToScene(event.position().toPoint())
         category, block_type = event.mimeData().text().split(":")
-        meta = self.resolve_block_meta(category, block_type)
-
-        instance = BlockInstance(meta)
-        self.project_state.add_block(instance)
-        block_item = BlockItem(instance, pos, self)
-
-        self.scene.addItem(block_item)
-        self.block_items[instance.uid] = block_item
+        self.project_controller.add_block(category, block_type)
         event.acceptProposedAction()
 
     # --------------------------------------------------------------
     def keyPressEvent(self, event):
         # COPY
         if event.key() == Qt.Key_C and event.modifiers() & Qt.ControlModifier:
-            selected = [i for i in self.scene.selectedItems() if isinstance(i, BlockItem)]
+            selected = [i for i in self.diagram_scene.selectedItems() if isinstance(i, BlockItem)]
             if selected:
                 self.copied_block = selected[0]
             return
@@ -106,15 +157,8 @@ class DiagramView(QGraphicsView):
         # PASTE
         if event.key() == Qt.Key_V and event.modifiers() & Qt.ControlModifier:
             if self.copied_block:
-                pos = self.copied_block.pos() + QPointF(30, 30)
-                category = self.copied_block.instance.meta.category
-                block_type = self.copied_block.instance.meta.type
-                meta = self.resolve_block_meta(category, block_type)
-                instance = BlockInstance(meta)
-                self.project_state.add_block(instance)
-                block_item = BlockItem(instance, pos, self)
-                self.scene.addItem(block_item)
-                self.block_items[instance.uid] = block_item
+                self.drop_event_pos = self.copied_block.pos() + QPointF(30, 30)
+                self.project_controller.add_copy_block(self.copied_block.instance)
             return
 
         # DELETE
@@ -133,12 +177,15 @@ class DiagramView(QGraphicsView):
 
         # ROTATE BLOCK
         if event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
-            selected = [i for i in self.scene.selectedItems() if isinstance(i, BlockItem)]
-            if selected:
-                selected[0].toggle_orientation()
+            selected = [i for i in self.diagram_scene.selectedItems() 
+                        if isinstance(i, BlockItem)]
+            for item in selected:
+                item.toggle_orientation()
             return
 
         super().keyPressEvent(event)
+
+
 
     # --------------------------------------------------------------
     def wheelEvent(self, event):
@@ -151,7 +198,6 @@ class DiagramView(QGraphicsView):
             event.accept()
         else:
             super().wheelEvent(event)
-
 
     # --------------------------------------------------------------
     def mouseMoveEvent(self, event):
@@ -168,77 +214,41 @@ class DiagramView(QGraphicsView):
             return
 
         pos = self.mapToScene(event.position().toPoint())
-        items = self.scene.items(pos)
-
-        target = next((i for i in items if isinstance(i, PortItem)), None)
-
-        self._finalize_connection(target)
-
-    # --------------------------------------------------------------------------
-    # Graphics management
-    # --------------------------------------------------------------------------
-    def start_connection(self, port: PortItem):
-        self.pending_port = port
-        self.temp_connection = ConnectionItem(port, None, None)
-        self.scene.addItem(self.temp_connection)
-
-    # --------------------------------------------------------------
-    def finish_connection(self, port: PortItem):
-        if self.pending_port is None:
+        items = self.diagram_scene.items(pos)
+        port = next((i for i in items if isinstance(i, PortItem)), None)
+        if not port:
+            self._cancel_temp_connection()
             return
 
-        p1, p2 = self.pending_port, port
-        if not p1.is_compatible(p2):
-            self.pending_port = None
-            return
-
-        # Determine source / destination by port type
-        if p1.instance.direction == "output" and p2.instance.direction == "input":
-            src_port, dst_port = p1, p2
-        elif p1.instance.direction == "input" and p2.instance.direction == "output":
-            src_port, dst_port = p2, p1
-        else:
-            self.pending_port = None
-            return
-
-        if not dst_port.can_accept_connection():
-            self.pending_port = None
-            return
-
-        # Create model connection
-        conn_inst = ConnectionInstance(
-            src_block=src_port.parent_block.instance,
-            src_port=src_port.instance.name,
-            dst_block=dst_port.parent_block.instance,
-            dst_port=dst_port.instance.name,
-        )
-        self.project_state.add_connection(conn_inst)
-        conn_item = ConnectionItem(src_port, dst_port, conn_inst)
-        self.scene.addItem(conn_item)
-        src_port.add_connection(conn_item)
-        dst_port.add_connection(conn_item)
-        self.pending_port = None
-
+        self.project_controller.add_connection(self.pending_port.instance, port.instance)
+        self._cancel_temp_connection()
+    
     # --------------------------------------------------------------
     def delete_selected(self):
-        for item in self.scene.selectedItems():
+        for item in self.diagram_scene.selectedItems():
             if isinstance(item, BlockItem):
-                del self.block_items[item.instance.uid]
-                self.project_state.remove_block(item.instance)
-                item.remove_all_connections()
-                self.scene.removeItem(item)
+                self.project_controller.remove_block(item.instance)
 
             elif isinstance(item, ConnectionItem):
-                self.project_state.remove_connection(item.instance)
-                item.remove()
-                self.scene.removeItem(item)
+                self.project_controller.remove_connection(item.instance)
 
     # --------------------------------------------------------------
     def clear_scene(self):
-        for item in list(self.scene.items()):
-            self.scene.removeItem(item)
-            del item
-        self.block_items.clear()
+
+        for block in list(self.block_items.values()):
+            self.project_controller.remove_block(block.instance)
+        
+        for connection in list(self.connections.values()):
+            self.project_controller.remove_connection(connection.instance)
+
+        self.pending_port = None
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _cancel_temp_connection(self):
+        self.diagram_scene.removeItem(self.temp_connection)
+        self.temp_connection = None
         self.pending_port = None
 
     # --------------------------------------------------------------
@@ -257,39 +267,20 @@ class DiagramView(QGraphicsView):
     # --------------------------------------------------------------
     def _apply_theme_from_system(self):
         self.theme = make_theme()
-        self.scene.setBackgroundBrush(self.theme.scene_bg)
+        self.diagram_scene.setBackgroundBrush(self.theme.scene_bg)
         self._refresh_theme_items()
         self.viewport().update()
-        self.scene.update()
+        self.diagram_scene.update()
 
     # --------------------------------------------------------------
     def _refresh_theme_items(self):
-        # Update all block items + port labels + connection pens
         for block in self.block_items.values():
-            # repaint block (uses self.view.theme in paint)
             block.update()
-
-            # update port labels color + repaint ports
             for port in block.port_items:
                 port.label.setDefaultTextColor(self.theme.text)
                 port.update()
 
-                # update wire pen (may update same connection multiple times; OK)
-                for conn in port.connections:
-                    conn.setPen(QPen(self.theme.wire, 2))
-                    conn.update_position()
-                    conn.update()
-
-    # --------------------------------------------------------------
-    def _finalize_connection(self, target: PortItem | None):
-        self.scene.removeItem(self.temp_connection)
-        self.temp_connection = None
-
-        if (
-            target
-            and self.pending_port.is_compatible(target)
-            and target.can_accept_connection()
-        ):
-            self.finish_connection(target)
-
-        self.pending_port = None
+        for conn in self.connections.values():
+            conn.setPen(QPen(self.theme.wire, 2))
+            conn.update_position()
+            conn.update()

@@ -28,7 +28,10 @@ from PySide6.QtWidgets import QMainWindow, QSplitter
 
 from pySimBlocks.gui.dialogs.unsaved_dialog import UnsavedChangesDialog
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
+from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
+from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
+from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
@@ -38,7 +41,6 @@ from pySimBlocks.tools.blocks_registry import (
     load_block_registry,
 )
 
-
 registry: BlockRegistry = load_block_registry()
 
 
@@ -46,15 +48,20 @@ class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
         super().__init__()
 
+        self.loader = ProjectLoaderYaml()
+        self.saver = ProjectSaverYaml()
+        self.runner = SimulationRunner()
+
         self.project_state = ProjectState(project_path)
-        self.diagram = DiagramView(self.resolve_block_meta, self.project_state)
-        self.project_controller = ProjectController(self.project_state, self.diagram, self.resolve_block_meta)
+        self.view = DiagramView()
+        self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
+        self.view.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
-        self.toolbar = ToolBarView(self.project_state, self.project_controller)
+        self.toolbar = ToolBarView(self.saver, self.runner, self.project_controller)
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.blocks)
-        splitter.addWidget(self.diagram)
+        splitter.addWidget(self.view)
         splitter.setSizes([180, 800])
         
         self.setCentralWidget(splitter)
@@ -62,9 +69,9 @@ class MainWindow(QMainWindow):
 
         flag = self.auto_load_detection(project_path)
         if flag:
-            self.project_controller.load_project(project_path)
+            self.project_controller.load_project(self.loader)
 
-        self.project_state.dirty_changed.connect(self.update_window_title)
+        self.project_controller.dirty_changed.connect(self.update_window_title)
         self.update_window_title()
 
         self.save_action = QAction("Save", self)
@@ -95,6 +102,7 @@ class MainWindow(QMainWindow):
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
         return registry[category][block_type]
 
+
     # --------------------------------------------------------------------------
     # Auto Load 
     # --------------------------------------------------------------------------
@@ -119,21 +127,20 @@ class MainWindow(QMainWindow):
     # Project Management
     # --------------------------------------------------------------------------
     def _on_save(self):
-        # Optionnel : ne rien faire si déjà clean
-        if not self.project_state.is_dirty:
+        if not self.project_controller.is_dirty:
             return
-        self.project_controller.save()
+        self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
+        self.project_controller.clear_dirty()
 
     # ------------------------------------------------------------------
     def update_window_title(self):
         path = self.project_state.directory_path
         project_name = path.name if path else "Untitled"
-        star = "*" if self.project_state.is_dirty else ""
+        star = "*" if self.project_controller.is_dirty else ""
         self.setWindowTitle(f"{project_name}{star} – pySimBlocks")
 
     # ------------------------------------------------------------------
     def on_project_loaded(self, project_path: Path):
-        self.project_state.clear_dirty()
         self.update_window_title()
 
     # ------------------------------------------------------------------
@@ -152,7 +159,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
     def _confirm_discard_or_save(self, action_name: str) -> bool:
-        if not self.project_state.is_dirty:
+        if not self.project_controller.is_dirty:
             return True
 
         dlg = UnsavedChangesDialog(action_name, self)

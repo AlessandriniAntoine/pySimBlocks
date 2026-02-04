@@ -1,25 +1,18 @@
 version: 1
 blocks:
   ref:
-    x: 20.0
-    y: -160.0
+    x: 17.0
+    y: -157.0
     orientation: normal
   error:
-    x: 200.0
-    y: -150.0
+    x: 196.0
+    y: -149.0
     orientation: normal
   pid:
-    x: 370.0
-    y: -150.0
+    x: 369.0
+    y: -149.0
     orientation: normal
   plant:
-    x: 290.0
-    y: -65.0
-    orientation: flipped
-connections:
-  plant.y -> error.in2:
-    route: [[275.0, -25.0], [185.0, -25.0], [185.0, -77.5], [186.0, -77.5], [186.0,
-        -110.0], [194.0, -110.0]]
-  pid.u -> plant.u:
-    route: [[505.0, -120.0], [513.0, -120.0], [513.0, -77.5], [515.0, -77.5], [515.0,
-        -35.0], [416.0, -35.0]]
+    x: 530.0
+    y: -150.0
+    orientation: normal

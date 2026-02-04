@@ -18,17 +18,26 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pySimBlocks.gui.model.block_instance import BlockInstance
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.graphics.port_item import PortInstance
+    from pySimBlocks.gui.project_controller import BlockInstance
 
 class ConnectionInstance:
     def __init__(
         self,
-        src_block: BlockInstance,
-        src_port: str,
-        dst_block: BlockInstance,
-        dst_port: str,
+        src_port: "PortInstance",
+        dst_port: "PortInstance",
     ):
-        self.src_block = src_block
         self.src_port = src_port
-        self.dst_block = dst_block
         self.dst_port = dst_port
+
+    def src_block(self) -> "BlockInstance":
+        return self.src_port.block
+
+    def dst_block(self) -> "BlockInstance":
+        return self.dst_port.block
+    
+    def is_block_involved(self, block: "BlockInstance") -> bool:
+        return block in (self.src_port.block, self.dst_port.block)

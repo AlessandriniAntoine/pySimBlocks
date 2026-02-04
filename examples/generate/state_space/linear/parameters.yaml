@@ -1,7 +1,7 @@
 simulation:
   dt: 0.01
-  solver: fixed
   T: 3.0
+  solver: fixed
 blocks:
   ref:
     value_before: [[0.0]]

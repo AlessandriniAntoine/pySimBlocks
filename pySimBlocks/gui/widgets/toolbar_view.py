@@ -18,90 +18,79 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QMessageBox,
-    QProgressDialog,
-    QToolBar,
-)
+from PySide6.QtCore import Qt
+
+from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
+from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
+from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
+from pySimBlocks.gui.project_controller import ProjectController
+from pySimBlocks.gui.services.project_saver import ProjectSaver
+from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 
 # Add ons
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
-from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
-from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
-from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
-from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
-
 
 class ToolBarView(QToolBar):
 
     def __init__(self, 
-                 project_state: ProjectState, 
+                 saver: ProjectSaver,
+                 runner: SimulationRunner,
                  project_controller: ProjectController):
         super().__init__()
 
-        self.project_state = project_state
+        self.saver = saver
+        self.runner = runner
         self.project_controller = project_controller
 
         save_action = QAction("Save", self)
-        save_action.triggered.connect(self.save_yaml)
+        save_action.triggered.connect(self.on_save)
         self.addAction(save_action)
 
         export_action = QAction("Export", self)
-        export_action.triggered.connect(self.export_project)
+        export_action.triggered.connect(self.on_export_project)
         self.addAction(export_action)
 
         display_action = QAction("Display files", self)
-        display_action.triggered.connect(self.open_display_yaml)
+        display_action.triggered.connect(self.on_open_display_yaml)
         self.addAction(display_action)
 
         sim_settings_action = QAction("Settings", self)
-        sim_settings_action.triggered.connect(self.open_simulation_settings)
+        sim_settings_action.triggered.connect(self.on_open_simulation_settings)
         self.addAction(sim_settings_action)
 
         run_action = QAction("Run", self)
-        run_action.triggered.connect(self.run_sim)
+        run_action.triggered.connect(self.on_run_sim)
         self.addAction(run_action)
 
         plot_action = QAction("Plot", self)
-        plot_action.triggered.connect(self.plot_logs)
+        plot_action.triggered.connect(self.on_plot_logs)
         self.addAction(plot_action)
 
         # add ons
-        self.sofa_service = SofaService(self.project_state, self.project_controller)
+        self.sofa_service = SofaService(self.project_controller.project_state, self.project_controller.view)
         self.sofa_action = QAction("Sofa", self)
-        self.sofa_action.triggered.connect(self.open_sofa_dialog)
+        self.sofa_action.triggered.connect(self.on_open_sofa_dialog)
         self.addAction(self.sofa_action)
 
-    def save_yaml(self):
-        self.project_controller.save()
+    def on_save(self):
+        self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
+        self.project_controller.clear_dirty()
 
-    def export_project(self):
-        main = self.window()
-        if not isinstance(main, QMainWindow):
-            return
-        if not main._confirm_discard_or_save("exporting"):
-            return
-        self.project_controller.export()
+    def on_export_project(self):
+        self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)
 
-    def open_display_yaml(self):
-        dialog = DisplayYamlDialog(
-                self.project_state, self.project_controller.view, 
-                parent=self.window())
+    def on_open_display_yaml(self):
+        dialog = DisplayYamlDialog(self.project_controller.project_state, self.project_controller.view)
         dialog.exec()
 
-    def open_simulation_settings(self):
-        dialog = SettingsDialog(
-                self.project_state, self.project_controller, 
-                parent=self.window())
+    def on_open_simulation_settings(self):
+        dialog = SettingsDialog(self.project_controller.project_state, self.project_controller)
         dialog.exec()
 
-    def run_sim(self):
+    def on_run_sim(self):
         dlg = QProgressDialog(self)
         dlg.setWindowTitle("Simulation")
         dlg.setLabelText("Running simulation...\nPlease wait.")
@@ -114,10 +103,10 @@ class ToolBarView(QToolBar):
         QApplication.processEvents()
 
         self.set_running(True)
-        logs, flag, msg = self.project_controller.run()
+        logs, flag, msg = self.runner.run(self.project_controller.project_state)
         dlg.close()
         self.set_running(False)
-        self.project_state.logs = logs
+        self.project_controller.project_state.logs = logs
 
         if not flag:
             QMessageBox.warning(
@@ -128,8 +117,8 @@ class ToolBarView(QToolBar):
             )
 
 
-    def plot_logs(self):
-        flag, msg = self.project_controller.can_plot()
+    def on_plot_logs(self):
+        flag, msg = self.project_controller.project_state.can_plot()
         if not flag:
             QMessageBox.warning(
                 self,
@@ -138,8 +127,7 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
-        self._plot_dialog = PlotDialog(
-                self.project_state, parent=self.window())
+        self._plot_dialog = PlotDialog(self.project_controller.project_state, self.parent()) # keep ref because of python garbage collector
         self._plot_dialog.show()
 
 
@@ -150,14 +138,14 @@ class ToolBarView(QToolBar):
     #####################################
     # Adds on
     def refresh_sofa_button(self):
-        if self.project_state.has_sofa_block():
+        if self.project_controller.has_sofa_block():
             if self.sofa_action not in self.actions():
                 self.addAction(self.sofa_action)
         else:
             if self.sofa_action in self.actions():
                 self.removeAction(self.sofa_action)
 
-    def open_sofa_dialog(self):
+    def on_open_sofa_dialog(self):
         ok, msg, details = self.sofa_service.can_use_sofa()
         if not ok:
             QMessageBox.warning(
@@ -167,5 +155,5 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok
             )
             return
-        dialog = SofaDialog(self.sofa_service, parent=self.window())
+        dialog = SofaDialog(self.sofa_service)
         dialog.exec()

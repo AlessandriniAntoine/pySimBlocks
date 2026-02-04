@@ -18,13 +18,18 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsView, QGraphicsItem, QStyle
-from PySide6.QtCore import Qt, QPointF, QPoint
-from PySide6.QtGui import QColor, QPen
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QPen
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QStyle
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.graphics.port_item import PortItem
-from pySimBlocks.gui.model.block_instance import BlockInstance
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.model.block_instance import BlockInstance
+    from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class BlockItem(QGraphicsRectItem):
@@ -34,15 +39,15 @@ class BlockItem(QGraphicsRectItem):
     GRID_DY = 5
 
     def __init__(self, 
-                 instance: BlockInstance, 
+                 instance: "BlockInstance", 
                  pos: QPointF | QPoint, 
-                 view: QGraphicsView,
-                 orientation: str = "normal"
+                 view: "DiagramView",
+                 layout: dict = {},
     ):
         super().__init__(0, 0, self.WIDTH, self.HEIGHT)
         self.view = view
         self.instance = instance
-        self.orientation = orientation
+        self.orientation = layout.get("orientation", "normal")
 
         self.setPos(pos)
         self.setFlag(QGraphicsRectItem.ItemIsMovable)
@@ -58,7 +63,38 @@ class BlockItem(QGraphicsRectItem):
         self._layout_ports()
 
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+    def get_port_item(self, name:str) -> PortItem | None:
+        for port in self.port_items:
+            if port.instance.name == name:
+                return port
+
     # --------------------------------------------------------------
+    def refresh_ports(self):
+        for item in self.port_items:
+            self.scene().removeItem(item)
+
+        self.port_items.clear()
+        self.instance.resolve_ports()
+
+        for port in self.instance.ports:
+            self.port_items.append(PortItem(port, self))
+
+        self._layout_ports()
+
+    # --------------------------------------------------------------
+    def toggle_orientation(self):
+        self.orientation = "flipped" if self.orientation == "normal" else "normal"
+
+        self._layout_ports()
+        self.view.on_block_moved(self)
+        self.update()
+
+    # --------------------------------------------------------------------------
+    # Visual Methods
+    # --------------------------------------------------------------------------
     def paint(self, painter, option, widget=None):
         t = self.view.theme
 
@@ -76,7 +112,9 @@ class BlockItem(QGraphicsRectItem):
             painter.setPen(t.text)
         painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
 
-    # --------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Event Methods
+    # --------------------------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
         dialog = BlockDialog(self, readonly=False)
         dialog.exec()
@@ -84,7 +122,6 @@ class BlockItem(QGraphicsRectItem):
         event.accept()
 
     # --------------------------------------------------------------
-
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange and self.scene():
             x = round(value.x() / self.GRID_DX) * self.GRID_DX
@@ -92,56 +129,25 @@ class BlockItem(QGraphicsRectItem):
             return QPointF(x, y)
 
         if change == QGraphicsItem.ItemPositionHasChanged:
-            self.view.project_state.make_dirty()
-            for port in self.port_items:
-                for c in port.connections:
-                    c.invalidate_manual_route()
-                    c.update_position()
+            self.view.on_block_moved(self)
 
         return super().itemChange(change, value)
 
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+    def _layout_ports(self):
+        inputs = [p for p in self.port_items if p.is_input]
+        outputs = [p for p in self.port_items if not p.is_input]
 
-    # --------------------------------------------------------------
-    def remove_all_connections(self):
-        for port in self.port_items:
-            for conn in port.connections[:]:
-                conn.remove()
+        flipped = self.orientation == "flipped"
 
-    # --------------------------------------------------------------
-    def get_port_item(self, name:str) -> PortItem | None:
-        for port in self.port_items:
-            if port.instance.name == name:
-                return port
-
-
-    # --------------------------------------------------------------
-    def refresh_ports(self):
-        for item in self.port_items:
-            self.scene().removeItem(item)
-
-        self.port_items.clear()
-        self.instance.resolve_ports()
-
-        for port in self.instance.ports:
-            self.port_items.append(PortItem(port, self))
-
-        self._layout_ports()
-
-
-    # --------------------------------------------------------------
-    def toggle_orientation(self):
-        self.orientation = "flipped" if self.orientation == "normal" else "normal"
-
-        # reposition ports
-        self._layout_ports()
-
-        # force update connections
-        for port in self.port_items:
-            for c in port.connections:
-                c.invalidate_manual_route()
-                c.update_position()
-
-        self.update()
+        if not flipped:
+            self._layout_side(inputs, x=0)
+            self._layout_side(outputs, x=self.WIDTH)
+        else:
+            self._layout_side(inputs, x=self.WIDTH)
+            self._layout_side(outputs, x=0)
 
     # --------------------------------------------------------------
     def _layout_side(self, ports, x):
@@ -153,18 +159,3 @@ class BlockItem(QGraphicsRectItem):
         for i, port in enumerate(ports, start=1):
             port.setPos(x, i * step)
             port.update_label_position()
-
-
-    # --------------------------------------------------------------
-    def _layout_ports(self):
-        inputs = [p for p in self.port_items if p.instance.direction == "input"]
-        outputs = [p for p in self.port_items if p.instance.direction == "output"]
-
-        flipped = self.orientation == "flipped"
-
-        if not flipped:
-            self._layout_side(inputs, x=0)
-            self._layout_side(outputs, x=self.WIDTH)
-        else:
-            self._layout_side(inputs, x=self.WIDTH)
-            self._layout_side(outputs, x=0)

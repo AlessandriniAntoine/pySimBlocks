@@ -19,7 +19,6 @@
 # ******************************************************************************
 
 import ast
-import copy
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -39,13 +38,19 @@ from PySide6.QtWidgets import (
 
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
+from typing import TYPE_CHECKING, Any
+if TYPE_CHECKING:
+    from pySimBlocks.gui.graphics.block_item import BlockItem
+    from PySide6.QtWidgets import QWidget
+    
 
 class BlockDialog(QDialog):
-    def __init__(self, block, readonly: bool = False):
+    def __init__(self, 
+                 block: 'BlockItem', 
+                 readonly: bool = False
+    ):
         super().__init__()
-        self.block = block # BlockItem
-        self._initial_name = block.instance.name
-        self._initial_params = copy.deepcopy(block.instance.parameters)
+        self.block = block
 
         self.readonly = readonly
         if self.readonly:
@@ -53,12 +58,11 @@ class BlockDialog(QDialog):
         else:
             self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
-        self.param_widgets = {}
 
         main_layout = QVBoxLayout(self)
 
-        self.param_widgets = {}
-        self.param_labels = {}
+        self.param_widgets: dict[str, QWidget] = {}
+        self.param_labels: dict[str, QLabel] = {}
         self.depends_rules = {}
 
         self.build_parameters_form(main_layout)
@@ -83,9 +87,8 @@ class BlockDialog(QDialog):
 
         main_layout.addLayout(buttons_layout)
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------
     # Form
-    # --------------------------------------------------------------------------
     def description_part(self, form):
         title = QLabel(f"<b>{self.block.instance.meta.name}</b>")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -110,7 +113,6 @@ class BlockDialog(QDialog):
         frame_layout.addWidget(desc)
         form.addRow(frame)
 
-    # ------------------------------------------------------------------
     def build_parameters_form(self, layout):
         meta_params = self.block.instance.meta.parameters
         inst_params = self.block.instance.parameters
@@ -156,7 +158,7 @@ class BlockDialog(QDialog):
 
         self.update_visibility()
 
-    # ------------------------------------------------------------------
+
     def update_visibility(self):
         inst_params = self.block.instance.parameters
 
@@ -192,49 +194,47 @@ class BlockDialog(QDialog):
             widget.setVisible(visible)
             label.setVisible(visible)
 
-    # --------------------------------------------------------------------------
+
+    # ------------------------------------------------------------
     # Buttons
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------
     def apply(self):
         if self.readonly:
             return
-
-        self.block.instance.name = self.name_edit.text()
-
-        for pname, widget in self.param_widgets.items():
-
+        
+        def get_param_value(widget: 'QWidget'):
             if not widget.isVisible():
-                self.block.instance.parameters[pname] = None
-                continue
+                return None
 
             if isinstance(widget, QComboBox):
-                self.block.instance.parameters[pname] = widget.currentText()
+                return widget.currentText()
 
-            elif isinstance(widget, QLineEdit):
+            if isinstance(widget, QLineEdit):
                 text = widget.text().strip()
                 if not text:
-                    self.block.instance.parameters[pname] = None
-                    continue
+                    return None
                 try:
-                    value = ast.literal_eval(text)
+                    return ast.literal_eval(text)
                 except Exception:
-                    value = text
-                self.block.instance.parameters[pname] = value
-        changed = (
-                self.block.instance.name != self._initial_name or
-                self.block.instance.parameters != self._initial_params
-                )
-        if changed:
-            self.block.view.project_state.make_dirty()
-        self.block.refresh_ports()
+                    return text
 
+            return None
 
-    # ------------------------------------------------------------------
+        params: dict[str, Any] = {
+            "name": self.name_edit.text(),
+            **{
+                pname: get_param_value(widget) 
+                for pname, widget in self.param_widgets.items()
+            }
+        }
+
+        self.block.view.update_block_param_event(self.block.instance, params)
+
     def ok(self):
         self.apply()
         self.accept()
 
-    # ------------------------------------------------------------------
+
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
 
@@ -244,9 +244,9 @@ class BlockDialog(QDialog):
         else:
             QMessageBox.information(self, "Help", "No documentation available.")
 
-    # --------------------------------------------------------------------------
+
+    # ------------------------------------------------------------
     # internal methods
-    # --------------------------------------------------------------------------
     def _create_param_widget(self, name, meta, inst_params):
         ptype = meta.get("type")
         value = inst_params.get(name)
@@ -272,7 +272,7 @@ class BlockDialog(QDialog):
 
         return edit
 
-    # ------------------------------------------------------------------
+
     def _on_param_changed(self, name, value):
         if self.readonly:
             return

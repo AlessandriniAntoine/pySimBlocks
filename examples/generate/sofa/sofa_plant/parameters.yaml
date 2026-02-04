@@ -1,7 +1,7 @@
 simulation:
   dt: 0.01
-  solver: fixed
   T: 5.0
+  solver: fixed
 blocks:
   error:
     signs: +-
