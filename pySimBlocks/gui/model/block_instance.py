@@ -19,9 +19,16 @@
 # ******************************************************************************
 
 import uuid
-from typing import Any, Dict, List, Literal, Self, Sized
+from typing import Any, Dict, List, Literal, Sized
+
 from pySimBlocks.gui.model.port_instance import PortInstance
 from pySimBlocks.tools.blocks_registry import BlockMeta
+
+try: # Python 3.11+
+    from typing import Self
+except ImportError: # Python <3.11
+    from typing_extensions import Self
+
 
 class BlockInstance:
     """
