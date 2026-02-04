@@ -52,6 +52,10 @@ class MainWindow(QMainWindow):
         self.saver = ProjectSaverYaml()
         self.runner = SimulationRunner()
 
+        self.loader = ProjectLoaderYaml()
+        self.saver = ProjectSaverYaml()
+        self.runner = SimulationRunner()
+
         self.project_state = ProjectState(project_path)
         self.view = DiagramView()
         self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
