@@ -25,25 +25,31 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
 
+class OrthogonalRoute:
+    def __init__(self, points: list[QPointF]):
+        self.points = points
+        self.dragged_index: int | None = None
+
+
 class ConnectionItem(QGraphicsPathItem):
     OFFSET = 8
     MARGIN = 12
     DETOUR = 8
+    PICK_TOL = 6
+    GRID = 5
 
 
-    def __init__(self, 
-                 port1, # PortItem, circular import
-                 port2, # PortItem, circular import
-                 instance: ConnectionInstance):
+    def __init__(self, port1, port2, instance: ConnectionInstance | None):
         super().__init__()
-
 
         self.port1 = port1
         self.port2 = port2
         self.instance = instance
         self.is_temporary = port2 is None
-        t = self.port1.parent_block.view.theme
+        self.route: OrthogonalRoute | None = None
+        self.is_manual: bool = False
 
+        t = self.port1.parent_block.view.theme
 
         if self.is_temporary:
             self.setFlag(QGraphicsItem.ItemIsSelectable, False)
@@ -51,168 +57,202 @@ class ConnectionItem(QGraphicsPathItem):
             pen = QPen(t.wire, 3, Qt.DashLine)
         else:
             self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-            pen =  QPen(t.wire, 3, Qt.SolidLine)
+            self.setAcceptedMouseButtons(Qt.LeftButton)
+            pen = QPen(t.wire, 3, Qt.SolidLine)
 
         self.setPen(pen)
         self.setZValue(1)
 
         self.update_position()
 
-    # --------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Public update API
+    # --------------------------------------------------------------------------
     def update_position(self):
         if self.is_temporary:
             return
+
         p1 = self.port1.connection_anchor()
         p2 = self.port2.connection_anchor()
-        self._build_path(p1, p2)
 
-    def update_temp_position(self, scene_pos: QPointF):
-        p1 = self.port1.connection_anchor()
-        self._build_path(p1, scene_pos)
-
-    def _build_path(self, p1: QPointF, p2: QPointF):
-        src_block = self.port1.parent_block
-        src_rect = src_block.sceneBoundingRect()
-
-        if self.is_temporary:
-            src_out_sign = 1 if not self.port1.is_on_left_side else -1
-
-            p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
-
-            path = QPainterPath(p1)
-            path.lineTo(p1_out)
-            path.lineTo(p2)
-
-            self.setPath(path)
+        # si route manuelle déjà appliquée -> recoller les extrémités seulement
+        if self.is_manual and self.route and len(self.route.points) >= 2:
+            self.route.points[0] = p1
+            self.route.points[-1] = p2
+            self._apply_route(self.route.points)
             return
 
+        pts = self._compute_auto_route(p1, p2)
+        self.route = OrthogonalRoute(pts)
+        self._apply_route(self.route.points)
+
+    # ------------------------------------------------------------------
+    def update_temp_position(self, scene_pos: QPointF):
+        p1 = self.port1.connection_anchor()
+        pts = [p1, scene_pos]
+        self._apply_route(pts)
+
+    # ------------------------------------------------------------------
+    def apply_manual_route(self, points: list[QPointF]):
+        self.route = OrthogonalRoute(points)
+        self.is_manual = True
+        self._apply_route(self.route.points)
+
+    # ------------------------------------------------------------------
+    def invalidate_manual_route(self):
+        """
+        Called when a connected block moves: manual routing is discarded and
+        next update_position() will fully recompute the orthogonal route.
+        """
+        self.is_manual = False
+        self.route = None
+
+    # --------------------------------------------------------------------------
+    # Routing logic
+    # --------------------------------------------------------------------------
+    def _compute_auto_route(self, p1: QPointF, p2: QPointF) -> list[QPointF]:
+        src_block = self.port1.parent_block
         dst_block = self.port2.parent_block
+
+        src_rect = src_block.sceneBoundingRect()
         dst_rect = dst_block.sceneBoundingRect()
 
-        # sign: outward direction from source and into destination (depends on side)
         src_out_sign = 1 if not self.port1.is_on_left_side else -1
         dst_in_sign = -1 if self.port2.is_on_left_side else 1
 
         p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
-        p2_in  = QPointF(p2.x() + dst_in_sign  * self.OFFSET, p2.y())
+        p2_in = QPointF(p2.x() + dst_in_sign * self.OFFSET, p2.y())
 
-        path = QPainterPath(p1)
-
-        # -------------------------------------------------
-        # Decide if this must be treated as feedback (U-turn)
-        # -------------------------------------------------
-        same_block = (src_block is dst_block)
-
-        # if destination is "behind" the outward direction => U-turn
+        same_block = src_block is dst_block
         u_turn = ((p2_in.x() - p1_out.x()) * src_out_sign) < 0
-
         is_feedback = same_block or u_turn
 
-        # -------------------------------------------------
-        # FORWARD (no U-turn)
-        # -------------------------------------------------
         if not is_feedback:
-            # Path "standard" en 3 segments
             mid_x = (p1_out.x() + p2_in.x()) * 0.5
-            candidate = QPainterPath(p1)
-            candidate.lineTo(p1_out)
-            candidate.lineTo(mid_x, p1.y())
-            candidate.lineTo(mid_x, p2.y())
-            candidate.lineTo(p2_in)
-            candidate.lineTo(p2)
+            candidate = [
+                p1, p1_out,
+                QPointF(mid_x, p1.y()),
+                QPointF(mid_x, p2.y()),
+                p2_in, p2
+            ]
 
-            # Check collision avec src/dst block
-            # (on tolère le départ/arrivée, mais si ça traverse le rectangle, c'est moche)
-            collides = candidate.intersects(src_rect) or candidate.intersects(dst_rect)
+            path = self._path_from(candidate)
+            if not (path.intersects(src_rect) or path.intersects(dst_rect)):
+                return candidate
 
-            if not collides:
-                path = candidate
-            else:
-                p1_far = QPointF(p1.x() + src_out_sign * self.DETOUR, p1.y())
-                p2_far = QPointF(p2.x() + dst_in_sign * self.DETOUR, p2.y())
+        # fallback / feedback routing
+        candidates_y = [
+            min(src_rect.top(), dst_rect.top()) - self.MARGIN,
+            max(src_rect.bottom(), dst_rect.bottom()) + self.MARGIN
+        ]
 
-                # route_y: petit décalage vertical pour éviter de repasser sur les ports
-                # (tu peux aussi reprendre ta logique "above/below/between" ici)
-                route_y = p1.y() if abs(p1.y() - p2.y()) < 10 else (p1.y() + p2.y()) * 0.5
+        if src_rect.bottom() < dst_rect.top():
+            candidates_y.append((src_rect.bottom() + dst_rect.top()) * 0.5)
+        elif dst_rect.bottom() < src_rect.top():
+            candidates_y.append((dst_rect.bottom() + src_rect.top()) * 0.5)
 
-                candidate2 = QPainterPath(p1)
-                candidate2.lineTo(p1_far)
-                candidate2.lineTo(p1_far.x(), route_y)
-                candidate2.lineTo(p2_far.x(), route_y)
-                candidate2.lineTo(p2_far)
-                candidate2.lineTo(p2)
+        route_y = min(
+            candidates_y,
+            key=lambda y: abs(p1.y() - y) + abs(p2.y() - y)
+        )
 
-                # si encore collision, on force un passage au-dessus/en dessous
-                if candidate2.intersects(src_rect) or candidate2.intersects(dst_rect):
-                    # reprendre ton feedback chooser (above/below/between) mais sans u_turn
-                    candidates_y = []
-                    candidates_y.append(min(src_rect.top(), dst_rect.top()) - self.MARGIN)
-                    candidates_y.append(max(src_rect.bottom(), dst_rect.bottom()) + self.MARGIN)
-                    if src_rect.bottom() < dst_rect.top():
-                        candidates_y.append((src_rect.bottom() + dst_rect.top()) * 0.5)
-                    elif dst_rect.bottom() < src_rect.top():
-                        candidates_y.append((dst_rect.bottom() + src_rect.top()) * 0.5)
+        return [
+            p1, p1_out,
+            QPointF(p1_out.x(), route_y),
+            QPointF(p2_in.x(), route_y),
+            p2_in, p2
+        ]
 
-                    route_y = min(candidates_y, key=lambda y: abs(p1.y()-y)+abs(p2.y()-y))
+    # ------------------------------------------------------------------
+    def _snap(self, v: float) -> float:
+        return round(v / self.GRID) * self.GRID
 
-                    candidate2 = QPainterPath(p1)
-                    candidate2.lineTo(p1_far)
-                    candidate2.lineTo(p1_far.x(), route_y)
-                    candidate2.lineTo(p2_far.x(), route_y)
-                    candidate2.lineTo(p2_far)
-                    candidate2.lineTo(p2)
-
-                path = candidate2
-
-
-        # -------------------------------------------------
-        # FEEDBACK (U-turn or self-loop): route above/below/between
-        # -------------------------------------------------
-        else:
-            candidates = []
-
-            # above
-            y_above = min(src_rect.top(), dst_rect.top()) - self.MARGIN
-            candidates.append(y_above)
-
-            # below
-            y_below = max(src_rect.bottom(), dst_rect.bottom()) + self.MARGIN
-            candidates.append(y_below)
-
-            # between (only if there is a vertical gap)
-            if src_rect.bottom() < dst_rect.top():
-                candidates.append((src_rect.bottom() + dst_rect.top()) * 0.5)
-            elif dst_rect.bottom() < src_rect.top():
-                candidates.append((dst_rect.bottom() + src_rect.top()) * 0.5)
-
-            route_y = min(
-                candidates,
-                key=lambda y: abs(p1.y() - y) + abs(p2.y() - y)
-            )
-
-            # always advance out of the source, then bridge, then approach destination from outside
-            path.lineTo(p1_out)
-            path.lineTo(p1_out.x(), route_y)
-            path.lineTo(p2_in.x(), route_y)
-            path.lineTo(p2_in)
-            path.lineTo(p2)
-
+    # --------------------------------------------------------------------------
+    # Path construction
+    # --------------------------------------------------------------------------
+    def _apply_route(self, points: list[QPointF]):
+        path = QPainterPath(points[0])
+        for p in points[1:]:
+            path.lineTo(p)
         self.setPath(path)
 
-    # --------------------------------------------------------------
+    def _path_from(self, pts: list[QPointF]) -> QPainterPath:
+        p = QPainterPath(pts[0])
+        for pt in pts[1:]:
+            p.lineTo(pt)
+        return p
+
+    # --------------------------------------------------------------------------
+    # Interaction (segment dragging)
+    # --------------------------------------------------------------------------
+    def segment_at(self, scene_pos: QPointF) -> int | None:
+        if not self.route:
+            return None
+
+        pts = self.route.points
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+
+            if a.x() == b.x():  # vertical
+                if abs(scene_pos.x() - a.x()) < self.PICK_TOL \
+                   and min(a.y(), b.y()) <= scene_pos.y() <= max(a.y(), b.y()):
+                    return i
+
+            if a.y() == b.y():  # horizontal
+                if abs(scene_pos.y() - a.y()) < self.PICK_TOL \
+                   and min(a.x(), b.x()) <= scene_pos.x() <= max(a.x(), b.x()):
+                    return i
+        return None
+
+    # ------------------------------------------------------------------
+    def mousePressEvent(self, event):
+        idx = self.segment_at(event.scenePos())
+        if idx is not None:
+            self.route.dragged_index = idx
+            self.is_manual = True
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    # ------------------------------------------------------------------
+    def mouseMoveEvent(self, event):
+        if not self.route or self.route.dragged_index is None:
+            return
+
+        i = self.route.dragged_index
+        a = self.route.points[i]
+        b = self.route.points[i + 1]
+        pos = event.scenePos()
+
+        if a.x() == b.x():  # vertical segment
+            x = self._snap(pos.x())
+            self.route.points[i]     = QPointF(x, a.y())
+            self.route.points[i + 1] = QPointF(x, b.y())
+
+        elif a.y() == b.y():  # horizontal segment
+            y = self._snap(pos.y())
+            self.route.points[i]     = QPointF(a.x(), y)
+            self.route.points[i + 1] = QPointF(b.x(), y)
+
+        self._apply_route(self.route.points)
+
+    # ------------------------------------------------------------------
+    def mouseReleaseEvent(self, event):
+        if self.route:
+            self.route.dragged_index = None
+        super().mouseReleaseEvent(event)
+
+    # --------------------------------------------------------------------------
+    # Removal & picking
+    # --------------------------------------------------------------------------
     def remove(self):
         if self in self.port1.connections:
             self.port1.connections.remove(self)
         if self in self.port2.connections:
             self.port2.connections.remove(self)
 
-    # --------------------------------------------------------------
+    # ------------------------------------------------------------------
     def shape(self):
-        """
-        Zone cliquable = uniquement autour du câble,
-        pas toute la bounding box.
-        """
         stroker = QPainterPathStroker()
-        stroker.setWidth(6)  # zone cliquable (px)
-
+        stroker.setWidth(6)
         return stroker.createStroke(self.path())

@@ -19,17 +19,17 @@
 # ******************************************************************************
 
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Callable
-import shutil
-from PySide6.QtCore import QPointF
 
+from PySide6.QtCore import QPointF
 
 from pySimBlocks.gui.graphics import BlockItem, ConnectionItem
 from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, ProjectState
+from pySimBlocks.gui.services.yaml_tools import load_yaml_file, save_yaml
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
-from pySimBlocks.gui.services.yaml_tools import save_yaml, load_yaml_file
 from pySimBlocks.project.generate_run_script import generate_python_content
 from pySimBlocks.tools.blocks_registry import BlockMeta
 
@@ -44,9 +44,13 @@ class ProjectController:
         self.resolve_block_meta = resolve_block_meta
         self.view = view
 
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def save(self):
         save_yaml(self.project_state, self.view.block_items)
 
+    # ------------------------------------------------------------------
     def export(self):
         save_yaml(self.project_state, self.view.block_items)
         run_py = self.project_state.directory_path / "run.py"
@@ -56,6 +60,7 @@ class ProjectController:
             )
         )
 
+    # ------------------------------------------------------------------
     def run(self):
         project_dir = self.project_state.directory_path
         if project_dir is None:
@@ -98,15 +103,17 @@ class ProjectController:
             os.chdir(old_cwd)
             sys.path[:] = old_sys_path
 
+    # ------------------------------------------------------------------
     def can_plot(self):
         if not bool(self.project_state.logs):
             return False, "Simulation has not been done.\nPlease run fist."
 
-        if not ("time" in self.project_state.logs):
+        if "time" not in self.project_state.logs:
             return False, "Time is not in logs."
 
         return True, "Plotting is available."
 
+    # ------------------------------------------------------------------
     def change_project_directory(self, new_path: Path):
         if self.project_state.directory_path:
             temp = self.project_state.directory_path / ".temp"
@@ -114,6 +121,7 @@ class ProjectController:
                 shutil.rmtree(temp, ignore_errors=True)
         self.project_state.directory_path = new_path
 
+    # ------------------------------------------------------------------
     def load_project(self, directory: Path):
         model_yaml = directory / "model.yaml"
         params_yaml = directory / "parameters.yaml"
@@ -134,13 +142,22 @@ class ProjectController:
         self._load_plots(params_data)
 
         # 4. Rebuild view
-        self._instantiate_blocks_in_view()
-        self._instantiate_connections_in_view()
+        layout_blocks, layout_conns, layout_warnings = self._load_layout_data(
+                self.project_state.directory_path
+        )
+        for w in layout_warnings:
+            print(f"[Layout warning] {w}")
+        self._instantiate_blocks_in_view(layout_blocks)
+        self._instantiate_connections_in_view(layout_conns)
 
+    # --------------------------------------------------------------------------
+    # Internal loading methods
+    # --------------------------------------------------------------------------
     def _load_simulation(self, params_data: dict):
         sim_data: dict = params_data.get("simulation", {})
         self.project_state.load_simulation(sim_data, params_data.get("external", None))
 
+    # ------------------------------------------------------------------
     def _load_blocks(self, model_data, params_data):
         blocks = model_data.get("blocks", [])
         params_blocks = params_data.get("blocks", {})
@@ -163,6 +180,7 @@ class ProjectController:
             instance.resolve_ports()
             self.project_state.add_block(instance)
 
+    # ------------------------------------------------------------------
     def _load_connections(self, model_data):
         connections = model_data.get("connections", [])
 
@@ -178,37 +196,45 @@ class ProjectController:
             )
             self.project_state.add_connection(conn)
 
+    # ------------------------------------------------------------------
     def _load_logging(self, params_data):
         log_data = params_data.get("logging", {})
         self.project_state.logging = log_data
 
+    # ------------------------------------------------------------------
     def _load_plots(self, params_data):
         plot_data = params_data.get("plots", {})
         self.project_state.plots = plot_data
 
-    def _instantiate_blocks_in_view(self):
+    # ------------------------------------------------------------------
+    def _instantiate_blocks_in_view(self, layout_blocks: dict | None):
         # --- load layout ---
-        layout_blocks, layout_warnings = self._load_layout_data(
-            self.project_state.directory_path
-        )
-
+        if layout_blocks is None:
+            layout_blocks = {}
+        
         positions, position_warnings = self._compute_block_positions(layout_blocks)
 
-        for w in layout_warnings + position_warnings:
-            print(f"[Layout warning] {w}")
+        for w in position_warnings:
+            print(f"[Layout blocks warning] {w}")
 
         # --- instantiate blocks ---
         for block in self.project_state.blocks:
             pos = positions[block.name]
-            orientation = layout_blocks.get(block.name, {}).get("orientation", "normal") if layout_blocks else "normal"
+            block_layout = layout_blocks.get(block.name, {})
+            orientation = block_layout.get("orientation", "normal")
             if orientation not in ("normal", "flipped"):
-                print(f"[Layout warning] Invalid orientation for block '{block.name}' in layout.yaml, set to 'normal'.")
+                print(f"[Layout blocks warning] Invalid orientation for block '{block.name}' in layout.yaml, set to 'normal'.")
+
             item = BlockItem(block, pos, self.view, orientation=orientation)
             self.view.scene.addItem(item)
             self.view.block_items[item.instance.uid] = item
 
+    # ------------------------------------------------------------------
+    def _instantiate_connections_in_view(self, layout_connections: dict | None):
+        routes, route_warnings = self._parse_manual_routes(layout_connections)
+        for w in route_warnings:
+            print(f"[Layout connections warning] {w}")
 
-    def _instantiate_connections_in_view(self):
         for conn in self.project_state.connections:
             src_item = self.view.block_items[conn.src_block.uid]
             dst_item = self.view.block_items[conn.dst_block.uid]
@@ -217,13 +243,19 @@ class ProjectController:
             dst_port = dst_item.get_port_item(conn.dst_port)
 
             item = ConnectionItem(src_port, dst_port, conn)
-            self.view.scene.addItem(item)
+            key = f"{conn.src_block.name}.{conn.src_port} -> {conn.dst_block.name}.{conn.dst_port}"
+            if key in routes:
+                item.apply_manual_route(routes[key])
 
+
+            self.view.scene.addItem(item)
             src_port.add_connection(item)
             dst_port.add_connection(item)
 
-
-    def _load_layout_data(self, directory: Path) -> tuple[dict | None, list[str]]:
+    # ------------------------------------------------------------------
+    def _load_layout_data(self, 
+                          directory: Path
+                          ) -> tuple[dict | None, dict | None, list[str]]:
         """
         Load layout.yaml if it exists.
 
@@ -235,26 +267,31 @@ class ProjectController:
         layout_path = directory / "layout.yaml"
 
         if not layout_path.exists():
-            return None, warnings  # Rule 1
+            return None, None, warnings 
 
         try:
             data = load_yaml_file(str(layout_path))
         except Exception as e:
             warnings.append(f"Failed to parse layout.yaml: {e}")
-            return None, warnings
+            return None, None, warnings
 
         if not isinstance(data, dict):
             warnings.append("layout.yaml is not a valid mapping, ignored.")
-            return None, warnings
+            return None, None, warnings
 
-        blocks = data.get("blocks", {})
+        blocks = data.get("blocks", None)
         if not isinstance(blocks, dict):
             warnings.append("layout.yaml.blocks is invalid, ignored.")
-            return None, warnings
+            blocks = None
 
-        return blocks, warnings
+        conns = data.get("connections", None)
+        if conns is not None and not isinstance(conns, dict):
+            warnings.append("layout.yaml.connections is invalid, ignored.")
+            conns = None
 
+        return blocks, conns, warnings
 
+    # ------------------------------------------------------------------
     def _compute_block_positions(
         self,
         layout_blocks: dict | None
@@ -312,3 +349,77 @@ class ProjectController:
             )
 
         return positions, warnings
+
+    # ------------------------------------------------------------------
+    def _parse_manual_routes(
+        self,
+        layout_connections: dict | None
+    ) -> tuple[dict[str, list[QPointF]], list[str]]:
+        """
+        Returns:
+            routes: dict[key -> list[QPointF]] for VALID routes only
+            warnings: list[str]
+        """
+        warnings = []
+        routes: dict[str, list[QPointF]] = {}
+
+        if not layout_connections:
+            return routes, warnings
+
+        model_block_names = {b.name for b in self.project_state.blocks}
+        model_conn_keys = {
+            f"{c.src_block.name}.{c.src_port} -> {c.dst_block.name}.{c.dst_port}"
+            for c in self.project_state.connections
+        }
+
+        for key, payload in layout_connections.items():
+            # key format: "A.out -> B.in"
+            try:
+                left, right = [s.strip() for s in key.split("->")]
+                src_block, src_port = [s.strip() for s in left.split(".", 1)]
+                dst_block, dst_port = [s.strip() for s in right.split(".", 1)]
+            except Exception:
+                warnings.append(f"Invalid connection key '{key}' in layout.yaml, ignored.")
+                continue
+
+            if src_block not in model_block_names or dst_block not in model_block_names:
+                warnings.append(
+                    f"layout.yaml contains connection '{key}' but a block is missing in model.yaml, ignored."
+                )
+                continue
+
+            if key not in model_conn_keys:
+                warnings.append(
+                    f"layout.yaml contains connection '{key}' not present in model.yaml, ignored."
+                )
+                continue
+
+            if not isinstance(payload, dict) or "route" not in payload:
+                warnings.append(f"layout.yaml connection '{key}' has no valid 'route', ignored.")
+                continue
+
+            raw_route = payload["route"]
+            if not isinstance(raw_route, list) or len(raw_route) < 2:
+                warnings.append(f"layout.yaml connection '{key}' route is invalid/too short, ignored.")
+                continue
+
+            pts: list[QPointF] = []
+            ok = True
+            for pt in raw_route:
+                if (
+                    not isinstance(pt, (list, tuple))
+                    or len(pt) != 2
+                    or not isinstance(pt[0], (int, float))
+                    or not isinstance(pt[1], (int, float))
+                ):
+                    ok = False
+                    break
+                pts.append(QPointF(float(pt[0]), float(pt[1])))
+
+            if not ok:
+                warnings.append(f"layout.yaml connection '{key}' route has invalid points, ignored.")
+                continue
+
+            routes[key] = pts
+
+        return routes, warnings

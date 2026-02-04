@@ -94,7 +94,9 @@ class BlockItem(QGraphicsRectItem):
         if change == QGraphicsItem.ItemPositionHasChanged:
             for port in self.port_items:
                 for c in port.connections:
+                    c.invalidate_manual_route()
                     c.update_position()
+
         return super().itemChange(change, value)
 
 
@@ -135,6 +137,7 @@ class BlockItem(QGraphicsRectItem):
         # force update connections
         for port in self.port_items:
             for c in port.connections:
+                c.invalidate_manual_route()
                 c.update_position()
 
         self.update()

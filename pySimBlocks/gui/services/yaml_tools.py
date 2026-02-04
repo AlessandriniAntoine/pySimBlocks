@@ -18,7 +18,6 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pathlib import Path
 import os
 import yaml
 from pySimBlocks.gui.model.project_state import ProjectState
@@ -231,14 +230,55 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         "blocks": {}
     }
 
-    for item in block_items.values():
-        name = item.instance.name
-        pos = item.pos()
+    manual_connections = {}
+    seen = set()
+
+    for block in block_items.values():
+
+        # block logic
+        name = block.instance.name
+        pos = block.pos()
         data["blocks"][name] = {
             "x": float(pos.x()),
             "y": float(pos.y()),
-            "orientation": item.orientation
+            "orientation": block.orientation
         }
+
+        # connections logic
+        for port in block.port_items:
+            for conn in port.connections:
+                if conn in seen:
+                    continue
+                seen.add(conn)
+
+                if not conn.is_manual:
+                    continue
+
+                port1 = conn.port1
+                port2 = conn.port2
+                if port1.is_input:
+                    src_block = port2.parent_block.instance.name
+                    src_port = port2.instance.name
+                    dst_block = port1.parent_block.instance.name
+                    dst_port = port1.instance.name
+                else:
+                    src_block = port1.parent_block.instance.name
+                    src_port = port1.instance.name
+                    dst_block = port2.parent_block.instance.name
+                    dst_port = port2.instance.name
+
+                key = f"{src_block}.{src_port} -> {dst_block}.{dst_port}"
+                rout = {
+                    "route": FlowStyleList([
+                        FlowStyleList([float(p.x()), float(p.y())]) 
+                        for p in conn.route.points
+                        ])
+                    }
+
+                manual_connections[key] = rout
+
+    if manual_connections:
+        data["connections"] = manual_connections
 
     return data
 
