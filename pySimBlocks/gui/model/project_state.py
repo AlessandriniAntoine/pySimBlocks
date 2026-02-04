@@ -33,7 +33,7 @@ class ProjectState:
         self.directory_path = directory_path
         self.logging: list[str] = []
         self.logs: dict = {}
-        self.plots: list = []
+        self.plots: list[dict[str, str | list[str]]] = []
 
 
     def clear(self):

@@ -99,20 +99,20 @@ class ProjectController:
             f"{block_instance.name}.outputs.{p.name}"
             for p in block_instance.ports if p.direction == "output"
         ]
-        self.project_state.logging = [
+        remaining_signals = [
             s for s in self.project_state.logging
             if s not in removed_signals
         ]
+        self.set_logged_signals(remaining_signals)
+
         # remove signals from plots and delete empty plot
-        new_plots = []
-        for plot in self.project_state.plots:
-            plot["signals"] = [
-                s for s in plot["signals"]
-                if s not in removed_signals
-            ]
-            if plot["signals"]:
-                new_plots.append(plot)
-        self.project_state.plots = new_plots
+        for i in reversed(range(len(self.project_state.plots))):
+            plot = self.project_state.plots[i]
+            # Keep only signals that are not removed
+            plot["signals"] = [s for s in plot["signals"] if s not in removed_signals]
+            # Delete the plot if it has no signals left
+            if not plot["signals"]:
+                self.delete_plot(i)
 
         # remove block
         self.project_state.remove_block(block_instance)
