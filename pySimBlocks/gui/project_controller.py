@@ -59,10 +59,11 @@ class ProjectController:
 
     def rename_block(self, block_instance: BlockInstance, new_name: str):
         old_name = block_instance.name
-        new_name = self.make_unique_name(new_name)
 
         if old_name == new_name:
             return
+
+        new_name = self.make_unique_name(new_name)
         
         block_instance.name = new_name
         prefix_old = f"{old_name}.outputs."
@@ -82,7 +83,6 @@ class ProjectController:
             ]
 
     def update_block_param(self, block_instance: BlockInstance, params: dict[str, Any]):
-
         self.rename_block(block_instance, params.pop("name", block_instance.name))
         block_instance.update_params(params)
         self.view.refresh_block_port(block_instance)
