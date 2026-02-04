@@ -116,8 +116,7 @@ class ProjectLoaderYaml(ProjectLoader):
         plot_data = params_data.get("plots", {})
         controller.project_state.plots = plot_data
 
-    def _load_layout_data(self, layout_path: Path
-                          ) -> tuple[dict | None, dict | None, list[str]]:
+    def _load_layout_data(self, layout_path: Path) -> tuple[dict, dict, list[str]]:
         """
         Load layout.yaml if it exists.
 
@@ -128,27 +127,27 @@ class ProjectLoaderYaml(ProjectLoader):
         warnings = []
 
         if not layout_path.exists():
-            return None, None, warnings  
+            return {}, {}, warnings
 
         try:
             data = load_yaml_file(str(layout_path))
         except Exception as e:
             warnings.append(f"Failed to parse layout.yaml: {e}")
-            return None, None, warnings
+            return {}, {}, warnings
 
         if not isinstance(data, dict):
             warnings.append("layout.yaml is not a valid mapping, ignored.")
-            return None, None, warnings
+            return {}, {}, warnings
 
         blocks = data.get("blocks", {})
         if not isinstance(blocks, dict):
             warnings.append("layout.yaml.blocks is invalid, ignored.")
-            return None, None, warnings
+            return {}, {}, warnings
 
-        conns = data.get("connections", None)
+        conns = data.get("connections", {})
         if conns is not None and not isinstance(conns, dict):
             warnings.append("layout.yaml.connections is invalid, ignored.")
-            conns = None
+            conns = {}
 
         return blocks, conns, warnings
 
