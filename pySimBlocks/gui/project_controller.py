@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 class ProjectController(QObject):
 
+    dirty_changed: Signal = Signal(bool)
 
     def __init__(self,
                  project_state: ProjectState,
@@ -52,7 +53,6 @@ class ProjectController(QObject):
         self.view = view
 
         self.is_dirty: bool = False
-        self.dirty_changed: Signal = Signal(bool)
 
     # --------------------------------------------------------------------------
     # Blocks methods

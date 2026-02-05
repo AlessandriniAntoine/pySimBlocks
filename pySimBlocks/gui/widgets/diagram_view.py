@@ -183,6 +183,11 @@ class DiagramView(QGraphicsView):
                 item.toggle_orientation()
             return
 
+        # CENTER VIEW
+        if event.key() == Qt.Key_Space and not event.modifiers():
+            self._center_on_diagram()
+            event.accept()
+            return
         super().keyPressEvent(event)
 
 
@@ -284,3 +289,18 @@ class DiagramView(QGraphicsView):
             conn.setPen(QPen(self.theme.wire, 2))
             conn.update_position()
             conn.update()
+
+    # --------------------------------------------------------------
+    def _center_on_diagram(self):
+        scene = self.diagram_scene
+        items_rect = scene.itemsBoundingRect()
+
+        if items_rect.isNull():
+            return
+
+        # Un peu de marge pour éviter que ça colle aux bords
+        margin = 40
+        items_rect.adjust(-margin, -margin, margin, margin)
+
+        scene.setSceneRect(items_rect)
+        self.fitInView(items_rect, Qt.KeepAspectRatio)
