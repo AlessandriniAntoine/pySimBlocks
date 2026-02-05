@@ -70,7 +70,7 @@ class ToolBarView(QToolBar):
         self.addAction(plot_action)
 
         # add ons
-        self.sofa_service = SofaService(self.project_controller.project_state, self.project_controller.view)
+        self.sofa_service = SofaService(self.project_controller.project_state, self.project_controller)
         self.sofa_action = QAction("Sofa", self)
         self.sofa_action.triggered.connect(self.on_open_sofa_dialog)
         self.addAction(self.sofa_action)
@@ -89,7 +89,7 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def on_open_simulation_settings(self):
-        dialog = SettingsDialog(self.project_controller.project_state, self.project_controller)
+        dialog = SettingsDialog(self.project_controller.project_state, self.project_controller, self.parent())
         dialog.exec()
 
     def on_run_sim(self):
@@ -157,5 +157,5 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok
             )
             return
-        dialog = SofaDialog(self.sofa_service)
+        dialog = SofaDialog(self.sofa_service, self.parent())
         dialog.exec()

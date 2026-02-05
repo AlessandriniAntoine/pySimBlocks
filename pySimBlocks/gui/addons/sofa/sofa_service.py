@@ -19,14 +19,15 @@
 # ******************************************************************************
 
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 from PySide6.QtCore import QProcess, QProcessEnvironment
 
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.project_controller import ProjectController
-from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
 from pySimBlocks.gui.services.yaml_tools import save_yaml
+from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
 
 
 class SofaService:
@@ -70,8 +71,9 @@ class SofaService:
         else:
             return True, "Sofa can be master", "Only one system found. Diagram can be used from controller."
 
-    def export_controlle(self):
-        self.project_controller.save()
+    def export_controller(self, window, saver):
+        if window.confirm_discard_or_save("exporting sofa"):
+            saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
         generate_sofa_controller(self.project_state.directory_path)
 
     def run(self):

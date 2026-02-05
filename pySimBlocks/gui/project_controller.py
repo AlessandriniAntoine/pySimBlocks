@@ -112,7 +112,7 @@ class ProjectController(QObject):
         self.rename_block(block_instance, params.pop("name", block_instance.name))
         block_instance.update_params(params)
 
-        if old_params == params:
+        if old_params == block_instance.parameters:
             return
 
         self.view.refresh_block_port(block_instance)
@@ -187,7 +187,7 @@ class ProjectController(QObject):
             (port1, port2) if port1.direction == "output" else (port2, port1)
         )
 
-        port_dst_connections = self.project_state.get_connections_of_port(dst_port.block)
+        port_dst_connections = self.project_state.get_connections_of_port(dst_port)
 
         if not dst_port.can_accept_connection(port_dst_connections):
             return
