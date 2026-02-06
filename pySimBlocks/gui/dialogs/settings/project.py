@@ -54,16 +54,6 @@ class ProjectSettingsWidget(QWidget):
         label.setToolTip("Relative path from project directory")
         layout.addRow(label, self.external_edit)
 
-        value = self.project_state.simulation.clock
-        combo = QComboBox()
-        combo.addItem("internal")
-        combo.addItem("external")
-        if value is not None:
-            combo.setCurrentText(str(value))
-        combo.currentTextChanged.connect(
-            lambda val, : setattr(self.project_state.simulation, "clock", val)
-        )
-        layout.addRow("Simulation clock:", combo)
 
 
     def apply(self) -> bool:

@@ -40,13 +40,22 @@ class SimulationSettingsWidget(QWidget):
         self.dt_edit = QLineEdit(str(project_state.simulation.dt))
         layout.addRow("Step time:", self.dt_edit)
 
+
+        self.T_edit = QLineEdit(str(project_state.simulation.T))
+        layout.addRow("Stop time:", self.T_edit)
+
         self.solver_combo = QComboBox()
         self.solver_combo.addItems(["fixed", "variable"])
         self.solver_combo.setCurrentText(project_state.simulation.solver)
         layout.addRow("Solver:", self.solver_combo)
 
-        self.T_edit = QLineEdit(str(project_state.simulation.T))
-        layout.addRow("Stop time:", self.T_edit)
+        value = self.project_state.simulation.clock
+        self.clock_combo = QComboBox()
+        self.clock_combo.addItem("internal")
+        self.clock_combo.addItem("external")
+        if value is not None:
+            self.clock_combo.setCurrentText(str(value))
+        layout.addRow("Simulation clock:", self.clock_combo)
 
         # -------- Logs --------
         self.logs_list = QListWidget()
@@ -66,6 +75,7 @@ class SimulationSettingsWidget(QWidget):
         except ValueError:
             params["T"] = self.T_edit.text()
         params["solver"] = self.solver_combo.currentText()
+        params["clock"] = self.clock_combo.currentText()
 
         selected_signals = [
             self.logs_list.item(i).text()

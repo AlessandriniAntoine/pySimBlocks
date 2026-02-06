@@ -36,6 +36,7 @@ class ProjectSimulationParams:
         self.T = T
         self.solver = solver
         self.clock = clock
+        print(self.__dict__)
 
     def load_from_dict(self, params: dict) -> None:
         self.dt = params.get("dt", self.dt)
