@@ -1,5 +1,5 @@
 # pySimBlocks - LGPL-3.0-or-later
-# Copyright (c) 2026 Antoine Alessandrini
+# Copyright (c) 2026 Université de Lille & INRIA
 
 name: QuadraticProgram
 category: optimizers
@@ -145,4 +145,3 @@ ports:
 execution:
   direct_feedthrough: true
   has_state: false
-

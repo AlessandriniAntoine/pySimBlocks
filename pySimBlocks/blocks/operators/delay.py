@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -83,7 +83,7 @@ class Delay(Block):
         self.num_delays = num_delays
 
         self.inputs["in"] = None
-        self.inputs["reset"] = None 
+        self.inputs["reset"] = None
         self.outputs["out"] = None
 
         self.state["buffer"] = None
@@ -181,7 +181,7 @@ class Delay(Block):
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
-        
+
         buf0 = self.state["buffer"][0]
         assert buf0 is not None
 

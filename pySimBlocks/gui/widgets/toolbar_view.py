@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -35,7 +35,7 @@ from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
 class ToolBarView(QToolBar):
 
-    def __init__(self, 
+    def __init__(self,
                  saver: ProjectSaver,
                  runner: SimulationRunner,
                  project_controller: ProjectController):
@@ -83,7 +83,7 @@ class ToolBarView(QToolBar):
         window = self.parent()
         if window.confirm_discard_or_save("exporting"):
             self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)
-        
+
     def on_open_display_yaml(self):
         dialog = DisplayYamlDialog(self.project_controller.project_state, self.project_controller.view)
         dialog.exec()

@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -82,8 +82,8 @@ class SofaExchangeIO(Block):
     # Class Methods
     # --------------------------------------------------------------------------
     @classmethod
-    def adapt_params(cls, 
-                     params: Dict[str, Any], 
+    def adapt_params(cls,
+                     params: Dict[str, Any],
                      params_dir: Path | None = None) -> Dict[str, Any]:
         """
         Adapt parameters from yaml format to class constructor format.

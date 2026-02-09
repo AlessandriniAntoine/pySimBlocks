@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -63,22 +63,22 @@ class Block(ABC):
         self.next_state = {}
 
         self._effective_sample_time = 0.
-        
-        
+
+
     # --------------------------------------------------------------------------
     # Class Methods
     # --------------------------------------------------------------------------
     @classmethod
-    def adapt_params(cls, 
-                     params: Dict[str, Any], 
+    def adapt_params(cls,
+                     params: Dict[str, Any],
                      params_dir: Path | None = None) -> Dict[str, Any]:
         """
         Adapt parameters from yaml format to class constructor format.
         By default, does nothing.
         """
         return params
-        
-        
+
+
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
@@ -128,8 +128,8 @@ class Block(ABC):
         """
         Optional cleanup method called at the end of the simulation.
         """
-        
-        
+
+
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------

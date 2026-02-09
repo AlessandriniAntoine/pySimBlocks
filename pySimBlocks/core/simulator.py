@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -186,9 +186,9 @@ class Simulator:
         return self.logs
 
     # ------------------------------------------------------------------
-    def get_data(self, 
-                 variable: str | None = None, 
-                 block:str | None = None, 
+    def get_data(self,
+                 variable: str | None = None,
+                 block:str | None = None,
                  port: str | None = None) -> np.ndarray:
         """Retrieve logged data for a specific variable, block output, or state.
         Provide either:

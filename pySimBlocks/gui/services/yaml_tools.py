@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -91,7 +91,7 @@ ModelYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
 # Dump helpers
 # ===============================================================
 def dump_parameter_yaml(
-        project_state: ProjectState | None = None, 
+        project_state: ProjectState | None = None,
         raw: dict | None = None
         ) -> str:
     if project_state:
@@ -110,7 +110,7 @@ def dump_parameter_yaml(
     )
 
 def dump_model_yaml(
-        project_state: ProjectState | None = None, 
+        project_state: ProjectState | None = None,
         raw: dict | None = None
         ) -> str:
     if project_state:
@@ -132,7 +132,7 @@ def dump_model_yaml(
     )
 
 def dump_layout_yaml(
-        block_items: dict[str, BlockItem] | None = None, 
+        block_items: dict[str, BlockItem] | None = None,
         raw: dict | None = None
         ) -> str:
     if block_items is not None:
@@ -141,7 +141,7 @@ def dump_layout_yaml(
         data = raw
     else:
         raise ValueError("block_items or raw must be set")
-    
+
     return yaml.dump(
         data,
         Dumper=ModelYamlDumper,
@@ -152,10 +152,10 @@ def dump_layout_yaml(
 # Save functions
 # ===============================================================
 def save_yaml(
-        project_state: ProjectState, 
-        block_items: dict[str, BlockItem] | None = None, 
+        project_state: ProjectState,
+        block_items: dict[str, BlockItem] | None = None,
         temp: bool = False) -> None:
-    
+
     directory = project_state.directory_path
     params_yaml = build_parameters_yaml(project_state)
     model_yaml = build_model_yaml(project_state)
@@ -167,7 +167,7 @@ def save_yaml(
             external_temp = os.path.relpath(external_abs, temp_dir)
             params_yaml["external"] = external_temp
         directory = temp_dir
-    
+
     directory.mkdir(parents=True, exist_ok=True)
 
     (directory / "parameters.yaml").write_text(dump_parameter_yaml(raw=params_yaml))
@@ -175,7 +175,7 @@ def save_yaml(
     if not temp and block_items:
         layout_yaml = build_layout_yaml(block_items)
         (directory / "layout.yaml").write_text(dump_layout_yaml(raw=layout_yaml))
-    
+
 # ===============================================================
 # Build function
 # ===============================================================
@@ -265,10 +265,10 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         key = f"{src_bname}.{src_pname} -> {dst_bname}.{dst_pname}"
         value = {
             "ports": FlowStyleList( [
-                f"{src_bname}.{src_pname}", f"{dst_bname}.{dst_pname}" 
+                f"{src_bname}.{src_pname}", f"{dst_bname}.{dst_pname}"
                 ]),
             "route": FlowStyleList([
-                FlowStyleList([float(p.x()), float(p.y())]) 
+                FlowStyleList([float(p.x()), float(p.y())])
                 for p in conn.route.points
                 ])
             }

@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -39,7 +39,7 @@ class PortInstance:
 
     def is_compatible(self, other: "PortInstance"):
         return self.direction != other.direction
-    
+
     def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
         """
         Check whether this port can accept a new connection.
@@ -48,4 +48,3 @@ class PortInstance:
         already linked to this PortInstance.
         """
         return self.direction == "output" or not connections
-

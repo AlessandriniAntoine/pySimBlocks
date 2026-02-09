@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ class ProjectState:
         if conn in self.connections:
             self.connections.remove(conn)
 
-    def get_connections_of_block(self, block_instance: BlockInstance) -> list[ConnectionInstance]: 
+    def get_connections_of_block(self, block_instance: BlockInstance) -> list[ConnectionInstance]:
         return [
             c for c in self.connections
             if block_instance is c.src_block() or block_instance is c.dst_block()
@@ -103,7 +103,7 @@ class ProjectState:
                     signals.append(f"{block.name}.outputs.{port.name}")
 
         return signals
-    
+
     def can_plot(self) -> tuple[bool, str]:
         if not bool(self.logs):
             return False, "Simulation has not been done.\nPlease run fist."

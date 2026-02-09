@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -89,8 +89,8 @@ class AlgebraicFunction(Block):
     # Class Methods
     # --------------------------------------------------------------------------
     @classmethod
-    def adapt_params(cls, 
-                     params: Dict[str, Any], 
+    def adapt_params(cls,
+                     params: Dict[str, Any],
                      params_dir: Path | None = None) -> Dict[str, Any]:
         """
         Adapt parameters from yaml format to class constructor format.
@@ -198,7 +198,7 @@ class AlgebraicFunction(Block):
             out =  self._func(t, dt, **kwargs)
         except Exception as e:
             raise RuntimeError(f"[{self.name}] function call error: {e}\n"
-                               f"Must always return a dict with output keys: {self.output_keys}") 
+                               f"Must always return a dict with output keys: {self.output_keys}")
 
         if not isinstance(out, dict):
             raise RuntimeError(f"[{self.name}] function must return a dict.")
@@ -232,7 +232,7 @@ class AlgebraicFunction(Block):
         for p in params:
             if p.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD,):
                 raise ValueError(f"[{self.name}] *args and **kwargs are not allowed.")
-            
+
         declared = [p.name for p in params[2:]]
         if set(declared) != set(self.input_keys):
             raise ValueError(
@@ -256,5 +256,3 @@ class AlgebraicFunction(Block):
             raise ValueError(
                 f"[{self.name}] {which} '{key}' shape changed: expected {store[key]}, got {arr.shape}."
             )
-
-    

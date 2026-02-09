@@ -1,5 +1,5 @@
 # pySimBlocks - LGPL-3.0-or-later
-# Copyright (c) 2026 Antoine Alessandrini
+# Copyright (c) 2026 Université de Lille & INRIA
 
 name: StateFeedback
 category: controllers

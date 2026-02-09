@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -82,12 +82,12 @@ def make_theme() -> Theme:
 
     # base colors
     if is_dark:
-        block_bg = QColor("#30343A")    
+        block_bg = QColor("#30343A")
         block_bg_selected = QColor("#3A6FB0")
         block_border = QColor("#C9C956")
         block_border_selected = QColor("#6FAEFF")
     else:
-        block_bg = QColor("#ECECEC")    
+        block_bg = QColor("#ECECEC")
         block_bg_selected = QColor("#C7DBFF")
         block_border = QColor("#6E6E6E")
         block_border_selected = QColor("#4A78FF")
