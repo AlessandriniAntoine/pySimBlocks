@@ -1,12 +1,51 @@
 from abc import ABC
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
-from pySimBlocks.blocks_metadata.block_parameter import ParameterMeta
+from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
 from pySimBlocks.blocks_metadata.port_meta import PortMeta
 from pySimBlocks.gui.model import BlockInstance, PortInstance
 
 
 class BlockMeta(ABC):
+
+    """
+    Template for child class
+
+class MyBlockMeta(BlockMeta):
+
+    def __init__(self):
+        self.name = ""
+        self.category = ""
+        self.type = ""
+        self.summary = ""
+        self.description = (
+            ""
+        )
+
+        self.parameters = [
+            ParameterMeta(
+                name="",
+                type=""
+            ),
+        ]
+
+        self.inputs = [
+            PortMeta(
+                name="",
+                display_as=""
+                shape=...
+            ),
+        ]
+
+        self.outputs = [
+            PortMeta(
+                name="",
+                display_as=""
+                shape=...
+            ),
+        ]
+    """
+
 
     # ----------- Mandatory class attributes (must be overridden) -----------
     name: str
@@ -36,19 +75,16 @@ class BlockMeta(ABC):
     
     def resolve_port_group(self, 
                            port_meta: PortMeta,
-                           direction: str, 
+                           direction: Literal['input', 'output'], 
                            instance: "BlockInstance"
     ) -> list["PortInstance"]:
         """
         Default behavior: fixed port.
         Children override for dynamic ports.
         """
-        return [PortInstance(port_meta.display_as, direction, instance, port_meta)]
+        return [PortInstance(port_meta.name, port_meta.display_as, direction, instance)]
     
     def build_ports(self, instance: "BlockInstance") -> list["PortInstance"]:
-        """
-        Default port resolution.
-        """
         ports = []
 
         for pmeta in self.inputs:

@@ -32,7 +32,7 @@ from pySimBlocks.gui.model import (
     ProjectState,
 )
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
-from pySimBlocks.tools.blocks_registry import BlockMeta
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.services.project_loader import ProjectLoader
