@@ -75,6 +75,16 @@ class BlockInstance:
                 self.parameters[k] = v
 
     def resolve_ports(self) -> None:
+        self.ports = self.meta.build_ports(self)
+
+    def active_parameters(self):
+        return  {
+            k: v
+            for k, v in self.parameters.items()
+            if self.meta.is_parameter_active(k, self.parameters)
+        }
+    
+    """
         ports: List[PortInstance] = []
 
         for direction in ("input", "output"):
@@ -131,3 +141,4 @@ class BlockInstance:
                 ports.append(PortInstance(pattern.format(val=i), direction, self, meta))
 
         return ports
+        """
