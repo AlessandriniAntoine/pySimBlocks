@@ -1,0 +1,109 @@
+from typing import Literal
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta, ParameterMeta
+from pySimBlocks.blocks_metadata.port_meta import PortMeta
+from pySimBlocks.gui.model import BlockInstance, PortInstance
+
+
+class NonLinearStateSpaceMeta(BlockMeta):
+
+    def __init__(self):
+        self.name = "Non Linear State Space"
+        self.category = "systems"
+        self.type = "non_linear_state_space"
+        self.summary = "User-defined non linear state space function implemented in Python."
+        self.description = (
+            "This block evaluates a user-provided Python function of the form:\n"
+            "    x+ = f(t, dt, x, u1, u2, ...)\n"
+            "    y = g(t, dt, x)\n"
+            "The function is loaded from an external Python file and executed at each\n"
+            "simulation step. Input and output ports are explicitly declared via\n"
+            "`input_keys` and `output_keys`.\n"
+        )
+
+        self.parameters = [
+            ParameterMeta(
+                name="file_path",
+                type="string",
+                required=True,
+                description="Path to the Python file containing the functions relative to the parameters.yaml file."
+            ),
+            ParameterMeta(
+                name="state_function_name",
+                type="string",
+                required=True,
+                description="Name of the state function to call inside the Python file."
+            ),
+            ParameterMeta(
+                name="output_function_name",
+                type="string",
+                required=True,
+                description="Name of the output function to call inside the Python file."
+            ),
+            ParameterMeta(
+                name="input_keys",
+                type="list[string]",
+                required=True,
+                description="List of input port names. These must match the function arguments after (t, dt)."
+            ),
+            ParameterMeta(
+                name="output_keys",
+                type="list[string]",
+                required=True,
+                description="List of output port names. The function must return a dict with exactly these keys."
+            ),
+            ParameterMeta(
+                name="x0",
+                type="vector",
+                required=True,
+                description="Initial state vector."
+            ),
+            ParameterMeta(
+                name="sample_time",
+                type="float",
+                description="Optional execution period of the block."
+            )
+        ]
+
+        self.inputs = [
+            PortMeta(
+                name="in",
+                display_as="",
+                shape=[]  # shapes are dynamic
+            )
+        ]
+
+        self.outputs = [
+            PortMeta(
+                name="out",
+                display_as="",
+                shape=[]  # shapes are dynamic
+            )
+        ]
+
+    def resolve_port_group(
+        self,
+        port_meta: PortMeta,
+        direction: Literal['input', 'output'],
+        instance: "BlockInstance"
+    ) -> list["PortInstance"]:
+        if direction == 'input' and port_meta.name == 'in':
+            input_keys = instance.parameters.get("input_keys", [])
+            return [
+                PortInstance(
+                    name=key,
+                    display_as=key,
+                    direction="input",
+                    block=instance
+                ) for key in input_keys
+            ]
+        elif direction == 'output' and port_meta.name == 'out':
+            output_keys = instance.parameters.get("output_keys", [])
+            return [
+                PortInstance(
+                    name=key,
+                    display_as=key,
+                    direction="output",
+                    block=instance
+                ) for key in output_keys
+            ]
+        return super().resolve_port_group(port_meta, direction, instance)
