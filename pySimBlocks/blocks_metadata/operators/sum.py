@@ -41,8 +41,8 @@ class SumMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="",
-                display_as="",
+                name="output",
+                display_as="out",
                 shape=["n", "m"]
             ),
         ]
