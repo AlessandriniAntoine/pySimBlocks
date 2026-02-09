@@ -40,6 +40,7 @@ from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
+from pySimBlocks.tools.blocks_registry import load_block_registry
 
 
 class MainWindow(QMainWindow):
@@ -50,9 +51,7 @@ class MainWindow(QMainWindow):
         self.saver = ProjectSaverYaml()
         self.runner = SimulationRunner()
 
-        self.loader = ProjectLoaderYaml()
-        self.saver = ProjectSaverYaml()
-        self.runner = SimulationRunner()
+        self.block_registry = load_block_registry()
 
         self.project_state = ProjectState(project_path)
         self.view = DiagramView()
@@ -90,26 +89,15 @@ class MainWindow(QMainWindow):
     # Registry
     # --------------------------------------------------------------------------
     def get_categories(self) -> List[str]:
-        return ["controllers", "sources", "operators"]
+        return sorted(self.block_registry.keys())
 
     # ------------------------------------------------------------------
     def get_blocks(self, category: str) -> List[str]:
-        if category == "controllers":
-            return ["PID"]
-        elif category == "sources":
-            return ["Constant"]
-        elif category == "operators":
-            return ["Sum"]
-        return []
+        return sorted(self.block_registry.get(category, {}).keys())
 
     # ------------------------------------------------------------------
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
-        if category == "controllers" and block_type == "PID":
-            return PIDMeta()
-        elif category == "sources" and block_type == "Constant":
-            return ConstantMeta()
-        else:
-            return SumMeta()
+        return self.block_registry[category][block_type]
 
     # --------------------------------------------------------------------------
     # Auto Load 

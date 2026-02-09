@@ -20,144 +20,94 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import importlib
+import inspect
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import yaml
+from typing import Dict, Optional
 
-
-@dataclass(frozen=True)
-class BlockMeta:
-    """
-    In-memory representation of a block metadata entry.
-    This is the ONLY source of truth for the GUI.
-    """
-    name: str
-    category: str
-    type: str
-
-    summary: str
-    description: str
-
-    parameters: Dict[str, Dict[str, Any]]
-    ports: Dict[str, List[Dict[str, Any]]]
-
-    execution: Dict[str, Any]
-    notes: Optional[list[str]]
-
-    # Paths (useful for GUI help & debugging)
-    yaml_path: Path
-    doc_path: Optional[Path]
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 
 BlockRegistry = Dict[str, Dict[str, BlockMeta]]
 
 def load_block_registry(
-    metadata_root: Path | str | None = None,
+    metadata_root: Path | str | None = None,    
 ) -> BlockRegistry:
-    """
-    Load all block metadata YAML files into an in-memory registry.
-
-    The directory is scanned recursively.
-    Expected structure (example):
-
-        blocks_metadata/
-            controllers/
-                pid.yaml
-            operators/
-                gain.yaml
-                sum.yaml
-            systems/
-                sofa/
-                    sofa_plant.yaml
-
-    The category is taken from the YAML content (not the folder name),
-    but the folder structure is preserved for plugins (e.g. sofa).
-
-    Returns
-    -------
-    BlockRegistry
-        Nested dict: registry[category][type] -> BlockMeta
-    """
-
+    
     if metadata_root is None:
         metadata_root = Path(__file__).parents[1] / "blocks_metadata"
     else:
         metadata_root = Path(metadata_root).resolve()
-
+    
     if not metadata_root.exists():
         raise FileNotFoundError(f"blocks_metadata directory not found: {metadata_root}")
-
+    
     registry: BlockRegistry = {}
 
-    for yaml_path in metadata_root.rglob("*.yaml"):
-        _register_block_from_yaml(yaml_path, registry)
+    for py_path in metadata_root.rglob("*.py"):
+        _register_block_from_py(py_path, registry)
 
     return registry
 
-
-def _register_block_from_yaml(
-    yaml_path: Path,
-    registry: BlockRegistry,
+def _register_block_from_py(
+        py_path: Path,
+        registry: BlockRegistry,
 ) -> None:
     """
-    Parse one block YAML file and insert it into the registry.
+    Import a *.py file and register all BlockMeta subclasses inside.
     """
 
-    data = yaml.safe_load(yaml_path.read_text())
+    module_name = _path_to_module(py_path)
 
-    if not isinstance(data, dict):
-        raise ValueError(f"Invalid YAML format: {yaml_path}")
+    module = importlib.import_module(module_name)
 
-    # ------------------------------------------------------------------
-    # Mandatory fields (fail fast)
-    # ------------------------------------------------------------------
-    for key in ("name", "category", "type", "summary", "description"):
-        if key not in data:
-            raise KeyError(f"Missing required field '{key}' in {yaml_path}")
+    for _, obj in inspect.getmembers(module, inspect.isclass):
+        if not issubclass(obj, BlockMeta):
+            continue
+        if obj is BlockMeta:
+            continue
 
-    name = data["name"]
-    category = data["category"]
-    block_type = data["type"]
+        meta: BlockMeta = obj()
 
-    # ------------------------------------------------------------------
-    # Optional sections (normalized)
-    # ------------------------------------------------------------------
-    parameters = data.get("parameters", {})
-    ports = data.get("ports", {})
-    execution = data.get("execution", {})
-    notes = data.get("notes", None)
+        category = meta.category
+        block_type = meta.type
 
-    # ------------------------------------------------------------------
-    # Documentation (.md) resolution
-    # Mirrors the metadata folder structure
-    # ------------------------------------------------------------------
-    doc_path = _resolve_doc_path(yaml_path)
+        registry.setdefault(category, {})
 
-    # ------------------------------------------------------------------
-    # Registry insertion
-    # ------------------------------------------------------------------
-    registry.setdefault(category, {})
+        if block_type in registry[category]:
+            raise ValueError(
+                f"Duplicate block type '{block_type}' in category '{category}'.\n"
+                f"Conflict in module: {module_name}"
+            )
+        
+        registry[category][block_type] = meta
 
-    if block_type in registry[category]:
-        raise ValueError(
-            f"Duplicate block type '{block_type}' in category '{category}'.\n"
-            f"Conflict at: {yaml_path}"
+def _path_to_module(py_path: Path) -> str:
+    """
+    Convert a file path to a Python module path.
+
+    Example:
+      pySimBlocks/blocks_metadata/operators/sum_meta.py
+      -> pySimBlocks.blocks_metadata.operators.sum_meta
+    """
+
+    py_path = py_path.with_suffix("")
+
+    package_root = Path(__file__).parents[1]  # pySimBlocks/
+
+    try:
+        rel_path = py_path.relative_to(package_root)
+    except ValueError:
+        raise RuntimeError(
+            f"File {py_path} is not inside package root {package_root}"
         )
 
-    registry[category][block_type] = BlockMeta(
-        name=name,
-        category=category,
-        type=block_type,
-        summary=data["summary"],
-        description=data["description"],
-        parameters=parameters,
-        ports=ports,
-        execution=execution,
-        notes=notes,
-        yaml_path=yaml_path,
-        doc_path=doc_path,
+    module_name = (
+        package_root.name
+        + "."
+        + rel_path.as_posix().replace("/", ".")
     )
 
+    return module_name
 
 def _resolve_doc_path(yaml_path: Path) -> Optional[Path]:
     """
