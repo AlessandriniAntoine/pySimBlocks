@@ -1,5 +1,5 @@
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 
@@ -10,5 +10,5 @@ class ParameterMeta:
     required: bool = False
     autofill: bool = False
     default: Optional[Any] = None
-    enum: List[Any] = []
+    enum: List[Any] = field(default_factory=list)
     description: str = ""
