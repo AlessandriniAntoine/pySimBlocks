@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -36,8 +36,8 @@ from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class DisplayYamlDialog(QDialog):
-    def __init__(self, 
-                 project: ProjectState, 
+    def __init__(self,
+                 project: ProjectState,
                  view: DiagramView,
                  parent=None):
         super().__init__(parent)

@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -57,8 +57,8 @@ class ProjectController(QObject):
     # --------------------------------------------------------------------------
     # Blocks methods
     # --------------------------------------------------------------------------
-    def add_block(self, category: str, 
-                  block_type: str, 
+    def add_block(self, category: str,
+                  block_type: str,
                   block_layout: dict | None = None) -> BlockInstance:
         block_meta = self.resolve_block_meta(category, block_type)
         block_instance = BlockInstance(block_meta)
@@ -70,7 +70,7 @@ class ProjectController(QObject):
         return self._add_block(copy)
 
     # ------------------------------------------------------------------
-    def _add_block(self, block_instance: BlockInstance, 
+    def _add_block(self, block_instance: BlockInstance,
                    block_layout: dict | None = None) -> BlockInstance:
         self.make_dirty()
         block_instance.name = self.make_unique_name(block_instance.name)
@@ -89,7 +89,7 @@ class ProjectController(QObject):
 
         self.make_dirty()
         new_name = self.make_unique_name(new_name)
-        
+
         block_instance.name = new_name
         prefix_old = f"{old_name}.outputs."
         prefix_new = f"{new_name}.outputs."
@@ -122,7 +122,7 @@ class ProjectController(QObject):
     # ------------------------------------------------------------------
     def remove_block(self, block_instance: BlockInstance):
         self.make_dirty()
-        
+
         # remove connections
         for connection in self.project_state.get_connections_of_block(block_instance):
             self.remove_connection(connection)
@@ -163,7 +163,7 @@ class ProjectController(QObject):
             i += 1
 
         return f"{base_name}_{i}"
-    
+
     # ------------------------------------------------------------------
     def is_name_available(self, name: str, current=None) -> bool:
         for b in self.project_state.blocks:
@@ -171,19 +171,19 @@ class ProjectController(QObject):
                 continue
             if b.name == name:
                 return False
-        return True        
+        return True
 
     # --------------------------------------------------------------------------
     # connection methods
     # --------------------------------------------------------------------------
-    def add_connection(self, 
-                       port1: PortInstance, 
-                       port2: PortInstance, 
+    def add_connection(self,
+                       port1: PortInstance,
+                       port2: PortInstance,
                        points: list[QPointF] | None = None):
-    
+
         if not port1.is_compatible(port2):
             return
-        
+
         src_port, dst_port = (
             (port1, port2) if port1.direction == "output" else (port2, port1)
         )
@@ -192,7 +192,7 @@ class ProjectController(QObject):
 
         if not dst_port.can_accept_connection(port_dst_connections):
             return
-        
+
         connection_instance = ConnectionInstance(src_port, dst_port)
 
         self.project_state.add_connection(connection_instance)
@@ -201,7 +201,7 @@ class ProjectController(QObject):
 
     # ------------------------------------------------------------------
     def remove_connection(self, connection: ConnectionInstance):
-        
+
         self.project_state.remove_connection(connection)
         self.view.remove_connection(connection)
         self.make_dirty()

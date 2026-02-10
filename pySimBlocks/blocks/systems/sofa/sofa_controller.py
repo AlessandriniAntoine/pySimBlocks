@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -158,10 +158,10 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             raise RuntimeError("Simulator not initialized. Cannot get block.")
         if block_name not in self.sim.model.blocks:
             raise RuntimeError(f"Block '{block_name}' not found in the model.")
-        return self.sim.model.blocks[block_name] 
+        return self.sim.model.blocks[block_name]
 
     # ----------------------------------------------------------------------
-    # SOFA event callback 
+    # SOFA event callback
     # ----------------------------------------------------------------------
     def onAnimateBeginEvent(self, event):
         """
@@ -186,7 +186,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
             if self.IS_READY:
                 if self.counter % self.ratio ==0:
-                    
+
                     self._get_sofa_outputs()
                     self.sim.step()
                     self.sim._log(self.sim_cfg.logging)
@@ -313,7 +313,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Setup ImGui plotting for selected variables.
         """
         if not self._imgui:
-            return 
+            return
 
         if self.sim is None:
             raise RuntimeError("Simulator not initialized.")
@@ -336,7 +336,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Update ImGui plotting for selected variables.
         """
         if not self._imgui:
-            return 
+            return
 
         for name, node in self._plot_data.items():
             block_name, key = name.split(".")
@@ -351,11 +351,11 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Setup ImGui sliders for selected variables.
         """
         if not self._imgui:
-            return 
+            return
         if self.sim is None:
             raise RuntimeError("Simulator not initialized.")
 
-        data = self._sofa_block.slider_params 
+        data = self._sofa_block.slider_params
         data = data if data is not None else {}
 
         self._slider_node = self.root.addChild("SLIDERS")

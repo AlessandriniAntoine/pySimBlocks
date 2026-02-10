@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -43,11 +43,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pySimBlocks.gui.graphics.block_item import BlockItem
     from PySide6.QtWidgets import QWidget
-    
+
 
 class BlockDialog(QDialog):
-    def __init__(self, 
-                 block: 'BlockItem', 
+    def __init__(self,
+                 block: 'BlockItem',
                  readonly: bool = False
     ):
         super().__init__()
@@ -185,7 +185,7 @@ class BlockDialog(QDialog):
     def apply(self):
         if self.readonly:
             return
-        
+
         def get_param_value(widget: 'QWidget'):
             if not widget.isVisible():
                 return None
@@ -207,7 +207,7 @@ class BlockDialog(QDialog):
         params: dict[str, Any] = {
             "name": self.name_edit.text(),
             **{
-                pname: get_param_value(widget) 
+                pname: get_param_value(widget)
                 for pname, widget in self.param_widgets.items()
             }
         }

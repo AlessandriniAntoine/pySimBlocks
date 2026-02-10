@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.blocks)
         splitter.addWidget(self.view)
         splitter.setSizes([180, 800])
-        
+
         self.setCentralWidget(splitter)
         self.addToolBar(self.toolbar)
 
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         return self.block_registry[category][block_type]
 
     # --------------------------------------------------------------------------
-    # Auto Load 
+    # Auto Load
     # --------------------------------------------------------------------------
     def auto_load_detection(self, project_path: Path) -> bool:
         param_yaml = self._auto_detect_yaml(
@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
             self.cleanup()
             event.accept()
         else:
-            event.ignore() 
+            event.ignore()
 
     # ------------------------------------------------------------------
     def confirm_discard_or_save(self, action_name: str) -> bool:

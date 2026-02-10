@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -140,7 +140,7 @@ class Saturation(Block):
 
             self.u_min = self._broadcast_bound(self.u_min_raw, u.shape, "u_min")
             self.u_max = self._broadcast_bound(self.u_max_raw, u.shape, "u_max")
-            
+
             if np.any(self.u_min > self.u_max):
                 raise ValueError(f"[{self.name}] u_min must be <= u_max for all components.")
             return

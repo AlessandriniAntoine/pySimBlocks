@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -83,7 +83,7 @@ class Delay(Block):
         self.num_delays = num_delays
 
         self.inputs["in"] = None
-        self.inputs["reset"] = None 
+        self.inputs["reset"] = None
         self.outputs["out"] = None
 
         self.state["buffer"] = None
@@ -115,14 +115,22 @@ class Delay(Block):
     # Public methods
     # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        # Output always defined from buffer (important for loops)
-        self.outputs["out"] = self.state["buffer"][0].copy()
+        out = self.state["buffer"][0]
 
-        # If an input is already available at init, fix shape immediately
         u = self.inputs["in"]
         if u is not None:
             u_arr = np.asarray(u, dtype=float)
             self._ensure_shape_and_buffer(u_arr)
+
+            if self._is_scalar_2d(out) and self._buffer_shape != (1, 1):
+                out = np.full(self._buffer_shape, float(out[0, 0]), dtype=float)
+            else:
+                if out.shape != self._buffer_shape:
+                    raise ValueError(
+                        f"[{self.name}] Initial output shape mismatch: expected {self._buffer_shape}, got {out.shape}."
+                    )
+
+        self.outputs["out"] = out
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
@@ -146,7 +154,6 @@ class Delay(Block):
 
         u_arr = np.asarray(u, dtype=float)
 
-        # Fix shape on first available input; then enforce forever
         self._ensure_shape_and_buffer(u_arr)
 
         buffer = self.state["buffer"]
@@ -174,7 +181,7 @@ class Delay(Block):
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
-        
+
         buf0 = self.state["buffer"][0]
         assert buf0 is not None
 

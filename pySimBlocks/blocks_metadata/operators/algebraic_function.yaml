@@ -1,5 +1,5 @@
 # pySimBlocks - LGPL-3.0-or-later
-# Copyright (c) 2026 Antoine Alessandrini
+# Copyright (c) 2026 Université de Lille & INRIA
 
 name: Algebraic Function
 category: operators
@@ -24,7 +24,7 @@ parameters:
     type: string
     required: true
     description: >
-       Path to the Python file containing the function relative to the parameters.yaml file.
+      Path to the Python file containing the function relative to the parameters.yaml file.
 
   function_name:
     type: string

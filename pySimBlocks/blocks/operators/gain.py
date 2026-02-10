@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -142,7 +142,7 @@ class Gain(Block):
                 u = self._resolve_initialize(u)
             if u.ndim == 2 and u.shape == (1, 1):
                 u = self._resolve_initialize(u)
-            
+
         self.outputs["out"] = self._compute(u)
 
     # ------------------------------------------------------------------

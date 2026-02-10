@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -52,3 +52,22 @@ class Task:
         """Advance the task's activation times."""
         self.last_activation = self.next_activation
         self.next_activation += self.sample_time
+
+    def run_outputs(self, t: float, dt: float, propagate_cb):
+        for block in self.output_blocks:
+            block.output_update(t, dt)
+            propagate_cb(block)
+
+    def run_states(self, t: float, dt: float):
+        for block in self.state_blocks:
+            block.state_update(t, dt)
+
+    def commit_states(self):
+        for block in self.state_blocks:
+            block.commit_state()
+
+    def tick(self, t: float, dt: float, propagate_cb):
+        # Optionnel : si tu veux une API unique, mais attention :
+        # tu ne peux PAS commit ici si tu veux respecter le "all state_update before any commit"
+        self.run_outputs(t, dt, propagate_cb)
+        self.run_states(t, dt)

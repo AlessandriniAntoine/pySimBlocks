@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -115,4 +115,3 @@ def build_model_from_dict(
         src_block, src_port = src.split(".")
         dst_block, dst_port = dst.split(".")
         model.connect(src_block, src_port, dst_block, dst_port)
-

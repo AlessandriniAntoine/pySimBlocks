@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -66,12 +66,12 @@ class DiagramView(QGraphicsView):
     # --------------------------------------------------------------------------
     # View methods
     # --------------------------------------------------------------------------
-    def add_block(self, block_instance: BlockInstance, 
+    def add_block(self, block_instance: BlockInstance,
                   block_layout: dict[str, Any] | None = None):
         block_item = BlockItem(block_instance, self.drop_event_pos, self, block_layout)
         self.diagram_scene.addItem(block_item)
         self.block_items[block_instance.uid] = block_item
-    
+
     # --------------------------------------------------------------
     def refresh_block_port(self, block_instance: BlockInstance):
         block_item = self.get_block_item_from_instance(block_instance)
@@ -85,8 +85,8 @@ class DiagramView(QGraphicsView):
         self.block_items.pop(block_instance.uid, None)
 
     # --------------------------------------------------------------
-    def add_connection(self, 
-                      connection_instance: ConnectionInstance, 
+    def add_connection(self,
+                      connection_instance: ConnectionInstance,
                       points: list[QPointF] | None = None
                       ):
         src_port_item = self.get_block_item_from_instance(connection_instance.src_block()).get_port_item(connection_instance.src_port.name)
@@ -106,7 +106,7 @@ class DiagramView(QGraphicsView):
     # --------------------------------------------------------------
     def get_block_item_from_instance(self, block_instance: BlockInstance) -> BlockItem | None:
         return self.block_items.get(block_instance.uid)
-    
+
     # --------------------------------------------------------------
     def create_connection_event(self, port: PortItem):
         if not self.pending_port:
@@ -177,7 +177,7 @@ class DiagramView(QGraphicsView):
 
         # ROTATE BLOCK
         if event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
-            selected = [i for i in self.diagram_scene.selectedItems() 
+            selected = [i for i in self.diagram_scene.selectedItems()
                         if isinstance(i, BlockItem)]
             for item in selected:
                 item.toggle_orientation()
@@ -227,7 +227,7 @@ class DiagramView(QGraphicsView):
 
         self.project_controller.add_connection(self.pending_port.instance, port.instance)
         self._cancel_temp_connection()
-    
+
     # --------------------------------------------------------------
     def delete_selected(self):
         for item in self.diagram_scene.selectedItems():
@@ -242,7 +242,7 @@ class DiagramView(QGraphicsView):
 
         for block in list(self.block_items.values()):
             self.project_controller.remove_block(block.instance)
-        
+
         for connection in list(self.connections.values()):
             self.project_controller.remove_connection(connection.instance)
 

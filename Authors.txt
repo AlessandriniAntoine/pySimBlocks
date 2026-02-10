@@ -1,6 +1,6 @@
 ******************************************************************************
                                  pySimBlocks
-                    Copyright (c) 2026 Antoine Alessandrini
+                    Copyright (c) 2026 Université de Lille & INRIA
 
                                  CONTRIBUTORS
 ******************************************************************************

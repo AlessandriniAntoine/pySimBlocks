@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -39,7 +39,7 @@ class ConnectionItem(QGraphicsPathItem):
     PICK_TOL = 6
     GRID = 5
 
-    def __init__(self, 
+    def __init__(self,
                  src_port: PortItem | None,
                  dst_port: PortItem | None,
                  instance: ConnectionInstance,
@@ -82,7 +82,7 @@ class ConnectionItem(QGraphicsPathItem):
     # --------------------------------------------------------------------------
     def update_position(self):
         if self.is_temporary:
-            return 
+            return
 
         p1 = self.src_port.connection_anchor()
         p2 = self.dst_port.connection_anchor()

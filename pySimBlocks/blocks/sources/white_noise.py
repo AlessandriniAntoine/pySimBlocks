@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -98,7 +98,7 @@ class WhiteNoise(BlockSource):
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
         self.outputs["out"] = self._draw()
-    
+
 
     # --------------------------------------------------------------------------
     # Private methods

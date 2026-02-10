@@ -33,7 +33,7 @@ blocks:
     y: 155.0
     orientation: flipped
   Rate:
-    x: 820.0
+    x: 800.0
     y: 75.0
     orientation: normal
   Luenberger:
@@ -53,6 +53,10 @@ blocks:
     y: -190.0
     orientation: flipped
 connections:
+  Rate.out -> Delay_1.in:
+    ports: [Rate.out, Delay_1.in]
+    route: [[935.0, 105.0], [950.0, 105.0], [950.0, 27.5], [950.0, 27.5], [950.0,
+        -60.0], [801.0, -60.0]]
   Delay_1.out -> Mux.in2:
     ports: [Delay_1.out, Mux.in2]
     route: [[660.0, -50.0], [652.0, -50.0], [380.0, -50.0], [380.0, -95.0], [369.0,

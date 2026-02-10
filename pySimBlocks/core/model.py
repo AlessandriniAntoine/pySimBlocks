@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -63,6 +63,9 @@ class Model:
         self._output_execution_order: List[Block] = []
         self._state_execution_order: List[Block] = []
 
+        self._downstream_map: Dict[str, List[Connection]] = {}
+        self._connections_dirty: bool = True
+
         if model_yaml is not None:
             if model_cfg is not None and not isinstance(model_cfg, ModelConfig):
                 raise TypeError("model_cfg must be a ModelConfig")
@@ -115,6 +118,7 @@ class Model:
         self.connections.append(
             ((src_block, src_port), (dst_block, dst_port))
         )
+        self._connections_dirty = True
 
     # ------------------------------------------------------------------
     def build_execution_order(self):
@@ -207,9 +211,9 @@ class Model:
         """
         Returns all connections where block_name is the source.
         """
-        for (src, dst) in self.connections:
-            if src[0] == block_name:
-                yield (src, dst)
+        if self._connections_dirty or not self._downstream_map:
+            self._rebuild_downstream_map()
+        return self._downstream_map.get(block_name, [])
 
     # ------------------------------------------------------------------
     def execution_order(self):
@@ -239,3 +243,14 @@ class Model:
                 b._effective_sample_time = dt
             else:
                 b._effective_sample_time = b.sample_time
+
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+    def _rebuild_downstream_map(self) -> None:
+        downstream = {name: [] for name in self.blocks.keys()}
+        for (src, dst) in self.connections:
+            downstream[src[0]].append((src, dst))
+        self._downstream_map = downstream
+        self._connections_dirty = False

@@ -2,12 +2,11 @@ import time
 
 import numpy as np
 import parameters as prm
+from emioapi import EmioMotors
 
 from pySimBlocks.core import Model, Simulator
 from pySimBlocks.project.load_project_config import load_simulation_config
 from pySimBlocks.real_time import RealTimeRunner
-
-from motors import setup_motors, send_motors_command
 
 
 # ------------------------------------------------------------------------------
@@ -98,7 +97,35 @@ def setup_block_diagram():
     runner.initialize()
     return runner
 
+
+# -------------------------------------------------------
+def setup_motors(init_angles=[0, 0, 0, 0]):
+    motors = EmioMotors()
+    while not motors.open():
+        print("Waiting for motors to open...")
+        time.sleep(1)
+    print("Motors opened successfully.")
+    motors.position_p_gain = [2000, 800, 2000, 800]
+    motors.position_i_gain = [0, 0, 0, 0]
+    motors.position_d_gain = [50, 0, 50, 0]
+    time.sleep(1)
+    motors.angles = init_angles
+    return motors
+
 # -------------------------------------------------------
+def send_motors_command(motors, command, init_angles=np.array([0, 0, 0, 0])):
+    command = command.flatten()
+    motors.angles = [command[0] + init_angles[0], init_angles[1],
+                     command[1] + init_angles[2], init_angles[3]]
+
+# -------------------------------------------------------
+def get_motors_position(motors, init_angles=np.array([0, 0, 0, 0])):
+    motors_pos = np.array(motors.angles) - init_angles
+    return motors_pos[[0, 2]].reshape((2, 1))
+
+# ------------------------------------------------------------------------------
+# BLOCK DIAGRAM FUNCTIONS
+# ------------------------------------------------------------------------------
 def select_cmd(t, dt, u_cl, u_ol, mode):
     try:
         mode = mode.item()
@@ -111,7 +138,6 @@ def select_cmd(t, dt, u_cl, u_ol, mode):
         return {"u": u_cl}
     else:
         return {"u": np.zeros((2,1))}
-
 
 # -------------------------------------------------------
 def filter_first_order(t, dt, u, u_prev):

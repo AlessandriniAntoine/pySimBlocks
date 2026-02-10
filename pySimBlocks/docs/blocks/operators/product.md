@@ -48,4 +48,4 @@ where each coefficient \( oper_i \) is either * (matrix product @) or / (matrix 
 
 
 ---
-© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later
+© 2026 Université de Lille & INRIA – Licensed under LGPL-3.0-or-later

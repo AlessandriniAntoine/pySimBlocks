@@ -1,6 +1,6 @@
 # ******************************************************************************
 #                                  pySimBlocks
-#                     Copyright (c) 2026 Antoine Alessandrini
+#                     Copyright (c) 2026 Université de Lille & INRIA
 # ******************************************************************************
 #  This program is free software: you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
@@ -38,9 +38,9 @@ class BlockItem(QGraphicsRectItem):
     GRID_DX = 5
     GRID_DY = 5
 
-    def __init__(self, 
-                 instance: "BlockInstance", 
-                 pos: QPointF | QPoint, 
+    def __init__(self,
+                 instance: "BlockInstance",
+                 pos: QPointF | QPoint,
                  view: "DiagramView",
                  layout: dict | None = None,
     ):
