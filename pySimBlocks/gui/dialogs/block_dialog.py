@@ -61,12 +61,10 @@ class BlockDialog(QDialog):
             self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
 
-        main_layout = QVBoxLayout(self)
-
         self.param_widgets: dict[str, QWidget] = {}
         self.param_labels: dict[str, QLabel] = {}
-        self.depends_rules = {}
 
+        main_layout = QVBoxLayout(self)
         self.build_parameters_form(main_layout)
 
         # --- Buttons row ---
@@ -130,8 +128,6 @@ class BlockDialog(QDialog):
 
         for param_meta in meta.parameters:
             param_name = param_meta.name
-            if not meta.is_parameter_active(param_name, inst_params):
-                continue
 
             widget = self._create_param_widget(param_meta, inst_params)
             if widget is None:
@@ -158,6 +154,7 @@ class BlockDialog(QDialog):
             self.param_labels[param_name] = label
 
         layout.addLayout(form)
+        self.refresh_form()
 
     def refresh_form(self):
         """
@@ -166,16 +163,11 @@ class BlockDialog(QDialog):
         """
         meta = self.block.instance.meta
 
-        for param_meta in meta.parameters:
-            param_name = param_meta.name
-            widget = self.param_widgets.get(param_name)
-            label = self.param_labels.get(param_name)
-
-            if not widget or not label:
-                continue
+        for param_name, widget in self.param_widgets.items():
+            label = self.param_labels[param_name]
 
             active = meta.is_parameter_active(param_name, self.local_params)
-    
+
             widget.setVisible(active)
             label.setVisible(active)
     
@@ -187,9 +179,6 @@ class BlockDialog(QDialog):
             return
 
         def get_param_value(widget: 'QWidget'):
-            if not widget.isVisible():
-                return None
-
             if isinstance(widget, QComboBox):
                 return widget.currentText()
 
@@ -223,8 +212,7 @@ class BlockDialog(QDialog):
         help_path = self.block.instance.meta.doc_path
 
         if help_path and help_path.exists():
-            dialog = HelpDialog(help_path, self)
-            dialog.exec()
+            HelpDialog(help_path, self).exec()
         else:
             QMessageBox.information(self, "Help", "No documentation available.")
 

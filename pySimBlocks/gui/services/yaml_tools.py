@@ -193,7 +193,7 @@ def build_parameters_yaml(project_state: ProjectState) -> dict:
     for b in project_state.blocks:
         params = {
             k: v for k, v in b.parameters.items()
-            if v is not None
+            if v is not None and b.meta.is_parameter_active(k, b.parameters)
         }
         data["blocks"][b.name] = params
 
