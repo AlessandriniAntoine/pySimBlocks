@@ -18,6 +18,7 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from ast import Constant
 import shutil
 from pathlib import Path
 from typing import Dict, List
@@ -26,6 +27,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QSplitter
 
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
+from pySimBlocks.blocks_metadata.controllers.pid import PIDMeta
+from pySimBlocks.blocks_metadata.operators.sum import SumMeta
+from pySimBlocks.blocks_metadata.sources.constant import ConstantMeta
 from pySimBlocks.gui.dialogs.unsaved_dialog import UnsavedChangesDialog
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.project_controller import ProjectController
@@ -35,13 +40,7 @@ from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
-from pySimBlocks.tools.blocks_registry import (
-    BlockMeta,
-    BlockRegistry,
-    load_block_registry,
-)
-
-registry: BlockRegistry = load_block_registry()
+from pySimBlocks.tools.blocks_registry import load_block_registry
 
 
 class MainWindow(QMainWindow):
@@ -52,9 +51,7 @@ class MainWindow(QMainWindow):
         self.saver = ProjectSaverYaml()
         self.runner = SimulationRunner()
 
-        self.loader = ProjectLoaderYaml()
-        self.saver = ProjectSaverYaml()
-        self.runner = SimulationRunner()
+        self.block_registry = load_block_registry()
 
         self.project_state = ProjectState(project_path)
         self.view = DiagramView()
@@ -92,20 +89,15 @@ class MainWindow(QMainWindow):
     # Registry
     # --------------------------------------------------------------------------
     def get_categories(self) -> List[str]:
-        return sorted(registry.keys())
+        return sorted(self.block_registry.keys())
 
     # ------------------------------------------------------------------
     def get_blocks(self, category: str) -> List[str]:
-        return sorted(registry[category].keys())
-
-    # ------------------------------------------------------------------
-    def resolve_category_meta(self, category: str) -> Dict[str, BlockMeta]:
-        return registry[category]
+        return sorted(self.block_registry.get(category, {}).keys())
 
     # ------------------------------------------------------------------
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
-        return registry[category][block_type]
-
+        return self.block_registry[category][block_type]
 
     # --------------------------------------------------------------------------
     # Auto Load

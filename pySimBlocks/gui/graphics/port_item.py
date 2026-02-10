@@ -47,7 +47,7 @@ class PortItem(QGraphicsItem):
 
         # Label
         self.t = parent_block.view.theme
-        self.label = QGraphicsTextItem(self.instance.name, parent_block)
+        self.label = QGraphicsTextItem(self.instance.display_as, parent_block)
         self.label.setDefaultTextColor(self.t.text)
         self.label.setFont(QFont("Sans Serif", 8))
 

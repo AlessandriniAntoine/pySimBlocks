@@ -1,51 +1,102 @@
 from abc import ABC
-from typing import Any
+from pathlib import Path
+from typing import Any, Dict, List, Literal
+
+from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
+from pySimBlocks.blocks_metadata.port_meta import PortMeta
+from pySimBlocks.gui.model import BlockInstance, PortInstance
 
 
-class BlockMetaAbstract(ABC):
+class BlockMeta(ABC):
 
-    @property
-    def name(self) -> str:
-        if not hasattr(self, "_name"):
-            raise NotImplementedError(
-                "La classe enfant doit définir l'attribut '_name'"
-            )
-        return self._name
+    """
+    Template for child class
 
-    @property
-    def category(self) -> str:
-        if not hasattr(self, "_category"):
-            raise NotImplementedError(
-                "La classe enfant doit définir l'attribut '_category'"
-            )
-        return self._category
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
+from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
+from pySimBlocks.blocks_metadata.port_meta import PortMeta
 
-    @property
-    def type(self) -> str:
-        if not hasattr(self, "_type"):
-            raise NotImplementedError(
-                "La classe enfant doit définir l'attribut '_type'"
-            )
-        return self._type
+class MyBlockMeta(BlockMeta):
 
-    @property
-    def summary(self) -> str:
-        if not hasattr(self, "_summary"):
-            raise NotImplementedError(
-                "La classe enfant doit définir l'attribut '_summary'"
-            )
-        return self._summary
+    def __init__(self):
+        self.name = ""
+        self.category = ""
+        self.type = ""
+        self.summary = ""
+        self.description = (
+            ""
+        )
 
-    @property
-    def description(self) -> str:
-        if not hasattr(self, "_description"):
-            raise NotImplementedError(
-                "La classe enfant doit définir l'attribut '_description'"
-            )
-        return self._description
+        self.parameters = [
+            ParameterMeta(
+                name="",
+                type=""
+            ),
+        ]
 
-    def parameters(self) -> dict[str, Parameter]:
-        return {}
+        self.inputs = [
+            PortMeta(
+                name="",
+                display_as=""
+                shape=...
+            ),
+        ]
 
-    def ports(self) -> dict[str, list[dict[str, Any]]]:
-        return {}
+        self.outputs = [
+            PortMeta(
+                name="",
+                display_as=""
+                shape=...
+            ),
+        ]
+    """
+
+
+    # ----------- Mandatory class attributes (must be overridden) -----------
+    name: str
+    category: str
+    type: str
+    summary: str
+    description: str
+
+    # ----------- Optional declarations -----------
+
+    doc_path: Path | None = None
+    parameters: List[ParameterMeta] = []
+    inputs: List[PortMeta] = []
+    outputs: List[PortMeta] = []
+
+    def get_param(self, param_name: str) -> ParameterMeta | None:
+        for param in self.parameters:
+            if param.name == param_name:
+                return param
+        return None
+
+    def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
+        """
+        Default: all parameters are always active.
+        Children override if needed.
+        """
+        return True
+    
+    def resolve_port_group(self, 
+                           port_meta: PortMeta,
+                           direction: Literal['input', 'output'], 
+                           instance: "BlockInstance"
+    ) -> list["PortInstance"]:
+        """
+        Default behavior: fixed port.
+        Children override for dynamic ports.
+        """
+        return [PortInstance(port_meta.name, port_meta.display_as, direction, instance)]
+    
+    def build_ports(self, instance: "BlockInstance") -> list["PortInstance"]:
+        ports = []
+
+        for pmeta in self.inputs:
+            ports.extend(self.resolve_port_group(pmeta, "input", instance))
+
+        for pmeta in self.outputs:
+            ports.extend(self.resolve_port_group(pmeta, "output", instance))
+
+        return ports

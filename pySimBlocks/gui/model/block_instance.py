@@ -19,15 +19,18 @@
 # ******************************************************************************
 
 import uuid
-from typing import Any, Dict, List, Literal, Sized
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from pySimBlocks.gui.model.port_instance import PortInstance
-from pySimBlocks.tools.blocks_registry import BlockMeta
 
 try: # Python 3.11+
     from typing import Self
 except ImportError: # Python <3.11
     from typing_extensions import Self
+
+
+if TYPE_CHECKING:
+    from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 
 
 class BlockInstance:
@@ -47,13 +50,12 @@ class BlockInstance:
         return cpy
 
 
-    def __init__(self, meta: BlockMeta):
+    def __init__(self, meta: 'BlockMeta'):
         self.uid: str = uuid.uuid4().hex
-        self.meta: BlockMeta = meta
+        self.meta = meta
         self.name: str = meta.name
         self.parameters: Dict[str, Any] = self._init_parameters()
         self.ports: List[PortInstance] = []
-        self.ui_cache: Dict[str, Any] = {}
 
     def _init_parameters(self) -> dict[str, Any]:
         """
@@ -61,11 +63,8 @@ class BlockInstance:
         """
         params = {}
 
-        for pname, pmeta in self.meta.parameters.items():
-            if pmeta.get("autofill", False):
-                params[pname] = pmeta.get("default")
-            else:
-                params[pname] = None
+        for p in self.meta.parameters:
+            params[p.name] = p.default if p.autofill else None
 
         return params
 
@@ -75,6 +74,16 @@ class BlockInstance:
                 self.parameters[k] = v
 
     def resolve_ports(self) -> None:
+        self.ports = self.meta.build_ports(self)
+
+    def active_parameters(self):
+        return  {
+            k: v
+            for k, v in self.parameters.items()
+            if self.meta.is_parameter_active(k, self.parameters)
+        }
+    
+    """
         ports: List[PortInstance] = []
 
         for direction in ("input", "output"):
@@ -131,3 +140,4 @@ class BlockInstance:
                 ports.append(PortInstance(pattern.format(val=i), direction, self, meta))
 
         return ports
+        """

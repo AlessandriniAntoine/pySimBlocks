@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from pySimBlocks.blocks_metadata.block_meta import ParameterMeta
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
 from typing import TYPE_CHECKING, Any
@@ -51,6 +52,7 @@ class BlockDialog(QDialog):
     ):
         super().__init__()
         self.block = block
+        self.local_params: dict[str, Any] = dict(block.instance.parameters)
 
         self.readonly = readonly
         if self.readonly:
@@ -59,12 +61,10 @@ class BlockDialog(QDialog):
             self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
 
-        main_layout = QVBoxLayout(self)
-
         self.param_widgets: dict[str, QWidget] = {}
         self.param_labels: dict[str, QLabel] = {}
-        self.depends_rules = {}
 
+        main_layout = QVBoxLayout(self)
         self.build_parameters_form(main_layout)
 
         # --- Buttons row ---
@@ -114,7 +114,7 @@ class BlockDialog(QDialog):
         form.addRow(frame)
 
     def build_parameters_form(self, layout):
-        meta_params = self.block.instance.meta.parameters
+        meta = self.block.instance.meta
         inst_params = self.block.instance.parameters
 
         form = QFormLayout()
@@ -126,8 +126,10 @@ class BlockDialog(QDialog):
         if self.readonly:
             self.name_edit.setReadOnly(True)
 
-        for pname, pmeta in meta_params.items():
-            widget = self._create_param_widget(pname, pmeta, inst_params)
+        for param_meta in meta.parameters:
+            param_name = param_meta.name
+
+            widget = self._create_param_widget(param_meta, inst_params)
             if widget is None:
                 continue
             if self.readonly:
@@ -143,58 +145,32 @@ class BlockDialog(QDialog):
                 elif isinstance(widget, QComboBox):
                     widget.setEnabled(False)
 
-            label = QLabel(f"{pname}:")
-            if "description" in pmeta:
-                label.setToolTip(pmeta["description"])
+            label = QLabel(f"{param_name}:")
+            if param_meta.description:
+                label.setToolTip(param_meta.description)
             form.addRow(label, widget)
 
-            self.param_widgets[pname] = widget
-            self.param_labels[pname] = label
-
-            if "depends_on" in pmeta:
-                self.depends_rules[pname] = pmeta["depends_on"]
+            self.param_widgets[param_name] = widget
+            self.param_labels[param_name] = label
 
         layout.addLayout(form)
+        self.refresh_form()
 
-        self.update_visibility()
+    def refresh_form(self):
+        """
+        Refresh the parameter widgets visibility based on
+        BlockMeta.is_parameter_active and current local_params.
+        """
+        meta = self.block.instance.meta
 
+        for param_name, widget in self.param_widgets.items():
+            label = self.param_labels[param_name]
 
-    def update_visibility(self):
-        inst_params = self.block.instance.parameters
+            active = meta.is_parameter_active(param_name, self.local_params)
 
-        for pname, rules in self.depends_rules.items():
-            visible = True
-
-            dep_name = rules["parameter"]
-            allowed_values = rules["values"]
-
-            current_value = inst_params.get(dep_name)
-
-            if current_value not in allowed_values:
-                visible = False
-                old_val = inst_params.get(pname)
-                if old_val is not None:
-                    self.block.instance.ui_cache[pname] = old_val
-                inst_params[pname] = None
-
-            widget = self.param_widgets[pname]
-            label = self.param_labels[pname]
-
-            if visible:
-                if inst_params.get(pname) is None:
-                    if pname in self.block.instance.ui_cache:
-                        restored = self.block.instance.ui_cache.pop(pname)
-                        inst_params[pname] = restored
-                        w = self.param_widgets[pname]
-                        if isinstance(w, QLineEdit):
-                            w.setText(str(restored))
-                        elif isinstance(w, QComboBox):
-                            w.setCurrentText(str(restored))
-
-            widget.setVisible(visible)
-            label.setVisible(visible)
-
-
+            widget.setVisible(active)
+            label.setVisible(active)
+    
     # ------------------------------------------------------------
     # Buttons
     # ------------------------------------------------------------
@@ -203,9 +179,6 @@ class BlockDialog(QDialog):
             return
 
         def get_param_value(widget: 'QWidget'):
-            if not widget.isVisible():
-                return None
-
             if isinstance(widget, QComboBox):
                 return widget.currentText()
 
@@ -238,28 +211,31 @@ class BlockDialog(QDialog):
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
 
-        if help_path.exists():
-            dialog = HelpDialog(help_path, self)
-            dialog.exec()
+        if help_path and help_path.exists():
+            HelpDialog(help_path, self).exec()
         else:
             QMessageBox.information(self, "Help", "No documentation available.")
 
 
     # ------------------------------------------------------------
     # internal methods
-    def _create_param_widget(self, name, meta, inst_params):
-        ptype = meta.get("type")
-        value = inst_params.get(name)
+    def _create_param_widget(self, 
+                             meta: ParameterMeta, 
+                             inst_params: dict[str, Any]
+    ):
+        param_name = meta.name
+        param_type = meta.type
+        value = inst_params.get(param_name)
 
         # ENUM
-        if ptype == "enum":
+        if param_type == "enum":
             combo = QComboBox()
-            for v in meta.get("enum", []):
+            for v in meta.enum:
                 combo.addItem(str(v))
             if value is not None:
                 combo.setCurrentText(str(value))
             combo.currentTextChanged.connect(
-                lambda val, name=name: self._on_param_changed(name, val)
+                lambda val, name=param_name: self._on_param_changed(name, val)
             )
             return combo
 
@@ -267,8 +243,8 @@ class BlockDialog(QDialog):
         edit = QLineEdit()
         if value is not None:
             edit.setText(str(value))
-        elif "default" in meta:
-            edit.setText(str(meta["default"]))
+        elif meta.default:
+            edit.setText(str(meta.default))
 
         return edit
 
@@ -276,5 +252,5 @@ class BlockDialog(QDialog):
     def _on_param_changed(self, name, value):
         if self.readonly:
             return
-        self.block.instance.parameters[name] = value
-        self.update_visibility()
+        self.local_params[name] = value
+        self.refresh_form()

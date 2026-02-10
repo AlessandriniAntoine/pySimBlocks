@@ -23,9 +23,9 @@ from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtGui import QDrag
 
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.model.block_instance import BlockInstance
-from pySimBlocks.tools.blocks_registry import BlockMeta
 
 class _PreviewBlock:
     def __init__(self, instance):
