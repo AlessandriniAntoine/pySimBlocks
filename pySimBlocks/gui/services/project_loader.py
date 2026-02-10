@@ -98,8 +98,23 @@ class ProjectLoaderYaml(ProjectLoader):
             src_block = controller.project_state.get_block(src_block_name)
             dst_block = controller.project_state.get_block(dst_block_name)
 
-            src_port = next(p for p in src_block.ports if p.name == src_port_name)
-            dst_port = next(p for p in dst_block.ports if p.name == dst_port_name)
+            src_port = next(
+                (p for p in src_block.ports if p.name == src_port_name),
+                None
+            )
+            dst_port = next(
+                (p for p in dst_block.ports if p.name == dst_port_name),
+                None
+            )
+
+            if src_port is None or dst_port is None:
+                missing = []
+                if src_port is None:
+                    missing.append(f"{src_block_name}.{src_port_name}")
+                if dst_port is None:
+                    missing.append(f"{dst_block_name}.{dst_port_name}")
+                print(f"[Connection warning] Cannot create connection {src} -> {dst}, missing port(s): {', '.join(missing)}")
+                continue
 
             points = routes.get(f"{src} -> {dst}", None)
             controller.add_connection(src_port, dst_port, points)
