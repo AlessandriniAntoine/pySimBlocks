@@ -38,12 +38,12 @@ class StateFeedBackMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="reference",
+                name="r",
                 display_as="r",
                 shape=["p", 1]
             ),
             PortMeta(
-                name="state",
+                name="x",
                 display_as="x",
                 shape=["n", 1],
                 description="State measurement vector."
@@ -52,7 +52,7 @@ class StateFeedBackMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="out",
+                name="u",
                 display_as="u",
                 shape=["m", 1],
                 description="Control input vector."
