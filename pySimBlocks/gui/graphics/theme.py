@@ -84,7 +84,7 @@ def make_theme() -> Theme:
     if is_dark:
         block_bg = QColor("#30343A")
         block_bg_selected = QColor("#3A6FB0")
-        block_border = QColor("#C9C956")
+        block_border = QColor("#ACACAC")
         block_border_selected = QColor("#6FAEFF")
     else:
         block_bg = QColor("#ECECEC")
