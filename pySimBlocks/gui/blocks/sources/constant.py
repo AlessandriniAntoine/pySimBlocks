@@ -18,35 +18,46 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Literal, TYPE_CHECKING
-
+from pySimBlocks.gui.blocks.block_meta import BlockMeta
+from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
 
-if TYPE_CHECKING:
-    from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-    from pySimBlocks.gui.project_controller import BlockInstance
 
-class PortInstance:
-    def __init__(
-        self,
-        name: str,
-        display_as: str,
-        direction: Literal['input', 'output'],
-        block: "BlockInstance"
-    ):
-        self.name = name
-        self.display_as = display_as
-        self.direction = direction
-        self.block = block
+class ConstantMeta(BlockMeta):
+    
+    def __init__(self):
+        self.name = "Constant"
+        self.category = "sources"
+        self.type = "constant"
+        self.summary = "Constant signal source."
+        self.description = (
+            "Generates a constant output signal:\n"
+            "$$\n"
+            "y(t) = c"
+            "$$\n"
+        )
 
-    def is_compatible(self, other: "PortInstance"):
-        return self.direction != other.direction
+        self.parameters = [
+            ParameterMeta(
+                name = "value", 
+                type = "scalar | vector | matrix",
+                required = True,
+                autofill = True,
+                default = [[1.0]],
+                description = "Constant output value."
+            ),
 
-    def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
-        """
-        Check whether this port can accept a new connection.
+            ParameterMeta(
+                name = "sample_time",
+                type = "float",
+            )
+        ]
 
-        The `connections` list is expected to contain all and only the connections
-        already linked to this PortInstance.
-        """
-        return self.direction == "output" or not connections
+        self.outputs = [
+            PortMeta(
+                name="out",
+                display_as="out",
+                shape=["n", "m"],
+                description="Constant output signal."
+            )
+        ]

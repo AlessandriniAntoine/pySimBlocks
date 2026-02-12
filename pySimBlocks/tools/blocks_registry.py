@@ -25,7 +25,7 @@ import inspect
 from pathlib import Path
 from typing import Dict, Optional
 
-from pySimBlocks.blocks_metadata.block_meta import BlockMeta
+from pySimBlocks.gui.blocks.block_meta import BlockMeta
 
 BlockRegistry = Dict[str, Dict[str, BlockMeta]]
 
@@ -34,7 +34,7 @@ def load_block_registry(
 ) -> BlockRegistry:
     
     if metadata_root is None:
-        metadata_root = Path(__file__).parents[1] / "blocks_metadata"
+        metadata_root = Path(__file__).parents[1] / "gui" / "blocks"
     else:
         metadata_root = Path(metadata_root).resolve()
     
@@ -113,7 +113,7 @@ def _path_to_module(py_path: Path) -> str:
 
     return module_name
 
-def _resolve_doc_path(yaml_path: Path) -> Optional[Path]:
+def _resolve_doc_path(py_path: Path) -> Optional[Path]:
     """
     Resolve the documentation markdown file corresponding to a YAML metadata file.
 
@@ -123,14 +123,18 @@ def _resolve_doc_path(yaml_path: Path) -> Optional[Path]:
     """
 
     try:
-        parts = list(yaml_path.parts)
-        idx = parts.index("blocks_metadata")
+        parts = list(py_path.parts)
+        idx = parts.index("gui")
     except ValueError:
         return None
 
-    doc_root = Path(*parts[:idx]) / "docs" / "blocks"
+    doc_root = Path(*parts[:idx]) / "docs"
+
     rel = Path(*parts[idx + 1 :]).with_suffix(".md")
+
     doc_path = doc_root / rel
+
+    print(doc_path)
 
     return doc_path if doc_path.exists() else None
 

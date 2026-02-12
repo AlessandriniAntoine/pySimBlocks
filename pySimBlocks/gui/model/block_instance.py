@@ -30,7 +30,7 @@ except ImportError: # Python <3.11
 
 
 if TYPE_CHECKING:
-    from pySimBlocks.blocks_metadata.block_meta import BlockMeta
+    from pySimBlocks.gui.blocks.block_meta import BlockMeta
 
 
 class BlockInstance:

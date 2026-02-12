@@ -27,10 +27,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QSplitter
 
-from pySimBlocks.blocks_metadata.block_meta import BlockMeta
-from pySimBlocks.blocks_metadata.controllers.pid import PIDMeta
-from pySimBlocks.blocks_metadata.operators.sum import SumMeta
-from pySimBlocks.blocks_metadata.sources.constant import ConstantMeta
+from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.dialogs.unsaved_dialog import UnsavedChangesDialog
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.project_controller import ProjectController

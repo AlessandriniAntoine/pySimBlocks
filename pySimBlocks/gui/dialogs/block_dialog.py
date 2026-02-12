@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from pySimBlocks.blocks_metadata.block_meta import ParameterMeta
+from pySimBlocks.gui.blocks.block_meta import ParameterMeta
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
 from typing import TYPE_CHECKING, Any

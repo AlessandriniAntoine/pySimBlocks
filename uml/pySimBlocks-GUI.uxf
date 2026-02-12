@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <diagram program="umlet" version="15.1">
   <help_text/>
-  <zoom_level>5</zoom_level>
+  <zoom_level>3</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>660</x>
-      <y>40</y>
-      <w>275</w>
-      <h>65</h>
+      <x>456</x>
+      <y>69</y>
+      <w>165</w>
+      <h>39</h>
     </coordinates>
     <panel_attributes>MainWindow
 --
@@ -24,10 +24,10 @@ auto_load_detection(Path) -&gt; bool
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>740</x>
-      <y>235</y>
-      <w>250</w>
-      <h>150</h>
+      <x>504</x>
+      <y>186</y>
+      <w>150</w>
+      <h>90</h>
     </coordinates>
     <panel_attributes>ProjectSate
 --
@@ -48,16 +48,17 @@ get_connections_of_block(BlockInstance) -&gt; list[ConnectionInstance]
 get_connections_of_port(PortInstance) -&gt; list[ConnectionInstance]
 get_output_signals() -&gt; list[str]
 can_plot() -&gt; tuple[bool, str]
-</panel_attributes>
+
+bg=CYAN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>125</x>
-      <y>255</y>
-      <w>240</w>
-      <h>145</h>
+      <x>135</x>
+      <y>198</y>
+      <w>144</w>
+      <h>87</h>
     </coordinates>
     <panel_attributes>DiagramView
 --
@@ -78,17 +79,16 @@ create_connection_event(PortItem)
 update_block_param_event(BlockInstance, dict[str, Any])
 on_block_moved(BlockItem)
 delete_selected()
-
-</panel_attributes>
+bg=GREEN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>440</x>
-      <y>215</y>
-      <w>230</w>
-      <h>165</h>
+      <x>324</x>
+      <y>174</y>
+      <w>138</w>
+      <h>99</h>
     </coordinates>
     <panel_attributes>ProjectController
 --
@@ -110,16 +110,17 @@ create_plot(str, list[str])
 update_plot(int, str, list[str])
 delete_plot(int)
 update_simulation_params(dict[str, float | str])
-set_logged_signal(list[str])</panel_attributes>
+set_logged_signal(list[str])
+bg=ORANGE</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1295</x>
-      <y>165</y>
-      <w>225</w>
-      <h>60</h>
+      <x>837</x>
+      <y>144</y>
+      <w>135</w>
+      <h>36</h>
     </coordinates>
     <panel_attributes>BlockList
 --
@@ -133,10 +134,10 @@ __init__(list[str], list[str], (str, str) =&gt; BlockMeta) </panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>600</x>
-      <y>585</y>
-      <w>105</w>
-      <h>60</h>
+      <x>420</x>
+      <y>396</y>
+      <w>63</w>
+      <h>36</h>
     </coordinates>
     <panel_attributes>BlockInstance
 --
@@ -145,59 +146,61 @@ name: str
 parameters: map[str,?]
 --
 __init__(BlockMeta)
-resolve_ports()</panel_attributes>
+resolve_ports()
+bg=CYAN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>585</x>
-      <y>675</y>
-      <w>185</w>
-      <h>100</h>
+      <x>411</x>
+      <y>450</y>
+      <w>111</w>
+      <h>60</h>
     </coordinates>
-    <panel_attributes>BlockMetaAbstract
+    <panel_attributes>BlockMeta
 --
 name: str
 category: str
 type: str
 summary: str
 description: str
-parameters: dict[str, dict[str, Any]]
-ports: dict[str, list[dict[str, Any]]]
-execution: dict[str, Any]
-notes: list[str] | None
 doc_path: Path | None
+--
+get_param(param_name: str) -&gt; ParameterMeta | None
+is_parameter_active(param_name: str, instance_values: Dict[str, Any]) -&gt; bool
+resolve_port_group(PortMeta, direction: str, BlockInstance) -&gt; list[PortInstance]
+build_ports(BlockInstance) -&gt; list[PortInstance)
 </panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>730</x>
-      <y>465</y>
-      <w>205</w>
-      <h>65</h>
+      <x>498</x>
+      <y>324</y>
+      <w>123</w>
+      <h>39</h>
     </coordinates>
     <panel_attributes>PortInstance
 --
 name: str
+display_as: str
 direction: str
-meta: dict[str, Any]
 --
 __init__(str, str, BlockInstance, dict[str, Any])
 is_compatible(PortInstance) -&gt; bool
 can_accept_connection(list[ConnectionInstance]) -&gt; bool
-</panel_attributes>
+bg=CYAN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>770</x>
-      <y>0</y>
-      <w>60</w>
-      <h>15</h>
+      <x>522</x>
+      <y>45</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QMainWindow</panel_attributes>
     <additional_attributes/>
@@ -205,10 +208,10 @@ can_accept_connection(list[ConnectionInstance]) -&gt; bool
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>795</x>
-      <y>10</y>
-      <w>15</w>
-      <h>40</h>
+      <x>537</x>
+      <y>51</y>
+      <w>9</w>
+      <h>24</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
@@ -216,10 +219,10 @@ can_accept_connection(list[ConnectionInstance]) -&gt; bool
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>810</x>
-      <y>100</y>
-      <w>65</w>
-      <h>145</h>
+      <x>546</x>
+      <y>105</y>
+      <w>39</w>
+      <h>87</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 project_state</panel_attributes>
@@ -228,10 +231,10 @@ project_state</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>215</x>
-      <y>100</y>
-      <w>455</w>
-      <h>165</h>
+      <x>189</x>
+      <y>105</y>
+      <w>273</w>
+      <h>99</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 diagram</panel_attributes>
@@ -241,9 +244,9 @@ diagram</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>150</x>
-      <y>215</y>
-      <w>60</w>
-      <h>15</h>
+      <y>174</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QGraphicsView</panel_attributes>
     <additional_attributes/>
@@ -251,10 +254,10 @@ diagram</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>170</x>
-      <y>225</y>
-      <w>15</w>
-      <h>40</h>
+      <x>162</x>
+      <y>180</y>
+      <w>9</w>
+      <h>24</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
@@ -262,10 +265,10 @@ diagram</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>555</x>
-      <y>100</y>
-      <w>165</w>
-      <h>125</h>
+      <x>393</x>
+      <y>105</y>
+      <w>99</w>
+      <h>75</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 project_controller</panel_attributes>
@@ -274,10 +277,10 @@ project_controller</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>915</x>
-      <y>100</y>
-      <w>495</w>
-      <h>75</h>
+      <x>609</x>
+      <y>105</y>
+      <w>297</w>
+      <h>45</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 blocks</panel_attributes>
@@ -286,10 +289,10 @@ blocks</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1415</x>
-      <y>130</y>
-      <w>60</w>
-      <h>15</h>
+      <x>909</x>
+      <y>123</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QTreeWidget</panel_attributes>
     <additional_attributes/>
@@ -297,10 +300,10 @@ blocks</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1435</x>
-      <y>140</y>
-      <w>15</w>
-      <h>35</h>
+      <x>921</x>
+      <y>129</y>
+      <w>9</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
@@ -308,15 +311,14 @@ blocks</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1110</x>
-      <y>240</y>
-      <w>145</w>
-      <h>125</h>
+      <x>726</x>
+      <y>189</y>
+      <w>87</w>
+      <h>75</h>
     </coordinates>
     <panel_attributes>ToolBarView
 --
 project_controller: ProjectController
-saver: ProjectSaver
 runner: SimulationRunner
 --
 __init__(ProjectState, ProjectController)
@@ -334,10 +336,10 @@ on_open_sofa_dialog()</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1195</x>
-      <y>210</y>
-      <w>50</w>
-      <h>15</h>
+      <x>777</x>
+      <y>171</y>
+      <w>30</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QToolBar</panel_attributes>
     <additional_attributes/>
@@ -345,10 +347,10 @@ on_open_sofa_dialog()</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1210</x>
-      <y>220</y>
-      <w>15</w>
-      <h>30</h>
+      <x>786</x>
+      <y>177</y>
+      <w>9</w>
+      <h>18</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
@@ -356,10 +358,10 @@ on_open_sofa_dialog()</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>865</x>
-      <y>100</y>
-      <w>325</w>
-      <h>150</h>
+      <x>579</x>
+      <y>105</y>
+      <w>195</w>
+      <h>90</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 toolbar</panel_attributes>
@@ -368,10 +370,10 @@ toolbar</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>600</x>
-      <y>380</y>
-      <w>185</w>
-      <h>215</h>
+      <x>420</x>
+      <y>273</y>
+      <w>111</w>
+      <h>129</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -381,26 +383,27 @@ blocks</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>975</x>
-      <y>480</y>
-      <w>150</w>
-      <h>50</h>
+      <x>645</x>
+      <y>333</y>
+      <w>90</w>
+      <h>30</h>
     </coordinates>
     <panel_attributes>ConnectionInstance
 --
 __init__(PortInstance, PortInstance)
 src_block() -&gt; BlockInstance
 dst_block() -&gt; BlockInstance
-is_block_involved(BlockInstance) -&gt; bool</panel_attributes>
+is_block_involved(BlockInstance) -&gt; bool
+bg=CYAN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>985</x>
-      <y>380</y>
-      <w>75</w>
-      <h>110</h>
+      <x>651</x>
+      <y>273</y>
+      <w>45</w>
+      <h>66</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -410,10 +413,10 @@ connections</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>665</x>
-      <y>640</y>
-      <w>30</w>
-      <h>45</h>
+      <x>459</x>
+      <y>429</y>
+      <w>18</w>
+      <h>27</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 meta</panel_attributes>
@@ -422,10 +425,10 @@ meta</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>930</x>
-      <y>485</y>
-      <w>55</w>
-      <h>20</h>
+      <x>618</x>
+      <y>336</y>
+      <w>33</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 src_port</panel_attributes>
@@ -434,10 +437,10 @@ src_port</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>665</x>
-      <y>525</y>
-      <w>125</w>
-      <h>70</h>
+      <x>459</x>
+      <y>360</y>
+      <w>75</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -447,10 +450,10 @@ ports</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>345</x>
-      <y>590</y>
-      <w>135</w>
-      <h>50</h>
+      <x>267</x>
+      <y>399</y>
+      <w>81</w>
+      <h>30</h>
     </coordinates>
     <panel_attributes>BlockItem
 --
@@ -459,16 +462,17 @@ view: DiagramView
 __init__(BlockInstance, pos, view)
 get_port_item(str) -&gt; PortItem | None
 refresh_ports()
+bg=GREEN
 </panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>425</x>
-      <y>555</y>
-      <w>75</w>
-      <h>15</h>
+      <x>315</x>
+      <y>378</y>
+      <w>45</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QGraphicsRectItem</panel_attributes>
     <additional_attributes/>
@@ -476,10 +480,10 @@ refresh_ports()
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>460</x>
-      <y>565</y>
-      <w>15</w>
-      <h>35</h>
+      <x>336</x>
+      <y>384</y>
+      <w>9</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
@@ -487,10 +491,10 @@ refresh_ports()
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>475</x>
-      <y>605</y>
-      <w>135</w>
-      <h>20</h>
+      <x>345</x>
+      <y>408</y>
+      <w>81</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 instance</panel_attributes>
@@ -499,24 +503,24 @@ instance</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>155</x>
-      <y>485</y>
-      <w>205</w>
-      <h>25</h>
+      <x>153</x>
+      <y>336</y>
+      <w>123</w>
+      <h>15</h>
     </coordinates>
     <panel_attributes>PortItem
 --
 __init__(instance: PortInstance, parent_block: BlockItem)
-</panel_attributes>
+bg=GREEN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>270</x>
-      <y>440</y>
-      <w>85</w>
-      <h>15</h>
+      <x>222</x>
+      <y>309</y>
+      <w>51</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QGraphicsEllipseItem</panel_attributes>
     <additional_attributes/>
@@ -524,10 +528,10 @@ __init__(instance: PortInstance, parent_block: BlockItem)
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>305</x>
-      <y>450</y>
-      <w>15</w>
-      <h>45</h>
+      <x>243</x>
+      <y>315</y>
+      <w>9</w>
+      <h>27</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
@@ -535,10 +539,10 @@ __init__(instance: PortInstance, parent_block: BlockItem)
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>355</x>
-      <y>495</y>
-      <w>385</w>
-      <h>20</h>
+      <x>273</x>
+      <y>342</y>
+      <w>231</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 instance</panel_attributes>
@@ -547,10 +551,10 @@ instance</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>305</x>
-      <y>505</y>
-      <w>100</w>
-      <h>95</h>
+      <x>243</x>
+      <y>348</y>
+      <w>60</w>
+      <h>57</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 parent_block</panel_attributes>
@@ -559,26 +563,27 @@ parent_block</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>45</x>
-      <y>570</y>
-      <w>120</w>
-      <h>45</h>
+      <x>87</x>
+      <y>387</y>
+      <w>72</w>
+      <h>27</h>
     </coordinates>
     <panel_attributes>ConnectionItem
 --
 instance: ConnectionInstance
 --
 __init__(PortItem, PortItem)
-update_position()</panel_attributes>
+update_position()
+bg=GREEN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>0</x>
-      <y>535</y>
-      <w>75</w>
-      <h>15</h>
+      <x>60</x>
+      <y>366</y>
+      <w>45</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QGraphicsPathItem</panel_attributes>
     <additional_attributes/>
@@ -586,10 +591,10 @@ update_position()</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>50</x>
-      <y>545</y>
-      <w>15</w>
-      <h>35</h>
+      <x>90</x>
+      <y>372</y>
+      <w>9</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
@@ -597,10 +602,10 @@ update_position()</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>250</x>
-      <y>505</y>
-      <w>105</w>
-      <h>115</h>
+      <x>210</x>
+      <y>348</y>
+      <w>63</w>
+      <h>69</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -610,10 +615,10 @@ port_items</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>700</x>
-      <y>525</y>
-      <w>125</w>
-      <h>70</h>
+      <x>480</x>
+      <y>360</y>
+      <w>75</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 block</panel_attributes>
@@ -622,10 +627,10 @@ block</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>70</x>
-      <y>395</y>
-      <w>90</w>
-      <h>185</h>
+      <x>102</x>
+      <y>282</y>
+      <w>54</w>
+      <h>111</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -635,10 +640,10 @@ connections</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>115</x>
-      <y>505</y>
-      <w>65</w>
-      <h>75</h>
+      <x>129</x>
+      <y>348</y>
+      <w>39</w>
+      <h>45</h>
     </coordinates>
     <panel_attributes>lt=-&gt;
 src_port</panel_attributes>
@@ -647,10 +652,10 @@ src_port</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>210</x>
-      <y>395</y>
-      <w>60</w>
-      <h>100</h>
+      <x>186</x>
+      <y>282</y>
+      <w>36</w>
+      <h>60</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 m1=[0..1]
@@ -660,10 +665,10 @@ pending_port</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>565</x>
-      <y>390</y>
-      <w>125</w>
-      <h>60</h>
+      <x>399</x>
+      <y>279</y>
+      <w>75</w>
+      <h>36</h>
     </coordinates>
     <panel_attributes>ProjectSimulationParams
 --
@@ -672,16 +677,17 @@ solver: str
 T: float
 --
 load_from_dict(dict[str, float | str])
-clear()</panel_attributes>
+clear()
+bg=CYAN</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>685</x>
-      <y>380</y>
-      <w>65</w>
-      <h>45</h>
+      <x>471</x>
+      <y>273</y>
+      <w>39</w>
+      <h>27</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 simulation</panel_attributes>
@@ -690,121 +696,22 @@ simulation</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>665</x>
-      <y>315</y>
-      <w>85</w>
-      <h>20</h>
+      <x>459</x>
+      <y>234</y>
+      <w>51</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 project_state</panel_attributes>
     <additional_attributes>150.0;20.0;10.0;20.0</additional_attributes>
   </element>
   <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1220</x>
-      <y>575</y>
-      <w>50</w>
-      <h>15</h>
-    </coordinates>
-    <panel_attributes>QDialog</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1130</x>
-      <y>645</y>
-      <w>75</w>
-      <h>15</h>
-    </coordinates>
-    <panel_attributes>DisplayYamlDialog</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
     <id>Relation</id>
     <coordinates>
-      <x>1160</x>
-      <y>585</y>
-      <w>85</w>
-      <h>70</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>150.0;10.0;10.0;120.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1215</x>
-      <y>645</y>
-      <w>55</w>
-      <h>15</h>
-    </coordinates>
-    <panel_attributes>HelpDialog</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1240</x>
-      <y>585</y>
-      <w>15</w>
-      <h>70</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;120.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1285</x>
-      <y>645</y>
-      <w>55</w>
-      <h>15</h>
-    </coordinates>
-    <panel_attributes>PlotDialog</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1250</x>
-      <y>585</y>
-      <w>75</w>
-      <h>70</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;130.0;120.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1350</x>
-      <y>645</y>
-      <w>60</w>
-      <h>15</h>
-    </coordinates>
-    <panel_attributes>SettingsDialog</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1255</x>
-      <y>585</y>
-      <w>135</w>
-      <h>70</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;250.0;120.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>360</x>
-      <y>305</y>
-      <w>90</w>
-      <h>20</h>
+      <x>276</x>
+      <y>228</y>
+      <w>54</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 view</panel_attributes>
@@ -813,10 +720,10 @@ view</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1135</x>
-      <y>420</y>
-      <w>150</w>
-      <h>60</h>
+      <x>741</x>
+      <y>297</y>
+      <w>90</w>
+      <h>36</h>
     </coordinates>
     <panel_attributes>SofaService
 --
@@ -832,10 +739,10 @@ __init__(ProjectState, ProjectController)
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1200</x>
-      <y>360</y>
-      <w>60</w>
-      <h>70</h>
+      <x>780</x>
+      <y>261</y>
+      <w>36</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 sofa_service</panel_attributes>
@@ -844,10 +751,10 @@ sofa_service</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>985</x>
-      <y>325</y>
-      <w>205</w>
-      <h>105</h>
+      <x>651</x>
+      <y>240</y>
+      <w>123</w>
+      <h>63</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 project_state</panel_attributes>
@@ -856,10 +763,10 @@ project_state</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>470</x>
-      <y>675</y>
-      <w>50</w>
-      <h>15</h>
+      <x>342</x>
+      <y>450</y>
+      <w>30</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>QDialog</panel_attributes>
     <additional_attributes/>
@@ -867,10 +774,10 @@ project_state</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>490</x>
-      <y>685</y>
-      <w>15</w>
-      <h>40</h>
+      <x>354</x>
+      <y>456</y>
+      <w>9</w>
+      <h>24</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
@@ -878,10 +785,10 @@ project_state</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>405</x>
-      <y>715</y>
-      <w>115</w>
-      <h>35</h>
+      <x>303</x>
+      <y>474</y>
+      <w>69</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>BlockDialog
 --
@@ -892,10 +799,10 @@ param_widgets: dict[Any, Any]</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>395</x>
-      <y>635</y>
-      <w>35</w>
-      <h>90</h>
+      <x>297</x>
+      <y>426</y>
+      <w>21</w>
+      <h>54</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 </panel_attributes>
@@ -904,10 +811,10 @@ param_widgets: dict[Any, Any]</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>355</x>
-      <y>395</y>
-      <w>80</w>
-      <h>205</h>
+      <x>273</x>
+      <y>282</y>
+      <w>48</w>
+      <h>123</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=[0..*]
@@ -917,10 +824,10 @@ block_items</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>565</x>
-      <y>830</y>
-      <w>60</w>
-      <h>15</h>
+      <x>399</x>
+      <y>543</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>StateFeedback</panel_attributes>
     <additional_attributes/>
@@ -928,10 +835,10 @@ block_items</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>590</x>
-      <y>770</y>
-      <w>70</w>
-      <h>70</h>
+      <x>414</x>
+      <y>507</y>
+      <w>42</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>120.0;10.0;10.0;120.0</additional_attributes>
@@ -939,10 +846,10 @@ block_items</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>660</x>
-      <y>830</y>
-      <w>60</w>
-      <h>15</h>
+      <x>441</x>
+      <y>543</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>PID</panel_attributes>
     <additional_attributes/>
@@ -950,21 +857,21 @@ block_items</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>660</x>
-      <y>770</y>
-      <w>40</w>
-      <h>70</h>
+      <x>456</x>
+      <y>507</y>
+      <w>9</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;60.0;120.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>735</x>
-      <y>830</y>
-      <w>60</w>
-      <h>15</h>
+      <x>483</x>
+      <y>543</y>
+      <w>36</w>
+      <h>9</h>
     </coordinates>
     <panel_attributes>...</panel_attributes>
     <additional_attributes/>
@@ -972,21 +879,21 @@ block_items</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>690</x>
-      <y>770</y>
-      <w>85</w>
-      <h>70</h>
+      <x>474</x>
+      <y>507</y>
+      <w>33</w>
+      <h>42</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;150.0;120.0</additional_attributes>
+    <additional_attributes>10.0;10.0;90.0;120.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>335</x>
-      <y>90</y>
-      <w>110</w>
-      <h>25</h>
+      <x>261</x>
+      <y>99</y>
+      <w>66</w>
+      <h>15</h>
     </coordinates>
     <panel_attributes>ProjectLoader
 --
@@ -997,10 +904,10 @@ load(ProjectController, Path)
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>295</x>
-      <y>40</y>
-      <w>150</w>
-      <h>35</h>
+      <x>237</x>
+      <y>69</y>
+      <w>90</w>
+      <h>21</h>
     </coordinates>
     <panel_attributes>ProjectSaver
 --
@@ -1012,10 +919,10 @@ export(ProjectState, dict[str, BlockItem])
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>440</x>
-      <y>75</y>
-      <w>230</w>
-      <h>40</h>
+      <x>324</x>
+      <y>90</y>
+      <w>138</w>
+      <h>24</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 loader</panel_attributes>
@@ -1024,10 +931,10 @@ loader</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>440</x>
-      <y>50</y>
-      <w>230</w>
-      <h>20</h>
+      <x>324</x>
+      <y>75</y>
+      <w>138</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 saver</panel_attributes>
@@ -1036,10 +943,10 @@ saver</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1040</x>
-      <y>65</y>
-      <w>80</w>
-      <h>25</h>
+      <x>684</x>
+      <y>84</y>
+      <w>48</w>
+      <h>15</h>
     </coordinates>
     <panel_attributes>SimulationRunner
 --
@@ -1049,10 +956,10 @@ run(ProjectState)</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>930</x>
-      <y>65</y>
-      <w>120</w>
-      <h>20</h>
+      <x>618</x>
+      <y>84</y>
+      <w>72</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;&gt;&gt;
 runner</panel_attributes>
@@ -1061,10 +968,10 @@ runner</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>155</x>
-      <y>505</y>
-      <w>70</w>
-      <h>75</h>
+      <x>153</x>
+      <y>348</y>
+      <w>42</w>
+      <h>45</h>
     </coordinates>
     <panel_attributes>lt=-&gt;
 dst_port</panel_attributes>
@@ -1073,10 +980,10 @@ dst_port</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>930</x>
-      <y>505</y>
-      <w>55</w>
-      <h>20</h>
+      <x>618</x>
+      <y>348</y>
+      <w>33</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 dst_port</panel_attributes>
@@ -1085,10 +992,10 @@ dst_port</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>360</x>
-      <y>280</y>
-      <w>90</w>
-      <h>20</h>
+      <x>276</x>
+      <y>213</y>
+      <w>54</w>
+      <h>12</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 project_controller</panel_attributes>
@@ -1097,13 +1004,88 @@ project_controller</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>425</x>
-      <y>635</y>
-      <w>45</w>
-      <h>90</h>
+      <x>315</x>
+      <y>426</y>
+      <w>27</w>
+      <h>54</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 block</panel_attributes>
     <additional_attributes>10.0;10.0;50.0;160.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>582</x>
+      <y>483</y>
+      <w>51</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>PortMeta
+--
+name: str
+display_as: str
+shape: list[Any]
+description: str</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>582</x>
+      <y>432</y>
+      <w>51</w>
+      <h>45</h>
+    </coordinates>
+    <panel_attributes>ParameterMeta
+--
+name: str
+type: str
+required: bool
+autofill: bool
+default: Any
+enum: list[Any]
+description: str
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>519</x>
+      <y>459</y>
+      <w>69</w>
+      <h>15</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=[0..*]
+parameters</panel_attributes>
+    <additional_attributes>10.0;20.0;210.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>519</x>
+      <y>486</y>
+      <w>69</w>
+      <h>15</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=[0..*]
+inputs</panel_attributes>
+    <additional_attributes>10.0;20.0;210.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>519</x>
+      <y>498</y>
+      <w>69</w>
+      <h>15</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=[0..*]
+outputs</panel_attributes>
+    <additional_attributes>10.0;20.0;210.0;20.0</additional_attributes>
   </element>
 </diagram>
