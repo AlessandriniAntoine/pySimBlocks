@@ -28,6 +28,7 @@ def run_sim(src_block, pid_block, dt=0.1, T=0.3):
 # 1) P-only
 # ------------------------------------------------------------
 def test_pid_P_only_constant_error():
+    a = e
     # u = Kp * e
     src = Constant("e", 1.0)
     pid = Pid("pid", controller="P", Kp=2.0, Ki=0.0, Kd=0.0)
