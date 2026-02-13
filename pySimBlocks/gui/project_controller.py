@@ -226,7 +226,7 @@ class ProjectController(QObject):
         self.view.clear_scene()
 
     # ------------------------------------------------------------------
-    def change_project_directory(self, new_path: Path):
+    def update_project_param(self, new_path: Path, ext: str):
         if self.project_state.directory_path:
             temp = self.project_state.directory_path / ".temp"
             if temp.exists():
@@ -234,6 +234,10 @@ class ProjectController(QObject):
         if new_path != self.project_state.directory_path:
             self.make_dirty()
         self.project_state.directory_path = new_path
+
+        if ext != self.project_state.external:
+            self.make_dirty()
+        self.project_state.external = None if ext == "" else ext
 
     # ------------------------------------------------------------------
     def load_project(self, loader: 'ProjectLoader'):

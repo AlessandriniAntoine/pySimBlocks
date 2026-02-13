@@ -65,9 +65,8 @@ class ProjectSettingsWidget(QWidget):
                 f"The directory does not exist:\n{path}",
             )
             return False
-        self.project_controller.change_project_directory(path)
         ext = self.external_edit.text().strip()
-        self.project_state.external = None if ext == "" else ext
+        self.project_controller.update_project_param(path, ext)
         return True
 
     def load_project(self):
