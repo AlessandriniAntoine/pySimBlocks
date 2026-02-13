@@ -7,7 +7,7 @@
 The system follows this seperation of responsibilities:
 - ProjectState -> Owns the data model and acts as the source of truth.
 - ProjectController -> Handles Logic and consistency.
-- DiagramView -> Manages the user Interface?
+- DiagramView -> Manages the user Interface.
 
 # Model vs View Representation
 
