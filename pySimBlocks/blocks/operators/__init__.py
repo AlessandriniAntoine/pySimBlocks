@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 from pySimBlocks.blocks.operators.dead_zone import DeadZone
+from pySimBlocks.blocks.operators.demux import Demux
 from pySimBlocks.blocks.operators.delay import Delay
 from pySimBlocks.blocks.operators.discrete_derivator import DiscreteDerivator
 from pySimBlocks.blocks.operators.discrete_integrator import DiscreteIntegrator
@@ -32,6 +33,7 @@ from pySimBlocks.blocks.operators.zero_order_hold import ZeroOrderHold
 
 __all__ = [
     "DeadZone",
+    "Demux",
     "Delay",
     "DiscreteDerivator",
     "DiscreteIntegrator",

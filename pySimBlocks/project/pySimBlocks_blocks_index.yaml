@@ -23,6 +23,9 @@ operators:
   dead_zone:
     class: DeadZone
     module: pySimBlocks.blocks.operators.dead_zone
+  demux:
+    class: Demux
+    module: pySimBlocks.blocks.operators.demux
   delay:
     class: Delay
     module: pySimBlocks.blocks.operators.delay
