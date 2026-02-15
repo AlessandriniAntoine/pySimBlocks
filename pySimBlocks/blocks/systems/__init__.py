@@ -19,7 +19,9 @@
 # ******************************************************************************
 
 from pySimBlocks.blocks.systems.linear_state_space import LinearStateSpace
+from pySimBlocks.blocks.systems.polytopic_state_space import PolytopicStateSpace
 
 __all__ = [
     "LinearStateSpace",
+    "PolytopicStateSpace",
 ]

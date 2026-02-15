@@ -1,0 +1,18 @@
+version: 1
+blocks:
+  Polytope:
+    x: -164.0
+    y: -107.0
+    orientation: normal
+  weights:
+    x: -400.0
+    y: -150.0
+    orientation: normal
+  Step:
+    x: -400.0
+    y: -60.0
+    orientation: normal
+  Constant:
+    x: -575.0
+    y: -150.0
+    orientation: normal

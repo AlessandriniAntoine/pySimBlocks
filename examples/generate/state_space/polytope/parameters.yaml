@@ -1,0 +1,28 @@
+simulation:
+  dt: 0.1
+  T: 10.0
+  solver: fixed
+blocks:
+  Polytope:
+    A: '#A'
+    B: '#B'
+    C: '#C'
+  weights:
+    file_path: weights.py
+    function_name: get_weights
+    input_keys:
+    - c
+    output_keys:
+    - w
+  Step:
+    value_before: [[0.0]]
+    value_after: [[1.0]]
+    start_time: 1.0
+  Constant:
+    value: [[0.3]]
+logging:
+- Polytope.outputs.x
+- Polytope.outputs.y
+- weights.outputs.w
+plots: []
+external: params.py

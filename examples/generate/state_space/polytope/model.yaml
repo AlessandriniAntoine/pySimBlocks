@@ -1,0 +1,17 @@
+blocks:
+- name: Polytope
+  category: systems
+  type: polytopic_state_space
+- name: weights
+  category: operators
+  type: algebraic_function
+- name: Step
+  category: sources
+  type: step
+- name: Constant
+  category: sources
+  type: constant
+connections:
+- [Step.out, Polytope.u]
+- [weights.w, Polytope.w]
+- [Constant.out, weights.c]

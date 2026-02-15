@@ -134,8 +134,6 @@ def _resolve_doc_path(py_path: Path) -> Optional[Path]:
 
     doc_path = doc_root / rel
 
-    print(doc_path)
-
     return doc_path if doc_path.exists() else None
 
 

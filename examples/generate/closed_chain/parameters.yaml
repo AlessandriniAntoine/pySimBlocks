@@ -13,7 +13,7 @@ blocks:
     controller: PI
     Kp: [[2.0]]
     Ki: [[1.0]]
-    Kd: 0.0
+    integration_method: euler forward
   plant:
     A: [[0.95]]
     B: [[0.5]]

@@ -26,7 +26,7 @@ from pySimBlocks.blocks.operators import (
     Gain, Mux, Product, RateLimiter, Saturation, Sum, ZeroOrderHold
 )
 from pySimBlocks.blocks.sources import Constant, Ramp, Step, Sinusoidal, WhiteNoise
-from pySimBlocks.blocks.systems import LinearStateSpace
+from pySimBlocks.blocks.systems import LinearStateSpace, PolytopicStateSpace
 
 __all__ = [
     "Pid",
@@ -56,4 +56,5 @@ __all__ = [
     "WhiteNoise",
 
     "LinearStateSpace",
+    "PolytopicStateSpace",
 ]

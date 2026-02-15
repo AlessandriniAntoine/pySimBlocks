@@ -23,6 +23,9 @@ operators:
   dead_zone:
     class: DeadZone
     module: pySimBlocks.blocks.operators.dead_zone
+  demux:
+    class: Demux
+    module: pySimBlocks.blocks.operators.demux
   delay:
     class: Delay
     module: pySimBlocks.blocks.operators.delay
@@ -80,6 +83,9 @@ systems:
   linear_state_space:
     class: LinearStateSpace
     module: pySimBlocks.blocks.systems.linear_state_space
+  polytopic_state_space:
+    class: PolytopicStateSpace
+    module: pySimBlocks.blocks.systems.polytopic_state_space
   non_linear_state_space:
     class: NonLinearStateSpace
     module: pySimBlocks.blocks.systems.non_linear_state_space

@@ -32,7 +32,6 @@ where = ["."]
 
 [tool.setuptools.package-data]
 pySimBlocks = [
-    "blocks_metadata/**/*.yaml",
     "docs/blocks/**/*.md",
     "project/pySimBlocks_blocks_index.yaml",
 ]
@@ -43,5 +42,6 @@ examples = [
 ]
 
 tests = [
-    "control",
+    "pytest",
+    "pytest-qt",
 ]
