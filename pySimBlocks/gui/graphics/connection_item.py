@@ -124,8 +124,9 @@ class ConnectionItem(QGraphicsPathItem):
         src_block = self.src_port.parent_block
         dst_block = self.dst_port.parent_block
 
-        src_rect = src_block.sceneBoundingRect()
-        dst_rect = dst_block.sceneBoundingRect()
+        # Use the visual block rect (not selection handle hit area) for routing.
+        src_rect = src_block.mapRectToScene(src_block.rect())
+        dst_rect = dst_block.mapRectToScene(dst_block.rect())
 
         src_out_sign = 1 if not self.src_port.is_on_left_side else -1
         dst_in_sign = -1 if self.dst_port.is_on_left_side else 1

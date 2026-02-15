@@ -172,7 +172,7 @@ def save_yaml(
 
     (directory / "parameters.yaml").write_text(dump_parameter_yaml(raw=params_yaml))
     (directory / "model.yaml").write_text(dump_model_yaml(raw=model_yaml))
-    if not temp and block_items:
+    if not temp and block_items is not None:
         layout_yaml = build_layout_yaml(block_items)
         (directory / "layout.yaml").write_text(dump_layout_yaml(raw=layout_yaml))
 
@@ -244,7 +244,9 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         data["blocks"][name] = {
             "x": float(pos.x()),
             "y": float(pos.y()),
-            "orientation": block.orientation
+            "orientation": block.orientation,
+            "width": float(block.rect().width()),
+            "height": float(block.rect().height()),
         }
     view = block.view
     for conn in view.connections.values():
