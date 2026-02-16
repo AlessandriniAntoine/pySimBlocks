@@ -67,6 +67,9 @@ sources:
   constant:
     class: Constant
     module: pySimBlocks.blocks.sources.constant
+  file_source:
+    class: FileSource
+    module: pySimBlocks.blocks.sources.file_source
   ramp:
     class: Ramp
     module: pySimBlocks.blocks.sources.ramp
