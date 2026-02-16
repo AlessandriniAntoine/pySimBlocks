@@ -72,7 +72,6 @@ class BlockItem(QGraphicsRectItem):
 
         # Ports
         self.port_items: list[PortItem] = []
-        self.instance.resolve_ports()
         for port in self.instance.ports:
             item = PortItem(port, self)
             self.port_items.append(item)
@@ -89,16 +88,23 @@ class BlockItem(QGraphicsRectItem):
 
     # --------------------------------------------------------------
     def refresh_ports(self):
-        for item in self.port_items:
-            self.scene().removeItem(item)
 
-        self.port_items.clear()
-        self.instance.resolve_ports()
+        for item in list(self.port_items):
+            if item.instance not in self.instance.ports:
+                self.scene().removeItem(item)
+                self.port_items.remove(item)
+
+        displayed_ports = {item.instance for item in self.port_items}
 
         for port in self.instance.ports:
-            self.port_items.append(PortItem(port, self))
-
+            if port not in displayed_ports:
+                item = PortItem(port, self)
+                self.port_items.append(item)
+        
         self._layout_ports()
+        for item in self.port_items:
+            item.update_display_as()
+        self.view.on_block_moved(self)
 
     # --------------------------------------------------------------
     def toggle_orientation(self):

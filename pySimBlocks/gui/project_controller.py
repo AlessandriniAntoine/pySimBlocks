@@ -30,6 +30,7 @@ from pySimBlocks.gui.model import (
     ConnectionInstance,
     PortInstance,
     ProjectState,
+    port_instance,
 )
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
@@ -74,7 +75,7 @@ class ProjectController(QObject):
                    block_layout: dict | None = None) -> BlockInstance:
         self.make_dirty()
         block_instance.name = self.make_unique_name(block_instance.name)
-
+        block_instance.resolve_ports()
         self.project_state.add_block(block_instance)
         self.view.add_block(block_instance, block_layout)
 
@@ -109,13 +110,15 @@ class ProjectController(QObject):
 
     # ------------------------------------------------------------------
     def update_block_param(self, block_instance: BlockInstance, params: dict[str, Any]):
-        old_params = copy.deepcopy(block_instance.parameters)
+        
         self.rename_block(block_instance, params.pop("name", block_instance.name))
-        block_instance.update_params(params)
 
-        if old_params == block_instance.parameters:
+        if params == block_instance.parameters:
             return
 
+        block_instance.update_params(params)
+        block_instance.resolve_ports()
+        self._remove_connection_if_port_disapear(block_instance)
         self.view.refresh_block_port(block_instance)
         self.make_dirty()
 
@@ -198,6 +201,17 @@ class ProjectController(QObject):
         self.project_state.add_connection(connection_instance)
         self.view.add_connection(connection_instance, points)
         self.make_dirty()
+
+    # ------------------------------------------------------------------
+
+    def _remove_connection_if_port_disapear(self, block_instance: BlockInstance) -> None:
+        
+        for connection in self.project_state.get_connections_of_block(block_instance):
+
+            src_exists = connection.src_port in connection.src_block().ports
+            dst_exists = connection.dst_port in connection.dst_block().ports
+            if not (src_exists and dst_exists):
+                self.remove_connection(connection)
 
     # ------------------------------------------------------------------
     def remove_connection(self, connection: ConnectionInstance):

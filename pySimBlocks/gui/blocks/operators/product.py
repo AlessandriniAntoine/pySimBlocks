@@ -91,7 +91,7 @@ class ProductMeta(BlockMeta):
         instance: "BlockInstance"
     ) -> list["PortInstance"]:
 
-        if direction == port_meta.name == "input":
+        if direction == "input" and port_meta.name == "in":
             operations_str = instance.parameters.get("operations", "")
             ports = []
             for i, op in enumerate(operations_str):

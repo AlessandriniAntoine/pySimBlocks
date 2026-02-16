@@ -74,7 +74,37 @@ class BlockInstance:
                 self.parameters[k] = v
 
     def resolve_ports(self) -> None:
-        self.ports = self.meta.build_ports(self)
+
+        new_ports = self.meta.build_ports(self)
+
+        if not self.ports:
+            self.ports = new_ports
+            return 
+
+        old_inputs = [p for p in self.ports if p.direction == "input"]
+        old_outputs = [p for p in self.ports if p.direction == "output"]
+
+        updated_ports = []
+
+        for np in new_ports:
+            if np.direction == "input":
+                if old_inputs:
+                    p = old_inputs.pop(0)
+                    p.name = np.name
+                    p.display_as = np.display_as
+                    updated_ports.append(p)
+                else:
+                    updated_ports.append(np)
+            else:
+                if old_outputs:
+                    p = old_outputs.pop(0)
+                    p.name = np.name
+                    p.display_as = np.display_as
+                    updated_ports.append(p)
+                else:
+                    updated_ports.append(np)
+
+        self.ports = updated_ports
 
     def active_parameters(self) -> dict[str, Any]:
         return  {

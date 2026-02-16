@@ -81,6 +81,10 @@ class PortItem(QGraphicsItem):
             )
 
     # --------------------------------------------------------------
+    def update_display_as(self):
+        self.label.setPlainText(self.instance.display_as)
+
+    # --------------------------------------------------------------
     def connection_anchor(self) -> QPointF:
         if self.is_input:
             x = -self.R if self.is_on_left_side else self.R
