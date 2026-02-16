@@ -87,6 +87,10 @@ class BlockDialog(QDialog):
         apply_btn.clicked.connect(self.apply)
         buttons_layout.addWidget(apply_btn)
 
+        if self.readonly:
+            ok_btn.setEnabled(False)
+            apply_btn.setEnabled(False)
+
         layout.addLayout(buttons_layout)
 
 

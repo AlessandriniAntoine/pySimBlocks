@@ -20,7 +20,7 @@
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, Literal, Sequence
 import ast
 
 from PySide6.QtCore import Qt
@@ -96,9 +96,9 @@ class MyBlockMeta(BlockMeta):
 
     # ----------- Optional declarations -----------
     doc_path: Path | None = None
-    parameters: List[ParameterMeta] = []
-    inputs: List[PortMeta] = []
-    outputs: List[PortMeta] = []
+    parameters: Sequence[ParameterMeta] = ()
+    inputs: Sequence[PortMeta] = ()
+    outputs: Sequence[PortMeta] = ()
 
     # --------------------------------------------------------------------------
     # Dialog session management
@@ -127,22 +127,6 @@ class MyBlockMeta(BlockMeta):
 
         return params
 
-    # ------------------------------------------------------------
-    def get_param_value(self, widget: QWidget) -> Any:
-        if isinstance(widget, QComboBox):
-            return widget.currentText()
-
-        if isinstance(widget, QLineEdit):
-            text = widget.text().strip()
-            if not text:
-                return None
-            try:
-                return ast.literal_eval(text)
-            except Exception:
-                return text
-
-        return None
-    
     # --------------------------------------------------------------------------
     # Port resolution
     # --------------------------------------------------------------------------
@@ -218,7 +202,9 @@ class MyBlockMeta(BlockMeta):
         # --- Block name ---
         name_edit = QLineEdit(session.instance.name)
         name_edit.textChanged.connect(
-            lambda val: self._on_param_changed(val, "name", session, readonly)
+            lambda val: self._on_param_changed(
+                val, "name", session, readonly, parse_literal=False
+            )
         )
         form.addRow(QLabel("Block name:"), name_edit)
         if readonly:
@@ -293,7 +279,7 @@ class MyBlockMeta(BlockMeta):
         value = session.local_params.get(pmeta.name)
         if value is not None:
             edit.setText(str(value))
-        elif pmeta.default:
+        elif pmeta.default is not None:
             edit.setText(str(pmeta.default))
         edit.textChanged.connect(
             lambda val: self._on_param_changed(val, pmeta.name, session, readonly)
@@ -307,7 +293,7 @@ class MyBlockMeta(BlockMeta):
                             readonly: bool = False) -> QComboBox:
         combo = QComboBox()
         for v in pmeta.enum:
-            combo.addItem(str(v))
+            combo.addItem(str(v), userData=v)
         value = session.local_params.get(pmeta.name)
         if value is not None:
             combo.setCurrentText(str(value))
@@ -317,10 +303,18 @@ class MyBlockMeta(BlockMeta):
         return combo
 
     # ------------------------------------------------------------
-    def _on_param_changed(self, val, name, session: BlockDialogSession, readonly: bool):
+    def _on_param_changed( self, val: str, name: str, session: BlockDialogSession, readonly: bool,):
         if readonly:
             return
-        session.local_params[name] = val
+
+        if name == "name":
+            session.instance.name = val
+        else:
+            text = str(val).strip()
+            try:
+                session.local_params[name] = ast.literal_eval(text)
+            except (ValueError, SyntaxError):
+                session.local_params[name] = text
         self.refresh_form(session)
 
     # ------------------------------------------------------------
@@ -336,6 +330,4 @@ class MyBlockMeta(BlockMeta):
             """)
         elif isinstance(widget, QComboBox):
             widget.setEnabled(False)
-
-
 
