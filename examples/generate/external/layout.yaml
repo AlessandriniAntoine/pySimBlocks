@@ -4,15 +4,23 @@ blocks:
     x: 17.0
     y: -157.0
     orientation: normal
+    width: 120.0
+    height: 60.0
   error:
     x: 196.0
     y: -149.0
     orientation: normal
+    width: 120.0
+    height: 60.0
   pid:
     x: 369.0
     y: -149.0
     orientation: normal
+    width: 120.0
+    height: 60.0
   plant:
     x: 530.0
     y: -150.0
     orientation: normal
+    width: 120.0
+    height: 60.0

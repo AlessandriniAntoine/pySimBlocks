@@ -19,8 +19,9 @@
 # ******************************************************************************
 
 from pathlib import Path
+import os
 from PySide6.QtWidgets import (
-    QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QComboBox
+    QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QFileDialog, QHBoxLayout
 )
 
 from pySimBlocks.gui.model.project_state import ProjectState
@@ -40,7 +41,16 @@ class ProjectSettingsWidget(QWidget):
         layout.addRow(QLabel("<b>Project Settings</b>"))
 
         self.dir_edit = QLineEdit(str(project_state.directory_path))
-        layout.addRow("Directory path:", self.dir_edit)
+        self.dir_browse_btn = QPushButton("...")
+        self.dir_browse_btn.setToolTip("Select a project directory from disk")
+        self.dir_browse_btn.clicked.connect(self.browse_project_directory)
+
+        dir_layout = QHBoxLayout()
+        dir_layout.setContentsMargins(0, 0, 0, 0)
+        dir_layout.addWidget(self.dir_edit)
+        dir_layout.addWidget(self.dir_browse_btn)
+
+        layout.addRow("Directory path:", dir_layout)
 
         load_btn = QPushButton("Load")
         load_btn.clicked.connect(self.load_project)
@@ -50,9 +60,18 @@ class ProjectSettingsWidget(QWidget):
 
         ext = project_state.external or ""
         self.external_edit = QLineEdit(ext)
+        self.external_browse_btn = QPushButton("...")
+        self.external_browse_btn.setToolTip("Select a Python file from disk")
+        self.external_browse_btn.clicked.connect(self.browse_external_file)
+
+        external_layout = QHBoxLayout()
+        external_layout.setContentsMargins(0, 0, 0, 0)
+        external_layout.addWidget(self.external_edit)
+        external_layout.addWidget(self.external_browse_btn)
+
         label = QLabel("Python file:")
         label.setToolTip("Relative path from project directory")
-        layout.addRow(label, self.external_edit)
+        layout.addRow(label, external_layout)
 
 
 
@@ -68,6 +87,49 @@ class ProjectSettingsWidget(QWidget):
         ext = self.external_edit.text().strip()
         self.project_controller.update_project_param(path, ext)
         return True
+
+    def browse_external_file(self):
+        base_dir = Path(self.dir_edit.text()).expanduser()
+        if not base_dir.is_dir():
+            QMessageBox.warning(
+                self,
+                "Invalid directory",
+                f"The directory does not exist:\n{base_dir}",
+            )
+            return
+
+        selected_file, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Python file",
+            str(base_dir),
+            "Python files (*.py);;All files (*)",
+        )
+
+        if not selected_file:
+            return
+
+        selected_path = Path(selected_file).resolve()
+        try:
+            relative_path = selected_path.relative_to(base_dir.resolve())
+        except ValueError:
+            relative_path = Path(os.path.relpath(str(selected_path), str(base_dir.resolve())))
+
+        self.external_edit.setText(str(relative_path))
+
+    def browse_project_directory(self):
+        current_dir = Path(self.dir_edit.text()).expanduser()
+        start_dir = current_dir if current_dir.is_dir() else Path.cwd()
+
+        selected_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Select project directory",
+            str(start_dir),
+        )
+
+        if not selected_dir:
+            return
+
+        self.dir_edit.setText(str(Path(selected_dir).resolve()))
 
     def load_project(self):
         self.apply()

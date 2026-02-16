@@ -39,6 +39,7 @@ pySimBlocks = [
 [project.optional-dependencies]
 examples = [
     "control",
+    "qpsolvers[osqp,clarabel]",
 ]
 
 tests = [
