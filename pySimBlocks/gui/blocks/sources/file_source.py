@@ -34,9 +34,9 @@ class FileSourceMeta(BlockMeta):
         self.summary = "Read a sequence of samples from a CSV, NPY, or NPZ file."
         self.description = (
             "Loads samples from file and outputs one sample per simulation step.\n\n"
-            "- `file_type = npz`: reads one array from the archive (`key` mandatory).\n"
-            "- `file_type = npy`: reads one array from a NPY file (`key` unused).\n"
-            "- `file_type = csv`: reads one numeric CSV column (`key` = column name).\n\n"
+            "- `.npz`: reads one array from the archive (`key` mandatory).\n"
+            "- `.npy`: reads one array from a NPY file (`key` unused).\n"
+            "- `.csv`: reads one numeric CSV column (`key` = column name).\n\n"
             "Each step emits one row as a column vector."
         )
 
@@ -46,15 +46,6 @@ class FileSourceMeta(BlockMeta):
                 type="str",
                 required=True,
                 description="Path to the source file."
-            ),
-            ParameterMeta(
-                name="file_type",
-                type="enum",
-                required=True,
-                autofill=True,
-                default="npz",
-                enum=["npz", "npy", "csv"],
-                description="Input file format."
             ),
             ParameterMeta(
                 name="key",
@@ -86,9 +77,10 @@ class FileSourceMeta(BlockMeta):
         ]
 
     def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
-        file_type = instance_values.get("file_type", "npz")
+        file_path = str(instance_values.get("file_path", "") or "")
+        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
 
         if param_name == "key":
-            return file_type in {"npz", "csv"}
+            return ext in {"npz", "csv"}
 
         return super().is_parameter_active(param_name, instance_values)

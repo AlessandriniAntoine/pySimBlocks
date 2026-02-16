@@ -49,20 +49,14 @@ class FileSource(BlockSource):
         self,
         name: str,
         file_path: str,
-        file_type: str = "npz",
         key: str | None = None,
         repeat: bool = False,
         sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        if file_type not in self.VALID_FILE_TYPES:
-            raise ValueError(
-                f"[{self.name}] file_type must be one of {self.VALID_FILE_TYPES}."
-            )
-
         self.file_path = str(file_path)
-        self.file_type = file_type
+        self.file_type = self._infer_file_type(self.file_path)
         self.key = key
         self.repeat = self._to_bool(repeat, "repeat")
 
@@ -94,6 +88,8 @@ class FileSource(BlockSource):
             path = (params_dir / path).resolve()
 
         adapted["file_path"] = str(path)
+        # Backward compatibility with older models that still contain file_type
+        adapted.pop("file_type", None)
         return adapted
 
     # --------------------------------------------------------------------------
@@ -207,6 +203,16 @@ class FileSource(BlockSource):
             if lowered in {"false", "0", "no"}:
                 return False
         raise ValueError(f"[{self.name}] '{name}' must be a bool.")
+
+    # ------------------------------------------------------------------
+    def _infer_file_type(self, file_path: str) -> str:
+        ext = Path(file_path).suffix.lower().lstrip(".")
+        if ext not in self.VALID_FILE_TYPES:
+            raise ValueError(
+                f"[{self.name}] Unsupported file extension '.{ext}'. "
+                f"Supported extensions: {sorted(self.VALID_FILE_TYPES)}"
+            )
+        return ext
 
     # ------------------------------------------------------------------
     def _current_output(self) -> np.ndarray:

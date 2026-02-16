@@ -16,8 +16,7 @@ Supported file formats:
 | Name | Type | Description | Optional |
 |------|------|-------------|----------|
 | `file_path` | str | Path to source file. | False |
-| `file_type` | enum (`npz`, `npy`, `csv`) | File format. | False (default: `npz`) |
-| `key` | str | Mandatory for `npz` (array key) and `csv` (column name). Unused for `npy`. | True |
+| `key` | str | Mandatory for `*.npz` (array key) and `*.csv` (column name). Unused for `*.npy`. | True |
 | `repeat` | bool | End-of-file behavior. If `false`, outputs zeros after the last sample. If `true`, restarts from the first sample. | True (default: `False`) |
 | `sample_time` | float | Block sample time. If omitted, global simulation step is used. | True |
 
@@ -39,6 +38,7 @@ None.
 
 ## Notes
 
+- File format is inferred from `file_path` extension (`.npz`, `.npy`, `.csv`).
 - `npz`: loaded array must be 1D or 2D.
 - `npy`: loaded array must be 1D or 2D.
 - `csv`: `key` selects one named numeric column, producing shape `(1,1)` at each step.

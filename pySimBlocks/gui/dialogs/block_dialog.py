@@ -245,6 +245,9 @@ class BlockDialog(QDialog):
             edit.setText(str(value))
         elif meta.default:
             edit.setText(str(meta.default))
+        edit.textChanged.connect(
+            lambda val, name=param_name: self._on_param_changed(name, val)
+        )
 
         return edit
 

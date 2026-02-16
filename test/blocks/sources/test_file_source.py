@@ -10,7 +10,7 @@ def test_file_source_npz_single_array(tmp_path: Path):
     path = tmp_path / "data.npz"
     np.savez(path, y=np.array([[1.0, 2.0], [3.0, 4.0]]))
 
-    blk = FileSource("src", file_path=str(path), file_type="npz", key="y")
+    blk = FileSource("src", file_path=str(path), key="y")
     blk.initialize(0.0)
     assert np.allclose(blk.outputs["out"], [[1.0], [2.0]])
 
@@ -26,7 +26,7 @@ def test_file_source_npz_requires_key(tmp_path: Path):
     np.savez(path, a=np.array([1.0]), b=np.array([2.0]))
 
     with pytest.raises(ValueError):
-        FileSource("src", file_path=str(path), file_type="npz")
+        FileSource("src", file_path=str(path))
 
 
 def test_file_source_npz_invalid_key(tmp_path: Path):
@@ -34,14 +34,14 @@ def test_file_source_npz_invalid_key(tmp_path: Path):
     np.savez(path, a=np.array([1.0]))
 
     with pytest.raises(KeyError):
-        FileSource("src", file_path=str(path), file_type="npz", key="missing")
+        FileSource("src", file_path=str(path), key="missing")
 
 
 def test_file_source_csv(tmp_path: Path):
     path = tmp_path / "data.csv"
     path.write_text("a,b\n1.0,2.0\n3.0,4.0\n", encoding="utf-8")
 
-    blk = FileSource("src", file_path=str(path), file_type="csv", key="b")
+    blk = FileSource("src", file_path=str(path), key="b")
     blk.initialize(0.0)
     assert np.allclose(blk.outputs["out"], [[2.0]])
 
@@ -59,7 +59,6 @@ def test_file_source_repeat_false_outputs_zeros_after_end(tmp_path: Path):
     blk = FileSource(
         "src",
         file_path=str(path),
-        file_type="npz",
         key="y",
         repeat=False,
     )
@@ -83,7 +82,6 @@ def test_file_source_repeat_true_restarts_after_end(tmp_path: Path):
     blk = FileSource(
         "src",
         file_path=str(path),
-        file_type="npy",
         repeat=True,
     )
     blk.initialize(0.0)
@@ -104,7 +102,7 @@ def test_file_source_npy_key_not_allowed(tmp_path: Path):
     np.save(path, np.array([1.0, 2.0]))
 
     with pytest.raises(ValueError):
-        FileSource("src", file_path=str(path), file_type="npy", key="k")
+        FileSource("src", file_path=str(path), key="k")
 
 
 def test_file_source_csv_missing_key(tmp_path: Path):
@@ -112,17 +110,16 @@ def test_file_source_csv_missing_key(tmp_path: Path):
     path.write_text("a,b\n1.0,2.0\n", encoding="utf-8")
 
     with pytest.raises(ValueError):
-        FileSource("src", file_path=str(path), file_type="csv")
+        FileSource("src", file_path=str(path))
 
 
-def test_file_source_invalid_file_type(tmp_path: Path):
-    path = tmp_path / "data.npz"
-    np.savez(path, y=np.array([1.0]))
-
+def test_file_source_invalid_extension(tmp_path: Path):
+    path = tmp_path / "data.txt"
+    path.write_text("1.0\n", encoding="utf-8")
     with pytest.raises(ValueError):
-        FileSource("src", file_path=str(path), file_type="txt")
+        FileSource("src", file_path=str(path))
 
 
 def test_file_source_missing_file():
     with pytest.raises(FileNotFoundError):
-        FileSource("src", file_path="does-not-exist.npz", file_type="npz")
+        FileSource("src", file_path="does-not-exist.npz")
