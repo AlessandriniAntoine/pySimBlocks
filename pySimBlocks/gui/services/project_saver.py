@@ -24,14 +24,14 @@ class ProjectSaverYaml(ProjectSaver):
              project_state: ProjectState, 
              block_items: dict[str, BlockItem] | None = None
     ):        
-        save_yaml(project_state, block_items)
+        save_yaml(project_state, block_items if block_items is not None else {})
 
 
     def export(self, 
                project_state: ProjectState,
                block_items: dict[str, BlockItem] | None = None
     ):
-        save_yaml(project_state, block_items)
+        save_yaml(project_state, block_items if block_items is not None else {})
         run_py = project_state.directory_path / "run.py"
         run_py.write_text(
             generate_python_content(

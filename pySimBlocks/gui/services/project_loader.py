@@ -63,7 +63,7 @@ class ProjectLoaderYaml(ProjectLoader):
             category = block["category"]
             block_type = block["type"]
             
-            block_layout = layout_blocks.get(name, {})
+            block_layout = self._sanitize_block_layout(layout_blocks.get(name, {}))
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
             block = controller.add_block(category, block_type, block_layout)
@@ -77,6 +77,26 @@ class ProjectLoaderYaml(ProjectLoader):
 
             block.resolve_ports()
             controller.view.refresh_block_port(block)
+
+    def _sanitize_block_layout(self, block_layout: dict | None) -> dict:
+        if not isinstance(block_layout, dict):
+            return {}
+
+        out = {}
+
+        orientation = block_layout.get("orientation")
+        if orientation in {"normal", "flipped"}:
+            out["orientation"] = orientation
+
+        width = block_layout.get("width")
+        if isinstance(width, (int, float)) and width > 0:
+            out["width"] = float(width)
+
+        height = block_layout.get("height")
+        if isinstance(height, (int, float)) and height > 0:
+            out["height"] = float(height)
+
+        return out
 
     def _load_connections(self, 
                           controller: ProjectController,

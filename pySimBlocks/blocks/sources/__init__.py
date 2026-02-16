@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 from pySimBlocks.blocks.sources.constant import Constant
+from pySimBlocks.blocks.sources.file_source import FileSource
 from pySimBlocks.blocks.sources.ramp import Ramp
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.sources.sinusoidal import Sinusoidal
@@ -26,6 +27,7 @@ from pySimBlocks.blocks.sources.white_noise import WhiteNoise
 
 __all__ = [
     "Constant",
+    "FileSource",
     "Ramp",
     "Step",
     "Sinusoidal",

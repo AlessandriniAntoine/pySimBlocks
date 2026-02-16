@@ -61,7 +61,7 @@ class PortItem(QGraphicsItem):
     # --------------------------------------------------------------
     @property
     def is_on_left_side(self) -> bool:
-        return self.pos().x() < (self.parent_block.WIDTH * 0.5)
+        return self.pos().x() < (self.parent_block.rect().width() * 0.5)
 
     # --------------------------------------------------------------------------
     # Public methods
