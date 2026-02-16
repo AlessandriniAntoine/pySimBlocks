@@ -18,6 +18,7 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QLineEdit
@@ -29,9 +30,15 @@ if TYPE_CHECKING:
 
 
 class BlockDialogSession:
-    def __init__(self, meta: "BlockMeta", instance: BlockInstance):
+    def __init__(
+        self,
+        meta: "BlockMeta",
+        instance: BlockInstance,
+        project_dir: Path | None = None,
+    ):
         self.meta = meta              
         self.instance = instance
+        self.project_dir = project_dir
 
         # --- STATE UI (par dialog) ---
         self.local_params = dict(instance.parameters)   

@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import ast
+import os
 from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, Literal, Sequence
@@ -26,11 +27,13 @@ from typing import Any, Dict, Literal, Sequence
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QSizePolicy,
     QTextBrowser,
     QVBoxLayout,
@@ -104,8 +107,12 @@ class MyBlockMeta(BlockMeta):
     # --------------------------------------------------------------------------
     # Dialog session management
     # -------------------------------------------------------------------------- 
-    def create_dialog_session(self, instance: BlockInstance) -> BlockDialogSession:
-        return BlockDialogSession(self, instance)
+    def create_dialog_session(
+        self,
+        instance: BlockInstance,
+        project_dir: Path | None = None,
+    ) -> BlockDialogSession:
+        return BlockDialogSession(self, instance, project_dir)
 
     # --------------------------------------------------------------------------
     # Parameter resolution
@@ -232,6 +239,40 @@ class MyBlockMeta(BlockMeta):
         pass
 
     # ------------------------------------------------------------
+    def build_file_param_row(
+        self,
+        session: BlockDialogSession,
+        form: QFormLayout,
+        pmeta: ParameterMeta,
+        readonly: bool = False,
+        file_filter: str = "Python files (*.py);;All files (*)",
+    ) -> None:
+        edit = self._create_edit_widget(session, pmeta, readonly)
+        if readonly:
+            self._set_readonly_style(edit)
+
+        browse_btn = QPushButton("...")
+        browse_btn.setToolTip("Select file from disk")
+        browse_btn.setEnabled(not readonly)
+        browse_btn.clicked.connect(
+            lambda: self._browse_and_set_relative_file(edit, session.project_dir, file_filter)
+        )
+
+        row_widget = QWidget()
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.addWidget(edit)
+        row_layout.addWidget(browse_btn)
+
+        label = QLabel(f"{pmeta.name}:")
+        if pmeta.description:
+            label.setToolTip(pmeta.description)
+
+        form.addRow(label, row_widget)
+        session.param_widgets[pmeta.name] = row_widget
+        session.param_labels[pmeta.name] = label
+
+    # ------------------------------------------------------------
     def refresh_form(self, session: BlockDialogSession):
         """
         Refresh the parameter widgets visibility based on
@@ -301,6 +342,37 @@ class MyBlockMeta(BlockMeta):
             lambda val: self._on_param_changed(val, pmeta.name, session, readonly)
         )
         return combo
+
+    # ------------------------------------------------------------
+    def _browse_and_set_relative_file(
+        self,
+        edit: QLineEdit,
+        project_dir: Path | None,
+        file_filter: str,
+    ) -> None:
+        if project_dir is None:
+            return
+
+        base_dir = project_dir.expanduser()
+        start_dir = base_dir if base_dir.is_dir() else Path.cwd()
+
+        selected_file, _ = QFileDialog.getOpenFileName(
+            edit,
+            "Select file",
+            str(start_dir),
+            file_filter,
+        )
+        if not selected_file:
+            return
+
+        selected_path = Path(selected_file).resolve()
+        base_resolved = base_dir.resolve()
+        try:
+            relative_path = selected_path.relative_to(base_resolved)
+        except ValueError:
+            relative_path = Path(os.path.relpath(str(selected_path), str(base_resolved)))
+
+        edit.setText(str(relative_path))
 
     # ------------------------------------------------------------
     def _on_param_changed( self, val: str, name: str, session: BlockDialogSession, readonly: bool,):
