@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 from typing import Any, Dict
+from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
@@ -95,3 +96,39 @@ class FileSourceMeta(BlockMeta):
             return ext in {"npz", "csv"}
 
         return super().is_parameter_active(param_name, instance_params)
+
+    def build_param(
+        self,
+        session,
+        form: QFormLayout,
+        readonly: bool = False,
+    ):
+        name_edit = QLineEdit(session.instance.name)
+        name_edit.textChanged.connect(
+            lambda val: self._on_param_changed(val, "name", session, readonly)
+        )
+        form.addRow(QLabel("Block name:"), name_edit)
+        if readonly:
+            name_edit.setReadOnly(True)
+        session.name_edit = name_edit
+
+        for pmeta in self.parameters:
+            if pmeta.name == "file_path":
+                self.build_file_param_row(
+                    session,
+                    form,
+                    pmeta,
+                    readonly=readonly,
+                    file_filter="Data files (*.npz *.npy *.csv);;All files (*)",
+                )
+                continue
+
+            label, widget = self._create_param_row(session, pmeta, readonly)
+            if widget is None:
+                continue
+            if readonly:
+                self._set_readonly_style(widget)
+
+            form.addRow(label, widget)
+            session.param_widgets[pmeta.name] = widget
+            session.param_labels[pmeta.name] = label
