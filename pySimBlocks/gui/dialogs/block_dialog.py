@@ -19,30 +19,26 @@
 # ******************************************************************************
 
 import ast
+from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSizePolicy,
-    QTextBrowser,
     QVBoxLayout,
 )
 
-from pySimBlocks.gui.blocks.block_meta import ParameterMeta
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
-from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from pySimBlocks.gui.graphics.block_item import BlockItem
     from PySide6.QtWidgets import QWidget
+
+    from pySimBlocks.gui.graphics.block_item import BlockItem
 
 
 class BlockDialog(QDialog):
@@ -52,6 +48,8 @@ class BlockDialog(QDialog):
     ):
         super().__init__()
         self.block = block
+        self.meta = block.instance.meta
+        self.instance = block.instance
         self.local_params: dict[str, Any] = dict(block.instance.parameters)
 
         self.readonly = readonly
@@ -61,13 +59,23 @@ class BlockDialog(QDialog):
             self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
 
-        self.param_widgets: dict[str, QWidget] = {}
-        self.param_labels: dict[str, QLabel] = {}
-
         main_layout = QVBoxLayout(self)
-        self.build_parameters_form(main_layout)
+        self.build_meta_layout(main_layout)
+        self.build_buttons_layout(main_layout)
 
-        # --- Buttons row ---
+    # --------------------------------------------------------------------------
+    # Dialog Layout Methods
+    # --------------------------------------------------------------------------
+    def build_meta_layout(self, layout: QVBoxLayout):
+        form = QFormLayout()
+        self.meta.build_description(self.instance, form)
+        self.meta.build_pre_param(self.instance, form, self.readonly)
+        self.meta.build_param(self.instance, form, self.readonly)
+        self.meta.build_post_param(self.instance, form, self.readonly)
+        layout.addLayout(form)
+        self.meta.refresh_form(self.instance.parameters)
+
+    def build_buttons_layout(self, layout: QVBoxLayout):
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
 
@@ -85,95 +93,12 @@ class BlockDialog(QDialog):
         apply_btn.clicked.connect(self.apply)
         buttons_layout.addWidget(apply_btn)
 
-        main_layout.addLayout(buttons_layout)
+        layout.addLayout(buttons_layout)
 
-    # ------------------------------------------------------------
-    # Form
-    def description_part(self, form):
-        title = QLabel(f"<b>{self.block.instance.meta.name}</b>")
-        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        form.addRow(title)
 
-        frame = QFrame()
-        frame.setFrameShape(QFrame.StyledPanel)
-        frame.setFrameShadow(QFrame.Raised)
-        frame.setLineWidth(1)
-
-        frame_layout = QVBoxLayout(frame)
-        frame_layout.setContentsMargins(8, 6, 8, 6)
-
-        desc = QTextBrowser()
-        desc.setMarkdown(self.block.instance.meta.description)
-        desc.setReadOnly(True)
-        desc.setFrameShape(QFrame.NoFrame)
-        desc.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
-        desc.document().setTextWidth(400)
-        desc.setFixedHeight(int(desc.document().size().height()) + 6)
-
-        frame_layout.addWidget(desc)
-        form.addRow(frame)
-
-    def build_parameters_form(self, layout):
-        meta = self.block.instance.meta
-        inst_params = self.block.instance.parameters
-
-        form = QFormLayout()
-        self.description_part(form)
-
-        # --- Block name ---
-        self.name_edit = QLineEdit(self.block.instance.name)
-        form.addRow(QLabel("Block name:"), self.name_edit)
-        if self.readonly:
-            self.name_edit.setReadOnly(True)
-
-        for param_meta in meta.parameters:
-            param_name = param_meta.name
-
-            widget = self._create_param_widget(param_meta, inst_params)
-            if widget is None:
-                continue
-            if self.readonly:
-                if isinstance(widget, QLineEdit):
-                    widget.setReadOnly(True)
-                    widget.setStyleSheet("""
-                        QLineEdit {
-                            background-color: #2b2b2b;
-                            color: #888888;
-                            border: 1px solid #444444;
-                        }
-                    """)
-                elif isinstance(widget, QComboBox):
-                    widget.setEnabled(False)
-
-            label = QLabel(f"{param_name}:")
-            if param_meta.description:
-                label.setToolTip(param_meta.description)
-            form.addRow(label, widget)
-
-            self.param_widgets[param_name] = widget
-            self.param_labels[param_name] = label
-
-        layout.addLayout(form)
-        self.refresh_form()
-
-    def refresh_form(self):
-        """
-        Refresh the parameter widgets visibility based on
-        BlockMeta.is_parameter_active and current local_params.
-        """
-        meta = self.block.instance.meta
-
-        for param_name, widget in self.param_widgets.items():
-            label = self.param_labels[param_name]
-
-            active = meta.is_parameter_active(param_name, self.local_params)
-
-            widget.setVisible(active)
-            label.setVisible(active)
-    
-    # ------------------------------------------------------------
-    # Buttons
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Button Methods
+    # --------------------------------------------------------------------------
     def apply(self):
         if self.readonly:
             return
@@ -194,20 +119,21 @@ class BlockDialog(QDialog):
             return None
 
         params: dict[str, Any] = {
-            "name": self.name_edit.text(),
+            "name": self.meta.name_edit.text(),
             **{
                 pname: get_param_value(widget)
-                for pname, widget in self.param_widgets.items()
+                for pname, widget in self.meta.param_widgets.items()
             }
         }
 
         self.block.view.update_block_param_event(self.block.instance, params)
 
+    # ------------------------------------------------------------
     def ok(self):
         self.apply()
         self.accept()
 
-
+    # ------------------------------------------------------------
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
 
@@ -215,45 +141,3 @@ class BlockDialog(QDialog):
             HelpDialog(help_path, self).exec()
         else:
             QMessageBox.information(self, "Help", "No documentation available.")
-
-
-    # ------------------------------------------------------------
-    # internal methods
-    def _create_param_widget(self, 
-                             meta: ParameterMeta, 
-                             inst_params: dict[str, Any]
-    ):
-        param_name = meta.name
-        param_type = meta.type
-        value = inst_params.get(param_name)
-
-        # ENUM
-        if param_type == "enum":
-            combo = QComboBox()
-            for v in meta.enum:
-                combo.addItem(str(v))
-            if value is not None:
-                combo.setCurrentText(str(value))
-            combo.currentTextChanged.connect(
-                lambda val, name=param_name: self._on_param_changed(name, val)
-            )
-            return combo
-
-        # SCALAR / FLOAT / INT / VECTOR / MATRIX
-        edit = QLineEdit()
-        if value is not None:
-            edit.setText(str(value))
-        elif meta.default:
-            edit.setText(str(meta.default))
-        edit.textChanged.connect(
-            lambda val, name=param_name: self._on_param_changed(name, val)
-        )
-
-        return edit
-
-
-    def _on_param_changed(self, name, value):
-        if self.readonly:
-            return
-        self.local_params[name] = value
-        self.refresh_form()
