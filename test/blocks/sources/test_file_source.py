@@ -105,6 +105,14 @@ def test_file_source_npy_key_not_allowed(tmp_path: Path):
         FileSource("src", file_path=str(path), key="k")
 
 
+def test_file_source_npy_use_time_not_allowed(tmp_path: Path):
+    path = tmp_path / "data.npy"
+    np.save(path, np.array([1.0, 2.0]))
+
+    with pytest.raises(ValueError):
+        FileSource("src", file_path=str(path), use_time=True)
+
+
 def test_file_source_csv_missing_key(tmp_path: Path):
     path = tmp_path / "data.csv"
     path.write_text("a,b\n1.0,2.0\n", encoding="utf-8")
@@ -123,3 +131,55 @@ def test_file_source_invalid_extension(tmp_path: Path):
 def test_file_source_missing_file():
     with pytest.raises(FileNotFoundError):
         FileSource("src", file_path="does-not-exist.npz")
+
+
+def test_file_source_npz_use_time_zoh(tmp_path: Path):
+    path = tmp_path / "data.npz"
+    t = np.array([0.0, 0.2, 0.5], dtype=float)
+    y = np.array([[10.0], [20.0], [50.0]], dtype=float)
+    np.savez(path, time=t, y=y)
+
+    blk = FileSource("src", file_path=str(path), key="y", use_time=True)
+
+    blk.initialize(0.0)
+    assert np.allclose(blk.outputs["out"], [[10.0]])
+
+    blk.output_update(0.19, 0.1)
+    assert np.allclose(blk.outputs["out"], [[10.0]])
+
+    blk.output_update(0.20, 0.1)
+    assert np.allclose(blk.outputs["out"], [[20.0]])
+
+    blk.output_update(0.8, 0.1)
+    assert np.allclose(blk.outputs["out"], [[50.0]])
+
+
+def test_file_source_csv_use_time_zoh(tmp_path: Path):
+    path = tmp_path / "data.csv"
+    path.write_text(
+        "time,y\n0.0,1.0\n0.5,2.0\n1.0,3.0\n",
+        encoding="utf-8",
+    )
+
+    blk = FileSource("src", file_path=str(path), key="y", use_time=True)
+    blk.initialize(0.1)
+    assert np.allclose(blk.outputs["out"], [[1.0]])
+
+    blk.output_update(0.75, 0.1)
+    assert np.allclose(blk.outputs["out"], [[2.0]])
+
+
+def test_file_source_npz_time_must_be_strictly_increasing(tmp_path: Path):
+    path = tmp_path / "data.npz"
+    np.savez(path, time=np.array([0.0, 0.2, 0.2]), y=np.array([1.0, 2.0, 3.0]))
+
+    with pytest.raises(ValueError):
+        FileSource("src", file_path=str(path), key="y", use_time=True)
+
+
+def test_file_source_csv_use_time_requires_time_column(tmp_path: Path):
+    path = tmp_path / "data.csv"
+    path.write_text("y\n1.0\n2.0\n", encoding="utf-8")
+
+    with pytest.raises(KeyError):
+        FileSource("src", file_path=str(path), key="y", use_time=True)

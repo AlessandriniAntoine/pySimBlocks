@@ -61,6 +61,14 @@ class FileSourceMeta(BlockMeta):
                 description="If true, replay samples from the beginning after end of file."
             ),
             ParameterMeta(
+                name="use_time",
+                type="enum",
+                autofill=True,
+                default=False,
+                enum=[False, True],
+                description="If true (NPZ/CSV), use 'time' data and apply ZOH at simulation time t."
+            ),
+            ParameterMeta(
                 name="sample_time",
                 type="float",
                 description="Block execution period."
@@ -81,6 +89,9 @@ class FileSourceMeta(BlockMeta):
         ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
 
         if param_name == "key":
+            return ext in {"npz", "csv"}
+
+        if param_name == "use_time":
             return ext in {"npz", "csv"}
 
         return super().is_parameter_active(param_name, instance_values)

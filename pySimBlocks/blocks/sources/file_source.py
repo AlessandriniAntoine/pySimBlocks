@@ -51,6 +51,7 @@ class FileSource(BlockSource):
         file_path: str,
         key: str | None = None,
         repeat: bool = False,
+        use_time: bool = False,
         sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
@@ -59,7 +60,18 @@ class FileSource(BlockSource):
         self.file_type = self._infer_file_type(self.file_path)
         self.key = key
         self.repeat = self._to_bool(repeat, "repeat")
+        self.use_time = self._to_bool(use_time, "use_time")
 
+        if self.use_time and self.file_type == "npy":
+            raise ValueError(
+                f"[{self.name}] use_time is supported only for NPZ and CSV inputs."
+            )
+        if self.use_time and self.repeat:
+            raise ValueError(
+                f"[{self.name}] repeat cannot be used when use_time=True."
+            )
+
+        self._time: np.ndarray | None = None
         self._samples = self._load_samples()
         self._index = 0
         self._output_shape = (self._samples.shape[1], 1)
@@ -96,13 +108,19 @@ class FileSource(BlockSource):
     # Public methods
     # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        self._index = 0
-        self.outputs["out"] = self._current_output()
+        if self.use_time:
+            self.outputs["out"] = self._current_output_at_time(t0)
+        else:
+            self._index = 0
+            self.outputs["out"] = self._current_output()
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        self.outputs["out"] = self._current_output()
-        self._index += 1
+        if self.use_time:
+            self.outputs["out"] = self._current_output_at_time(t)
+        else:
+            self.outputs["out"] = self._current_output()
+            self._index += 1
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
@@ -117,11 +135,11 @@ class FileSource(BlockSource):
             raise FileNotFoundError(f"[{self.name}] File not found: {path}")
 
         if self.file_type == "npz":
-            arr = self._load_npz(path)
+            arr, time = self._load_npz(path)
         elif self.file_type == "npy":
-            arr = self._load_npy(path)
+            arr, time = self._load_npy(path)
         else:
-            arr = self._load_csv(path)
+            arr, time = self._load_csv(path)
 
         if arr.ndim == 1:
             arr = arr.reshape(-1, 1)
@@ -133,10 +151,12 @@ class FileSource(BlockSource):
         if arr.shape[0] == 0:
             raise ValueError(f"[{self.name}] Loaded file contains no samples.")
 
+        self._time = time
+
         return arr.astype(float, copy=False)
 
     # ------------------------------------------------------------------
-    def _load_npz(self, path: Path) -> np.ndarray:
+    def _load_npz(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
         with np.load(path) as data:
             keys = list(data.files)
             if len(keys) == 0:
@@ -154,18 +174,27 @@ class FileSource(BlockSource):
                     f"Available keys: {keys}"
                 )
 
-            return np.asarray(data[selected_key], dtype=float)
+            arr = np.asarray(data[selected_key], dtype=float)
+            time = None
+            if self.use_time:
+                if "time" not in data:
+                    raise KeyError(
+                        f"[{self.name}] use_time=True requires NPZ key 'time'."
+                    )
+                time = np.asarray(data["time"], dtype=float).reshape(-1)
+                self._validate_time(time, arr.shape[0])
+            return arr, time
 
     # ------------------------------------------------------------------
-    def _load_npy(self, path: Path) -> np.ndarray:
+    def _load_npy(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
         if self.key not in (None, ""):
             raise ValueError(
                 f"[{self.name}] key is not used for NPY input."
             )
-        return np.asarray(np.load(path), dtype=float)
+        return np.asarray(np.load(path), dtype=float), None
 
     # ------------------------------------------------------------------
-    def _load_csv(self, path: Path) -> np.ndarray:
+    def _load_csv(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
         if not self.key:
             raise ValueError(
                 f"[{self.name}] key is mandatory for CSV input and must be a column name."
@@ -190,7 +219,15 @@ class FileSource(BlockSource):
             raise ValueError(
                 f"[{self.name}] CSV column '{self.key}' contains non-numeric or missing values."
             )
-        return col
+        time = None
+        if self.use_time:
+            if "time" not in arr.dtype.names:
+                raise KeyError(
+                    f"[{self.name}] use_time=True requires CSV column 'time'."
+                )
+            time = np.asarray(arr["time"], dtype=float).reshape(-1)
+            self._validate_time(time, col.shape[0])
+        return col, time
 
     # ------------------------------------------------------------------
     def _to_bool(self, value: bool | str, name: str) -> bool:
@@ -226,3 +263,32 @@ class FileSource(BlockSource):
 
         row = self._samples[idx]
         return np.asarray(row, dtype=float).reshape(-1, 1)
+
+    # ------------------------------------------------------------------
+    def _current_output_at_time(self, t: float) -> np.ndarray:
+        if self._time is None:
+            raise RuntimeError(
+                f"[{self.name}] Internal error: use_time=True but time data is missing."
+            )
+
+        idx = int(np.searchsorted(self._time, t, side="right") - 1)
+        if idx < 0:
+            idx = 0
+
+        row = self._samples[idx]
+        return np.asarray(row, dtype=float).reshape(-1, 1)
+
+    # ------------------------------------------------------------------
+    def _validate_time(self, time: np.ndarray, n_samples: int) -> None:
+        if time.ndim != 1:
+            raise ValueError(f"[{self.name}] time must be a 1D array.")
+        if time.shape[0] != n_samples:
+            raise ValueError(
+                f"[{self.name}] time length ({time.shape[0]}) must match number of samples ({n_samples})."
+            )
+        if np.isnan(time).any():
+            raise ValueError(f"[{self.name}] time contains NaN values.")
+        if not np.all(np.diff(time) > 0.0):
+            raise ValueError(
+                f"[{self.name}] time must be strictly increasing."
+            )
