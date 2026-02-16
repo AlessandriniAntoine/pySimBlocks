@@ -21,6 +21,7 @@
 from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, List, Literal
+import ast
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -106,12 +107,6 @@ class MyBlockMeta(BlockMeta):
     # --------------------------------------------------------------------------
     # Parameter resolution
     # --------------------------------------------------------------------------
-    def get_param(self, param_name: str) -> ParameterMeta | None:
-        for param in self.parameters:
-            if param.name == param_name:
-                return param
-        return None
-
     def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
         """
         Default: all parameters are always active.
@@ -119,6 +114,38 @@ class MyBlockMeta(BlockMeta):
         """
         return True
 
+    # ------------------------------------------------------------
+    def gather_params(self) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "name": self.name_edit.text(),
+            **{
+                pname: self.get_param_value(widget)
+                for pname, widget in self.param_widgets.items()
+            }
+        }
+        for pname in params.keys():
+            if pname == "name":
+                continue
+            if not self.is_parameter_active(pname, params):
+                params[pname] = None
+
+        return params
+
+    # ------------------------------------------------------------
+    def get_param_value(self, widget: QWidget) -> Any:
+        if isinstance(widget, QComboBox):
+            return widget.currentText()
+
+        if isinstance(widget, QLineEdit):
+            text = widget.text().strip()
+            if not text:
+                return None
+            try:
+                return ast.literal_eval(text)
+            except Exception:
+                return text
+
+        return None
     
     # --------------------------------------------------------------------------
     # Port resolution
@@ -298,6 +325,12 @@ class MyBlockMeta(BlockMeta):
             lambda val: self._on_param_changed(val, meta.name, inst_params, readonly)
         )
         return combo
+
+    def _get_edit_value(self, ):
+        pass
+
+    def _get_enum_value(self, ):
+        pass
 
 
     # ------------------------------------------------------------

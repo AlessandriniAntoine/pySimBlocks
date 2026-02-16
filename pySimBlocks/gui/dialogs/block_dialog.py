@@ -18,16 +18,12 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import ast
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
-    QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
     QVBoxLayout,
@@ -36,8 +32,6 @@ from PySide6.QtWidgets import (
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
-
     from pySimBlocks.gui.graphics.block_item import BlockItem
 
 
@@ -103,29 +97,7 @@ class BlockDialog(QDialog):
         if self.readonly:
             return
 
-        def get_param_value(widget: 'QWidget'):
-            if isinstance(widget, QComboBox):
-                return widget.currentText()
-
-            if isinstance(widget, QLineEdit):
-                text = widget.text().strip()
-                if not text:
-                    return None
-                try:
-                    return ast.literal_eval(text)
-                except Exception:
-                    return text
-
-            return None
-
-        params: dict[str, Any] = {
-            "name": self.meta.name_edit.text(),
-            **{
-                pname: get_param_value(widget)
-                for pname, widget in self.meta.param_widgets.items()
-            }
-        }
-
+        params = self.meta.gather_params()
         self.block.view.update_block_param_event(self.block.instance, params)
 
     # ------------------------------------------------------------
