@@ -18,8 +18,13 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+import os
+import subprocess
+import sys
+from pathlib import Path
 from typing import Literal
-from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit
+
+from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit, QPushButton
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta, ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
@@ -91,6 +96,9 @@ class AlgebraicFunctionMeta(BlockMeta):
         ]
 
 
+    # --------------------------------------------------------------------------
+    # Port resolution
+    # --------------------------------------------------------------------------
     def resolve_port_group(
         self,
         port_meta: PortMeta,
@@ -131,6 +139,9 @@ class AlgebraicFunctionMeta(BlockMeta):
 
         return super().resolve_port_group(port_meta, direction, instance)
 
+    # --------------------------------------------------------------------------
+    # Dialog methods
+    # --------------------------------------------------------------------------
     def build_param(
         self,
         session,
@@ -169,3 +180,53 @@ class AlgebraicFunctionMeta(BlockMeta):
             session.param_widgets[pmeta.name] = widget
             session.param_labels[pmeta.name] = label
 
+    # ------------------------------------------------------
+    def build_post_param(self, session, form: QFormLayout, readonly: bool = False):
+        open_btn = QPushButton("Open file")
+        open_btn.clicked.connect(lambda: self._open_file_from_session(session))
+        form.addRow(QLabel(""), open_btn)
+        session.open_file_btn = open_btn
+        self._refresh_open_button_state(session)
+
+    # ------------------------------------------------------
+    def refresh_form(self, session):
+        super().refresh_form(session)
+        self._refresh_open_button_state(session)
+
+    # ------------------------------------------------------
+    def _resolve_file_path(self, session) -> Path | None:
+        raw = session.local_params.get("file_path")
+        if not raw:
+            return None
+
+        path = Path(str(raw)).expanduser()
+        if not path.is_absolute() and session.project_dir is not None:
+            path = (session.project_dir / path).resolve()
+        return path
+
+    # ------------------------------------------------------
+    def _refresh_open_button_state(self, session) -> None:
+        btn = getattr(session, "open_file_btn", None)
+        if btn is None:
+            return
+
+        target = self._resolve_file_path(session)
+        exists = target is not None and target.is_file()
+        btn.setEnabled(exists)
+        if exists:
+            btn.setToolTip(str(target))
+        else:
+            btn.setToolTip("Set a valid existing file_path to open the file.")
+
+    # ------------------------------------------------------
+    def _open_file_from_session(self, session) -> None:
+        target = self._resolve_file_path(session)
+        if target is None or not target.is_file():
+            return
+
+        if sys.platform.startswith("darwin"):
+            subprocess.Popen(["open", str(target)])
+        elif os.name == "nt":
+            os.startfile(str(target))
+        else:
+            subprocess.Popen(["xdg-open", str(target)])
