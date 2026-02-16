@@ -18,16 +18,17 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+import ast
 from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, Literal, Sequence
-import ast
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QSizePolicy,
@@ -36,10 +37,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pySimBlocks.gui.blocks.block_dialog_session import BlockDialogSession
 from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
 from pySimBlocks.gui.models import BlockInstance, PortInstance
-from pySimBlocks.gui.blocks.block_dialog_session import BlockDialogSession
 
 
 class BlockMeta(ABC):
@@ -199,9 +200,7 @@ class MyBlockMeta(BlockMeta):
         # --- Block name ---
         name_edit = QLineEdit(session.instance.name)
         name_edit.textChanged.connect(
-            lambda val: self._on_param_changed(
-                val, "name", session, readonly, parse_literal=False
-            )
+            lambda val: self._on_param_changed(val, "name", session, readonly)
         )
         form.addRow(QLabel("Block name:"), name_edit)
         if readonly:
@@ -212,15 +211,12 @@ class MyBlockMeta(BlockMeta):
         for param_meta in self.parameters:
             param_name = param_meta.name
 
-            widget = self._create_param_widget(session, param_meta, readonly)
+            label, widget = self._create_param_row(session, param_meta, readonly)
             if widget is None:
                 continue
             if readonly:
                 self._set_readonly_style(widget) 
 
-            label = QLabel(f"{param_name}:")
-            if param_meta.description:
-                label.setToolTip(param_meta.description)
             form.addRow(label, widget)
 
             session.param_widgets[param_name] = widget
@@ -254,17 +250,24 @@ class MyBlockMeta(BlockMeta):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
-    def _create_param_widget(self, 
+    def _create_param_row(self, 
                              session: BlockDialogSession,
                              pmeta: ParameterMeta, 
                              readonly: bool = False
-                             ) -> QWidget:
+                             ) -> tuple[QLabel, QWidget]:
+
         # ENUM
         if pmeta.type == "enum":
-            return self._create_enum_widget(session, pmeta, readonly)
+            widget = self._create_enum_widget(session, pmeta, readonly)
         
         # Default: text edit
-        return self._create_edit_widget(session, pmeta, readonly)
+        widget = self._create_edit_widget(session, pmeta, readonly)
+
+        label = QLabel(f"{pmeta.name}:")
+        if pmeta.description:
+            label.setToolTip(pmeta.description)
+
+        return label, widget
 
 
     # ------------------------------------------------------------
