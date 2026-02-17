@@ -248,7 +248,12 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
             "width": float(block.rect().width()),
             "height": float(block.rect().height()),
         }
+
+    if len(data["blocks"]) == 0:
+        return data
+
     view = block.view
+
     for conn in view.connections.values():
         if conn in seen:
             continue
@@ -279,5 +284,6 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
 
     if manual_connections:
         data["connections"] = manual_connections
+
 
     return data
