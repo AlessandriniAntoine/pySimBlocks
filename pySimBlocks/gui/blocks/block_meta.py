@@ -301,8 +301,8 @@ class MyBlockMeta(BlockMeta):
         if pmeta.type == "enum":
             widget = self._create_enum_widget(session, pmeta, readonly)
         
-        # Default: text edit
-        widget = self._create_edit_widget(session, pmeta, readonly)
+        else: # Default: text edit
+            widget = self._create_edit_widget(session, pmeta, readonly)
 
         label = QLabel(f"{pmeta.name}:")
         if pmeta.description:
