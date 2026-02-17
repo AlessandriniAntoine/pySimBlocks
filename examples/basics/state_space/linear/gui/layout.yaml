@@ -1,0 +1,49 @@
+version: 1
+blocks:
+  ref:
+    x: 0.0
+    y: -5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  sum:
+    x: 348.0
+    y: 5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  A:
+    x: 430.0
+    y: 140.0
+    orientation: flipped
+    width: 120.0
+    height: 60.0
+  B:
+    x: 175.0
+    y: -5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  delay:
+    x: 545.0
+    y: 15.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  plant:
+    x: 176.0
+    y: -99.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  C:
+    x: 745.0
+    y: 15.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+connections:
+  A.out -> sum.in2:
+    ports: [A.out, sum.in2]
+    route: [[415.0, 170.0], [407.0, 170.0], [407.0, 170.0], [334.0, 170.0], [334.0,
+        45.0], [342.0, 45.0]]

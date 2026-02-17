@@ -1,0 +1,26 @@
+version: 1
+blocks:
+  error:
+    x: 95.0
+    y: -5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  sofa:
+    x: 460.0
+    y: -5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  ref:
+    x: -100.0
+    y: -15.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  PID:
+    x: 280.0
+    y: -5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0

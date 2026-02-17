@@ -1,9 +1,0 @@
-blocks:
-- name: ref
-  category: sources
-  type: step
-- name: plant
-  category: systems
-  type: linear_state_space
-connections:
-- [ref.out, plant.u]

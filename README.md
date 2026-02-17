@@ -44,9 +44,22 @@ To open the graphical editor, run:
 pysimblocks
 ```
 
+### Tutorials
+
 See the [Getting Started Guide](./docs/User_Guide/getting_started.md) for
 tutorials on building your first simulation with pySimBlocks.
 
+### Examples
+
+A collection of basic and advanced examples is available in the
+[examples](./examples) directory, including:
+
+- Control system demonstrations
+- SOFA-based simulations
+- Hardware and real-time use cases
+- Comparisons with external tools
+
+See [examples/README.md](./examples/README.md) for an overview.
 
 ## Information
 

@@ -1,0 +1,53 @@
+version: 1
+blocks:
+  error:
+    x: -245.0
+    y: -35.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  Kp:
+    x: -30.0
+    y: -85.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  Ki:
+    x: 140.0
+    y: 5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  integrator:
+    x: -35.0
+    y: 5.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  sum:
+    x: 300.0
+    y: -75.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  sofa:
+    x: 490.0
+    y: -75.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  ref:
+    x: -420.0
+    y: -45.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+connections:
+  error.out -> Kp.in:
+    ports: [error.out, Kp.in]
+    route: [[-110.0, -5.0], [-102.0, -5.0], [-75.0, -5.0], [-75.0, -55.0], [-44.0,
+        -55.0], [-36.0, -55.0]]
+  sofa.measure -> error.in2:
+    ports: [sofa.measure, error.in2]
+    route: [[625.0, -35.0], [633.0, -35.0], [633.0, 85.0], [-259.0, 85.0], [-259.0,
+        5.0], [-251.0, 5.0]]

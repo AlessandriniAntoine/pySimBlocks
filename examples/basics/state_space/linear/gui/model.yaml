@@ -1,0 +1,30 @@
+blocks:
+- name: ref
+  category: sources
+  type: step
+- name: sum
+  category: operators
+  type: sum
+- name: A
+  category: operators
+  type: gain
+- name: B
+  category: operators
+  type: gain
+- name: delay
+  category: operators
+  type: delay
+- name: plant
+  category: systems
+  type: linear_state_space
+- name: C
+  category: operators
+  type: gain
+connections:
+- [ref.out, B.in]
+- [B.out, sum.in1]
+- [A.out, sum.in2]
+- [sum.out, delay.in]
+- [delay.out, A.in]
+- [ref.out, plant.u]
+- [delay.out, C.in]

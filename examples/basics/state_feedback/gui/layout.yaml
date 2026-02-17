@@ -1,0 +1,25 @@
+version: 1
+blocks:
+  controller:
+    x: 25.0
+    y: -18.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  step:
+    x: -170.0
+    y: -30.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+  system:
+    x: 195.0
+    y: -15.0
+    orientation: normal
+    width: 120.0
+    height: 60.0
+connections:
+  system.x -> controller.x:
+    ports: [system.x, controller.x]
+    route: [[330.0, 5.0], [338.0, 5.0], [338.0, 70.0], [11.0, 70.0], [11.0, 22.0],
+      [19.0, 22.0]]
