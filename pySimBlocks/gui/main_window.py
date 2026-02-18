@@ -23,7 +23,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QSplitter
 
@@ -81,6 +81,9 @@ class MainWindow(QMainWindow):
         self.quit_action.setShortcut(QKeySequence.Quit)
         self.quit_action.triggered.connect(self.close)
         self.addAction(self.quit_action)
+
+        # Ensure keyboard shortcuts (e.g. Space) work immediately on startup.
+        QTimer.singleShot(0, self.view.setFocus)
 
     # --------------------------------------------------------------------------
     # Registry
