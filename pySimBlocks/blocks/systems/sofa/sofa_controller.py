@@ -20,7 +20,6 @@
 
 from pathlib import Path
 from typing import Dict, Any, List
-import yaml
 import numpy as np
 import Sofa
 
@@ -89,6 +88,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         self.model_yaml: str | None = None
         self.parameters_yaml: str | None = None
+        self.project_yaml: str | None = None
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -218,12 +218,14 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             - the exchange block self.sofa_block (SofaExchangeIO)
             - self.variables_to_log
         """
-        if self.parameters_yaml is not None:
-            self.sim_cfg, self.model_cfg, self.plot_cfg = load_project_config(self.parameters_yaml)
-        if self.model_yaml is not None:
-            model_dict = self._adapt_model_for_sofa(self.model_yaml)
-            self.model = Model("sofa_model")
-            build_model_from_dict(self.model, model_dict, self.model_cfg)
+        project_path = self.project_yaml or self.parameters_yaml
+        if project_path is None:
+            raise RuntimeError("SOFA_MASTER=True requires project_yaml to be set.")
+
+        self.sim_cfg, model_dict, self.plot_cfg, _, params_dir = load_project_config(project_path)
+        model_dict = self._adapt_model_for_sofa(model_dict)
+        self.model = Model("sofa_model")
+        build_model_from_dict(self.model, model_dict, params_dir=params_dir)
 
 
     # ------------------------------------------------------------------
@@ -232,8 +234,8 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Called once SOFA is initialized AND if SOFA is the master.
         Initialize the pysimblock struture.
         """
-        if self.SOFA_MASTER and (self.model_yaml is None or self.parameters_yaml is None):
-            raise RuntimeError("SOFA_MASTER=True requires model_yaml and parameters_yaml.")
+        if self.SOFA_MASTER and self.project_yaml is None and self.parameters_yaml is None:
+            raise RuntimeError("SOFA_MASTER=True requires project_yaml.")
         if self.dt is None:
             raise ValueError("Sample time dt Must be set at initialization.")
 
@@ -387,30 +389,23 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             setattr(block, key, np.array(new_values).reshape(shape))
 
     # ------------------------------------------------------------------
-    def _adapt_model_for_sofa(self, model_yaml: str) -> Dict[str, Any]:
+    def _adapt_model_for_sofa(self, model_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Load model.yaml and adapt it for SOFA execution.
+        Adapt model data for SOFA execution.
 
         This replaces any SofaPlant block by a SofaExchangeIO block,
         while preserving block name and connections.
 
         Parameters
         ----------
-        model_yaml : Path
-            Path to model.yaml
+        model_data : dict
+            Model dictionary.
 
         Returns
         -------
         dict
             Adapted model dictionary
         """
-        model_path = Path(model_yaml)
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model YAML file not found: {model_yaml}")
-
-        with model_path.open("r") as f:
-            model_data = yaml.safe_load(f) or {}
-
         adapted = dict(model_data)
         adapted_blocks = []
 
