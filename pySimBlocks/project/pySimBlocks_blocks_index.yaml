@@ -70,6 +70,9 @@ sources:
   file_source:
     class: FileSource
     module: pySimBlocks.blocks.sources.file_source
+  function_source:
+    class: FunctionSource
+    module: pySimBlocks.blocks.sources.function_source
   ramp:
     class: Ramp
     module: pySimBlocks.blocks.sources.ramp
