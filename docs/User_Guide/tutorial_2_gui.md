@@ -22,7 +22,7 @@ We build a simple closed-loop control system composed of three elements:
 - a PI controller, 
 - a first-order discrete-time linear plant.
 
-![Alt Text](./images/tutorial_1-block_diagram.png)a$
+![Alt Text](./images/tutorial_1-block_diagram.png)
 
 ## 2. Step-by-Step Construction
 
@@ -32,7 +32,7 @@ Create a new project folder and start the GUI:
 ```bash
 $ mkdir tutorial-gui
 $ cd tutorial-gui
-$ pySimBlocks
+$ pysimblocks
 ```
 The main window opens, with the `Toolbar` at the top, the `Blocks List` on the left, and the `Diagram View` on the right.
 ![Alt Text](./images/tutorial_2-gui_main.png)

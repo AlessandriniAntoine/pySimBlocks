@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 from typing import Callable
-from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtGui import QDrag
 
@@ -34,7 +34,8 @@ class _PreviewBlock:
     def refresh_ports(self):
         pass
 
-class BlockList(QTreeWidget):
+
+class _BlockTree(QTreeWidget):
     def __init__(self,
                  get_categories: Callable[[], list[str]],
                  get_blocks: Callable[[str], list[str]],
@@ -85,3 +86,46 @@ class BlockList(QTreeWidget):
 
         dialog = BlockDialog(_PreviewBlock(instance), readonly=True)
         dialog.exec()
+
+
+class BlockList(QWidget):
+    def __init__(self,
+                 get_categories: Callable[[], list[str]],
+                 get_blocks: Callable[[str], list[str]],
+                 resolve_block_meta: Callable[[str, str], BlockMeta]):
+        super().__init__()
+
+        self.search = QLineEdit(self)
+        self.search.setPlaceholderText("Search by category or block name...")
+
+        self.tree = _BlockTree(get_categories, get_blocks, resolve_block_meta)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(self.search)
+        layout.addWidget(self.tree)
+
+        self.search.textChanged.connect(self._apply_filter)
+
+    def _apply_filter(self, text: str):
+        query = text.strip().lower()
+
+        for i in range(self.tree.topLevelItemCount()):
+            category_item = self.tree.topLevelItem(i)
+            category_name = category_item.text(0)
+            category_match = category_name.lower().startswith(query)
+
+            visible_children = 0
+            for j in range(category_item.childCount()):
+                block_item = category_item.child(j)
+                block_name = block_item.text(0)
+                block_match = block_name.lower().startswith(query)
+                visible = (not query) or category_match or block_match
+                block_item.setHidden(not visible)
+                if visible:
+                    visible_children += 1
+
+            category_visible = (not query) or category_match or (visible_children > 0)
+            category_item.setHidden(not category_visible)
+            category_item.setExpanded(bool(query and category_visible))
