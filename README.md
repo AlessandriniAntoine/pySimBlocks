@@ -42,11 +42,12 @@ pip install .
 
 The following example models a damped harmonic oscillator:
 
-$$ \ddot{x} +0.5 \dot{x} +2 x = 0 $$
+$$ \ddot{x} +0.5\dot{x} +2x = 0 $$
 
-The continuous-time equation is implemented using explicit forward Euler discretization through discrete integrator blocks with a fixed time step.
+The continuous-time equation is implemented using explicit forward Euler 
+discretization through discrete integrator blocks with a fixed time step.
 
-The system is assembled explicitly from discrete operators.
+The system is assembled explicitly from discrete-time operators.
 
 ```python
 from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
@@ -54,23 +55,23 @@ from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
 from pySimBlocks.project.plot_from_config import plot_from_config
 
 # 1. Create the blocks
-I1 = DiscreteIntegrator("x", initial_state=5)
-I2 = DiscreteIntegrator("v", initial_state=2.)
-A1 = Gain(name="damping", gain=0.5)
-A2 = Gain(name="stiffness", gain=2)
-S = Sum(name="sum", signs="--")
+v = DiscreteIntegrator("v", initial_state=5)
+x = DiscreteIntegrator("x", initial_state=2.)
+damping = Gain(name="damping", gain=0.5)
+stiffness = Gain(name="stiffness", gain=2)
+sum = Sum(name="sum", signs="--")
 
 # 2. Build the model
 model = Model("Example")
-for block in [I1, I2, A1, A2, S]:
+for block in [v, x, damping, stiffness, sum]:
     model.add_block(block)
 
-model.connect("x", "out", "v", "in")
-model.connect("x", "out", "damping", "in")
-model.connect("v", "out", "stiffness", "in")
+model.connect("v", "out", "x", "in")
+model.connect("v", "out", "damping", "in")
+model.connect("x", "out", "stiffness", "in")
 model.connect("damping", "out", "sum", "in1")
 model.connect("stiffness", "out", "sum", "in2")
-model.connect("sum", "out", "x", "in")
+model.connect("sum", "out", "v", "in")
 
 # 3. Create the simulator
 sim_cfg = SimulationConfig(dt=0.05, T=30.)
@@ -93,13 +94,20 @@ plot_from_config(logs, plot_cfg)
 
 The simulated position and velocity exhibit the expected damped oscillatory behavior.
 
-![Alt Text](./docs/User_Guide/images/quick_example.png)
+![Damped oscillator simulation](./docs/User_Guide/images/quick_example.png)
+
+See [examples/quick_start/oscillator.py](./examples/quick_start/oscillator.py)
+to run the example yourself.
 
 ### Graphical Editor
 
+The same model can be constructed visually using the graphical editor:
+
+![GUI Example](./docs/User_Guide/images/gui_example.png)
+
 To open the graphical editor, run:
 ```bash
-pysimblocks
+pysimblocks examples/quick_start/gui
 ```
 
 ### Tutorials
