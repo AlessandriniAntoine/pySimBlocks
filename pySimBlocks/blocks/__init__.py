@@ -25,7 +25,14 @@ from pySimBlocks.blocks.operators import (
     DeadZone, Delay, DiscreteDerivator, DiscreteIntegrator,
     Gain, Mux, Product, RateLimiter, Saturation, Sum, ZeroOrderHold
 )
-from pySimBlocks.blocks.sources import Constant, Ramp, Step, Sinusoidal, WhiteNoise
+from pySimBlocks.blocks.sources import (
+    Constant,
+    FunctionSource,
+    Ramp,
+    Sinusoidal,
+    Step,
+    WhiteNoise,
+)
 from pySimBlocks.blocks.systems import LinearStateSpace, PolytopicStateSpace
 
 __all__ = [
@@ -50,6 +57,7 @@ __all__ = [
     "ZeroOrderHold",
 
     "Constant",
+    "FunctionSource",
     "Ramp",
     "Step",
     "Sinusoidal",

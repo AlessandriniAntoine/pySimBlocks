@@ -1,4 +1,4 @@
-# test/blocks/observers/test_luenberger.py
+# tests/blocks/observers/test_luenberger.py
 
 import numpy as np
 import pytest

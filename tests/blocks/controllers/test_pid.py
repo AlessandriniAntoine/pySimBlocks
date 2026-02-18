@@ -1,4 +1,4 @@
-# test/blocks/controllers/test_pid.py
+# tests/blocks/controllers/test_pid.py
 
 import numpy as np
 import pytest
