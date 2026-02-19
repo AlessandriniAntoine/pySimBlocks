@@ -128,18 +128,21 @@ Under the hood, the GUI generates the same `Model` structure used in [Tutorial 1
 
 ### Saving
 
-Saving the project using the `Save` button in the `Toolbar` creates three YAML files in the current folder:
-- `model.yaml` — defines the blocks and their connections
-- `parameters.yaml` — contains block parameters, simulation settings, and plot definitions
-- `layout.yaml` — stores the graphical layout of blocks and connections in the Diagram View
+Saving the project using the `Save` button in the `Toolbar` creates a unified `project.yaml` file in the current folder.
 
-Together, these files fully describe the model structure and its configuration. They can be used to reload the project in the GUI or to run the simulation programmatically using Python.
+This file contains:
+- project metadata
+- simulation settings (`dt`, `T`, logging, plots)
+- block diagram (`diagram.blocks`, `diagram.connections`)
+- GUI layout (`gui.layout`)
+
+This single file fully describes the model and can be reloaded in the GUI or executed programmatically in Python.
 
 ### Exporting a Python Runner
 
 The `Export` button in the `Toolbar` generates a `run.py` file.
 
-This script loads the YAML configuration (model and parameters) and builds the corresponding `Model` and `Simulator` objects programmatically.  
+This script loads `project.yaml` and builds the corresponding `Model` and `Simulator` objects programmatically.  
 It allows the project to be executed directly from the command line:
 
 ```bash
@@ -181,5 +184,4 @@ Run it from the command line to verify that the exported script reproduces the s
 
 This tutorial demonstrates how to build and execute a model visually.  
 The next tutorials extend this approach to SOFA integration and real-time execution.
-
 

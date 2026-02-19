@@ -20,10 +20,9 @@
 
 from collections import deque
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pySimBlocks.core.block import Block
-from pySimBlocks.core.config import ModelConfig
 
 # A connection is:
 #    ( (src_block, src_port), (dst_block, dst_port) )
@@ -50,8 +49,8 @@ class Model:
     def __init__(
             self,
             name: str = "model",
-            model_yaml: str | Path | None = None,
-            model_cfg: ModelConfig | None = None,
+            model_data: Dict[str, Any] | None = None,
+            params_dir: Path | None = None,
             verbose: bool = False,
         ):
         self.name = name
@@ -66,14 +65,9 @@ class Model:
         self._downstream_map: Dict[str, List[Connection]] = {}
         self._connections_dirty: bool = True
 
-        if model_yaml is not None:
-            if model_cfg is not None and not isinstance(model_cfg, ModelConfig):
-                raise TypeError("model_cfg must be a ModelConfig")
-
-            from pySimBlocks.project.build_model import build_model_from_yaml
-            build_model_from_yaml(self, Path(model_yaml), model_cfg)
-            if model_cfg is not None:
-                model_cfg.validate(list(self.blocks.keys()))
+        if model_data is not None:
+            from pySimBlocks.project.build_model import build_model_from_dict
+            build_model_from_dict(self, model_data, params_dir=params_dir)
 
     # --------------------------------------------------------------------------
     # Public methods

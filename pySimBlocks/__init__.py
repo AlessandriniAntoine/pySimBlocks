@@ -18,11 +18,10 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pySimBlocks.core import Model, Simulator, SimulationConfig, ModelConfig, PlotConfig
+from pySimBlocks.core import Model, Simulator, SimulationConfig, PlotConfig
 
 __all__ = [
     "Model",
-    "ModelConfig",
     "Simulator",
     "SimulationConfig",
     "PlotConfig"

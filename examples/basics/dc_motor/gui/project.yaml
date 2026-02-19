@@ -1,0 +1,90 @@
+schema_version: 1
+
+project:
+  name: dc_motor_gui
+  metadata:
+    created_by: pySimBlocks
+    created_at: "2026-02-18T00:00:00Z"
+
+simulation:
+  dt: 0.01
+  T: 3.0
+  solver: fixed
+  clock: internal
+  logging:
+    - ref.outputs.out
+    - plant.outputs.y
+    - pid.outputs.u
+  plots:
+    - title: Ref vs Output
+      signals: [ref.outputs.out, plant.outputs.y]
+    - title: Command
+      signals: [pid.outputs.u]
+
+diagram:
+  blocks:
+    - name: ref
+      category: sources
+      type: step
+      parameters:
+        value_before: [[0.0]]
+        value_after: [[1.0]]
+        start_time: 0.5
+    - name: error
+      category: operators
+      type: sum
+      parameters:
+        signs: +-
+    - name: pid
+      category: controllers
+      type: pid
+      parameters:
+        controller: PI
+        Kp: [[2.0]]
+        Ki: [[1.0]]
+        integration_method: euler forward
+    - name: plant
+      category: systems
+      type: linear_state_space
+      parameters:
+        A: [[0.95]]
+        B: [[0.5]]
+        C: [[1.0]]
+        x0: [[0.0]]
+  connections:
+    - name: c1
+      ports: [ref.out, error.in1]
+    - name: c2
+      ports: [plant.y, error.in2]
+    - name: c3
+      ports: [error.out, pid.e]
+    - name: c4
+      ports: [pid.u, plant.u]
+
+gui:
+  layout:
+    blocks:
+      ref:
+        x: 0.0
+        y: -80.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      error:
+        x: 195.0
+        y: -71.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      pid:
+        x: 365.0
+        y: -70.0
+        orientation: normal
+        width: 115.0
+        height: 60.0
+      plant:
+        x: 535.0
+        y: -70.0
+        orientation: normal
+        width: 120.0
+        height: 60.0

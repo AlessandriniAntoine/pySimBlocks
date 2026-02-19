@@ -52,7 +52,7 @@ class NonLinearStateSpaceMeta(BlockMeta):
                 name="file_path",
                 type="string",
                 required=True,
-                description="Path to the Python file containing the functions relative to the parameters.yaml file."
+                description="Path to the Python file containing the functions relative to the project.yaml file."
             ),
             ParameterMeta(
                 name="state_function_name",

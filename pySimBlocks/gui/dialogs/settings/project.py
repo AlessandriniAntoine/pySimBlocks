@@ -55,7 +55,7 @@ class ProjectSettingsWidget(QWidget):
         load_btn = QPushButton("Load")
         load_btn.clicked.connect(self.load_project)
         label = QLabel("Load Project:")
-        label.setToolTip("Auto Load project from directory with parameters and model yaml.")
+        label.setToolTip("Auto load project from directory containing project.yaml.")
         layout.addRow(label, load_btn)
 
         ext = project_state.external or ""

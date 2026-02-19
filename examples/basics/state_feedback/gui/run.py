@@ -1,17 +1,14 @@
-from pySimBlocks.core import Model, Simulator
-from pySimBlocks.project.load_project_config import load_project_config
+from pathlib import Path
+from pySimBlocks.project import load_simulator_from_project
 from pySimBlocks.project.plot_from_config import plot_from_config
 
-sim_cfg, model_cfg, plot_cfg = load_project_config("parameters.yaml")
+try:
+    BASE_DIR = Path(__file__).parent.resolve()
+except Exception:
+    BASE_DIR = Path("")
 
-model = Model(
-    name="model",
-    model_yaml="model.yaml",
-    model_cfg=model_cfg
-)
-
-sim = Simulator(model, sim_cfg)
+sim, plot_cfg = load_simulator_from_project(BASE_DIR / 'project.yaml')
 
 logs = sim.run()
-if True:
+if True and plot_cfg is not None:
     plot_from_config(logs, plot_cfg)

@@ -19,8 +19,7 @@
 # ******************************************************************************
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 # ---------------------------------------------------------------------
@@ -62,42 +61,6 @@ class SimulationConfig:
             raise ValueError(
                 f"Unknown clock '{self.clock}'. "
                 "Allowed values: {'internal', 'external'}"
-            )
-
-
-@dataclass
-class ModelConfig:
-    """
-    Model numerical parameters configuration.
-
-    Stores parameters for each block, indexed by block name.
-    No structural information is allowed here.
-    """
-
-    blocks: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    parameters_dir: Path | None = None
-
-    def has_block(self, name: str) -> bool:
-        """Check if parameters are defined for a given block name."""
-        return name in self.blocks
-
-    def get_block_params(self, name: str) -> Dict[str, Any]:
-        """Retrieve parameters for a given block name."""
-        if name not in self.blocks:
-            raise KeyError(f"No parameters defined for block '{name}'")
-        return self.blocks[name]
-
-    def validate(self, block_names: Optional[List[str]] = None) -> None:
-        """
-        Optional validation against a list of model block names.
-        """
-        if block_names is None:
-            return
-
-        unknown = set(self.blocks.keys()) - set(block_names)
-        if unknown:
-            raise ValueError(
-                f"Parameters defined for unknown blocks: {sorted(unknown)}"
             )
 
 

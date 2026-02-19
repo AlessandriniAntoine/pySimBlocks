@@ -24,39 +24,22 @@ from typing import Dict, Any, Tuple
 import yaml
 import numpy as np
 import re
-from pySimBlocks.core.config import ModelConfig, SimulationConfig
+from pySimBlocks.core.config import SimulationConfig
 
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
 def _load_yaml(path: Path) -> Dict[str, Any]:
     if not path.exists():
-        raise FileNotFoundError(f"Parameters file not found: {path}")
+        raise FileNotFoundError(f"Project file not found: {path}")
 
     with path.open("r") as f:
         data = yaml.safe_load(f) or {}
 
     if not isinstance(data, dict):
-        raise ValueError("parameters.yaml must define a YAML mapping")
+        raise ValueError("project.yaml must define a YAML mapping")
 
     return data
-
-def convert_to_str(raw: dict) -> dict:
-    def _convert(v):
-        if v is None:
-            return None
-        return str(v)
-
-    if "simulation" in raw:
-        raw["simulation"] = {k: _convert(v) for k, v in raw["simulation"].items()}
-
-    if "blocks" in raw:
-        raw["blocks"] = {
-            b: {k: _convert(v) for k, v in params.items()}
-            for b, params in raw["blocks"].items()
-        }
-
-    return raw
 
 
 
@@ -116,7 +99,7 @@ def _check_no_external_refs(obj):
         if refs:
             raise ValueError(
                 f"Found external references {sorted(refs)} "
-                "but no 'external' module is defined"
+                "but no external module is defined"
             )
 
     elif isinstance(obj, list):
@@ -167,93 +150,17 @@ def eval_recursive(obj: Any, scope: dict):
 # Public API
 # ---------------------------------------------------------------------
 def load_simulation_config(
-    parameters_yaml: str | Path,
-    parameters_dir: Path | None = None,
-) -> Tuple[SimulationConfig, ModelConfig]:
+    project_yaml: str | Path,
+) -> Tuple[SimulationConfig, Dict[str, Any], Path]:
     """
-    Load the configuration required to run a simulation.
-    If a plot config is needed, use: load_project_config
-
-    This function parses:
-      - simulation configuration,
-      - model numerical parameters,
-
-    Parameters:
-        parameters_yaml: path to parameters.yaml
+    Load simulation and diagram configuration from unified project.yaml.
 
     Returns:
-        (SimulationConfig, ModelConfig)
+        (SimulationConfig, model_dict, params_dir)
     """
-    parameters_yaml = Path(parameters_yaml)
-    raw = _load_yaml(parameters_yaml)
-    raw = convert_to_str(raw)
+    from pySimBlocks.project.load_project_config import load_project_config
 
-    # ------------------------------------------------------------
-    # External module handling
-    # ------------------------------------------------------------
-    external_module = None
-    scope = {}
-
-    if "external" in raw:
-        external = raw["external"]
-        if not isinstance(external, str):
-            raise ValueError("'external' must be a path to a Python file")
-
-        external_path = parameters_yaml.parent / external
-        external_module, scope = _load_external_module(external_path)
-    else:
-        _check_no_external_refs(raw)
-
-    # ------------------------------------------------------------
-    # Resolve external references
-    # ------------------------------------------------------------
-    resolved = (
-        _resolve_external_refs(raw, external_module)
-        if external_module is not None
-        else raw
+    sim_cfg, model_dict, _plot_cfg, _project_name, params_dir = load_project_config(
+        project_yaml
     )
-
-    # ------------------------------------------------------------
-    # SimulationConfig
-    # ------------------------------------------------------------
-    sim_data = resolved.get("simulation", {})
-    if not sim_data:
-        raise ValueError("Missing 'simulation' section in parameters.yaml")
-
-    required = {"dt", "T"}
-    missing = required - sim_data.keys()
-    if missing:
-        raise ValueError(
-            f"Missing required simulation parameters: {sorted(missing)}"
-        )
-
-    sim_data = eval_recursive(sim_data, scope)
-
-    sim_cfg = SimulationConfig(
-        dt=sim_data["dt"],
-        T=sim_data["T"],
-        t0=sim_data.get("t0", 0.0),
-        solver=sim_data.get("solver", "fixed"),
-        logging=resolved.get("logging", []),
-        clock=sim_data.get("clock", "internal")
-    )
-
-    sim_cfg.validate()
-
-    # ------------------------------------------------------------
-    # ModelConfig
-    # ------------------------------------------------------------
-    blocks_data = resolved.get("blocks", {})
-    blocks_data = eval_recursive(blocks_data, scope)
-    if not isinstance(blocks_data, dict):
-        raise ValueError("'blocks' section must be a mapping")
-
-    if parameters_dir is None:
-        parameters_dir = parameters_yaml.parent.resolve()
-
-    model_cfg = ModelConfig(
-        blocks=blocks_data,
-        parameters_dir=parameters_dir,
-    )
-
-    return sim_cfg, model_cfg
+    return sim_cfg, model_dict, params_dir

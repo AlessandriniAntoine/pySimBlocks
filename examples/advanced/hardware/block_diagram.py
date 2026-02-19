@@ -1,12 +1,17 @@
 import time
+from pathlib import Path
 
 import numpy as np
 import parameters as prm
 from emioapi import EmioMotors
 
-from pySimBlocks.core import Model, Simulator
-from pySimBlocks.project.load_project_config import load_simulation_config
+from pySimBlocks.project import load_simulator_from_project
 from pySimBlocks.real_time import RealTimeRunner
+
+try:
+    BASE_DIR = Path(__file__).parent.resolve()
+except Exception:
+    BASE_DIR = Path("")
 
 
 # ------------------------------------------------------------------------------
@@ -85,9 +90,7 @@ def process_block_diagram(shared_markers_pos, shared_ref_ol, shared_ref_cl,
 # Helpers
 # ------------------------------------------------------------------------------
 def setup_block_diagram():
-    sim_cfg, model_cfg = load_simulation_config("parameters.yaml")
-    model = Model( name="model", model_yaml="model.yaml", model_cfg=model_cfg)
-    sim = Simulator(model, sim_cfg)
+    sim, _plot_cfg = load_simulator_from_project(BASE_DIR / "project.yaml")
     runner = RealTimeRunner(
         sim,
         input_blocks=["Camera", "Ref_cl", "Ref_ol", "Mode"],

@@ -18,8 +18,6 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import yaml
-
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -31,7 +29,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 
 from pySimBlocks.gui.models.project_state import ProjectState
-from pySimBlocks.gui.services.yaml_tools import dump_parameter_yaml, dump_model_yaml, dump_layout_yaml
+from pySimBlocks.gui.services.yaml_tools import dump_project_yaml
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
@@ -42,7 +40,7 @@ class DisplayYamlDialog(QDialog):
                  parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Generated YAML files")
+        self.setWindowTitle("project.yaml Preview")
         self.resize(900, 600)
 
         self.project_state = project
@@ -55,29 +53,14 @@ class DisplayYamlDialog(QDialog):
         # -------------------------------------------------
         tabs = QTabWidget()
 
-        # Parameters.yaml
-        ptext = dump_parameter_yaml(self.project_state)
-        tabs.addTab(
-            self._make_code_view(ptext),
-            "parameters.yaml"
-        )
-
-        # Model.yaml
-        mtext = dump_model_yaml(self.project_state)
-        tabs.addTab(
-            self._make_code_view(mtext),
-            "model.yaml"
-        )
-
-        # Layout.yaml
         if self.view.block_items:
             blocks_items = self.view.block_items
         else:
             blocks_items = {}
-        ltext = dump_layout_yaml(blocks_items)
+        project_text = dump_project_yaml(self.project_state, blocks_items)
         tabs.addTab(
-            self._make_code_view(ltext),
-            "layout.yaml"
+            self._make_code_view(project_text),
+            "project.yaml"
         )
 
         main_layout.addWidget(tabs)

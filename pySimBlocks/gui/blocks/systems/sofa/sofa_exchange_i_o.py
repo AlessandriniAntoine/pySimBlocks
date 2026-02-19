@@ -49,7 +49,7 @@ class SofaExchangeIOMeta(BlockMeta):
             ParameterMeta(
                 name="scene_file",
                 type="string",
-                description="Path to the SOFA scene file used for automatic generation relative to parameters.yaml file."
+                description="Path to the SOFA scene file used for automatic generation relative to project.yaml file."
             ),
             ParameterMeta(
                 name="input_keys",

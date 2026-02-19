@@ -1,0 +1,80 @@
+schema_version: 1
+
+project:
+  name: state_feedback_gui
+  metadata:
+    created_by: pySimBlocks
+    created_at: "2026-02-18T00:00:00Z"
+
+simulation:
+  dt: 0.02
+  T: 2.0
+  solver: fixed
+  clock: internal
+  external_module: parameters.py
+  logging:
+    - controller.outputs.u
+    - step.outputs.out
+    - system.outputs.x
+    - system.outputs.y
+  plots:
+    - title: Ref vs Output
+      signals: [step.outputs.out, system.outputs.y]
+    - title: Command
+      signals: [controller.outputs.u]
+
+diagram:
+  blocks:
+    - name: controller
+      category: controllers
+      type: state_feedback
+      parameters:
+        K: '#K'
+        G: '#G'
+    - name: step
+      category: sources
+      type: step
+      parameters:
+        value_before: [[0.0]]
+        value_after: [[1.0]]
+        start_time: 0.5
+    - name: system
+      category: systems
+      type: linear_state_space
+      parameters:
+        A: '#A'
+        B: '#B'
+        C: '#C'
+
+  connections:
+    - name: c1
+      ports: [controller.u, system.u]
+    - name: c2
+      ports: [system.x, controller.x]
+    - name: c3
+      ports: [step.out, controller.r]
+
+gui:
+  layout:
+    blocks:
+      controller:
+        x: 25.0
+        y: -18.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      step:
+        x: -170.0
+        y: -30.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      system:
+        x: 195.0
+        y: -15.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+    connections:
+      c2:
+        route: [[330.0, 5.0], [338.0, 5.0], [338.0, 70.0], [11.0, 70.0], [11.0, 22.0], [19.0, 22.0]]
