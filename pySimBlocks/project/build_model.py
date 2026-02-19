@@ -54,6 +54,8 @@ def build_model_from_dict(
         category = desc["category"]
         block_type = desc["type"]
 
+        print(desc)
+
         try:
             block_info = blocks_index[category][block_type]
         except KeyError:

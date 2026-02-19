@@ -78,6 +78,8 @@ class SofaService:
     def export_controller(self, window, saver):
         if window.confirm_discard_or_save("exporting sofa"):
             saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
+        if self.project_state.directory_path is None:
+            raise ValueError("Project directory is not set.\nPlease define it in settings.")
         generate_sofa_controller(self.project_state.directory_path)
 
     def run(self):

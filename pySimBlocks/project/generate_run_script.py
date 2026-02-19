@@ -61,7 +61,6 @@ def generate_run_script(
     Exactly one of the following modes must be used:
       - project_dir (project.yaml expected)
       - project_yaml
-      - model_yaml + parameters_yaml
 
     Parameters
     ----------

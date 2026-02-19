@@ -48,7 +48,7 @@ class SofaPlantMeta(BlockMeta):
                 name="scene_file",
                 type="string",
                 required=True,
-                description="Path to the SOFA scene file, relative to the parameters.yaml file."
+                description="Path to the SOFA scene file, relative to the project.yaml file."
             ),
             ParameterMeta(
                 name="input_keys",

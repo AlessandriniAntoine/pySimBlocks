@@ -41,7 +41,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
     Description:
         - SOFA_MASTER: SOFA is the time master.
-            model_yaml + parameters_yaml required
+            project_yaml required
             pysimblocks time step must be a multiple of sofa time step.
             At each pysimblocks step, the controller:
                 1) reads measurements from the scene
@@ -86,8 +86,6 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.sim: Simulator | None = None
         self.step_index: int = 0
 
-        self.model_yaml: str | None = None
-        self.parameters_yaml: str | None = None
         self.project_yaml: str | None = None
 
     # --------------------------------------------------------------------------
@@ -218,7 +216,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             - the exchange block self.sofa_block (SofaExchangeIO)
             - self.variables_to_log
         """
-        project_path = self.project_yaml or self.parameters_yaml
+        project_path = self.project_yaml
         if project_path is None:
             raise RuntimeError("SOFA_MASTER=True requires project_yaml to be set.")
 
@@ -234,7 +232,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Called once SOFA is initialized AND if SOFA is the master.
         Initialize the pysimblock struture.
         """
-        if self.SOFA_MASTER and self.project_yaml is None and self.parameters_yaml is None:
+        if self.SOFA_MASTER and self.project_yaml is None:
             raise RuntimeError("SOFA_MASTER=True requires project_yaml.")
         if self.dt is None:
             raise ValueError("Sample time dt Must be set at initialization.")
@@ -410,12 +408,16 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         adapted_blocks = []
 
         for block in model_data.get("blocks", []):
-            if block["type"].lower() == "sofa_plant":
-                adapted_blocks.append({
-                    "name": block["name"],
-                    "category": "systems",
-                    "type": "sofa_exchange_i_o",
-                })
+            if not isinstance(block, dict):
+                adapted_blocks.append(block)
+                continue
+
+            block_type = str(block.get("type", "")).lower()
+            if block_type == "sofa_plant":
+                patched = dict(block).copy()
+                patched["type"] = "sofa_exchange_i_o"
+                patched.pop("scene_file", None)
+                adapted_blocks.append(patched)
             else:
                 adapted_blocks.append(block)
 
