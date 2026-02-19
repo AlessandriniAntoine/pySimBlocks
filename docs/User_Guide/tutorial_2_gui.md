@@ -184,4 +184,3 @@ Run it from the command line to verify that the exported script reproduces the s
 
 This tutorial demonstrates how to build and execute a model visually.  
 The next tutorials extend this approach to SOFA integration and real-time execution.
-

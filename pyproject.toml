@@ -20,9 +20,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pysimblocks = "pySimBlocks.gui.editor:main"
-pysimblocks-generate = "pySimBlocks.project.generate:main"
-pysimblocks-update = "pySimBlocks.tools.cli:main"
+pysimblocks = "pySimBlocks.cli:main"
 
 [tool.setuptools]
 include-package-data = true

@@ -48,4 +48,3 @@ Each example can typically be executed either:
 - Directly as a Python script  
 - Through the GUI-based editor `pysimblocks` (for YAML-based projects)
 - Through the generated `run.py` (for GUI-based projects)
-
