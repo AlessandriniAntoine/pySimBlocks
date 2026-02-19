@@ -29,30 +29,55 @@ def main():
     )
 
     parser.add_argument(
-        "folder",
-        nargs="?",
-        help="Project folder containing project.yaml",
+        "-f",
+        "--file",
+        "--project",
+        dest="project_file",
+        help="Path to project.yaml",
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        dest="project_dir",
+        help="Project directory containing project.yaml",
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        help="Output run.py path",
+    )
+    parser.add_argument(
+        "-s",
+        "--sofa-controller",
+        action="store_true",
+        help="Update SOFA controller from project.yaml instead of generating run.py.",
     )
 
-    parser.add_argument("--project", help="Path to project.yaml")
-    parser.add_argument("--out", help="Output run.py path")
-    parser.add_argument(
-            "--sofa-controller",
-            action="store_true",
-            help="Path to sofa controller to update with pysimblocks. Will be overwritten if nothing specify."
-        )
-
     args = parser.parse_args()
+
+    if args.project_file and args.project_dir:
+        parser.error("Use either --file/-f or --directory/-d, not both.")
+
+    project_yaml = None
+    project_dir = None
+
+    if args.project_file:
+        project_yaml = Path(args.project_file)
+    else:
+        if args.project_dir:
+            project_dir = Path(args.project_dir)
+        else:
+            project_dir = Path(".")
 
     if args.sofa_controller:
         from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
         generate_sofa_controller(
-            project_dir=Path(args.folder) if args.folder else None,
-            project_yaml=Path(args.project) if args.project else None,
+            project_dir=project_dir,
+            project_yaml=project_yaml,
         )
     else:
         generate_run_script(
-            project_dir=Path(args.folder) if args.folder else None,
-            project_yaml=Path(args.project) if args.project else None,
+            project_dir=project_dir,
+            project_yaml=project_yaml,
             output=Path(args.out) if args.out else None,
         )

@@ -7,7 +7,7 @@ try:
 except Exception:
     BASE_DIR = Path("")
 
-sim, plot_cfg = load_simulator_from_project(BASE_DIR / "project.yaml")
+sim, plot_cfg = load_simulator_from_project(BASE_DIR / 'project.yaml')
 
 logs = sim.run()
 if True and plot_cfg is not None:
