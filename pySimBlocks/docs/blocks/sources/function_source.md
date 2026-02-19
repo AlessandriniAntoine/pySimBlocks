@@ -2,7 +2,7 @@
 
 ## Summary
 
-The **FunctionSource** block generates a signal from a user-defined Python function
+The **FunctionSource** block generates one or more signals from a user-defined Python function
 without any input ports.
 
 At each activation, it evaluates:
@@ -22,6 +22,7 @@ since the previous activation.
 |------|------|-------------|----------|
 | `file_path` | string | Path to the Python file containing `f`. | Yes |
 | `function_name` | string | Name of the function to call inside the file. | Yes |
+| `output_keys` | list[string] | Names of the output ports. The function must return a dict with exactly these keys. | Yes |
 | `sample_time` | float | Execution period of the block. If omitted, the global simulation time step is used. | No |
 
 ---
@@ -34,17 +35,16 @@ This block has **no inputs**.
 
 ## Outputs
 
-| Port | Description |
-|------|-------------|
-| `out` | Function output signal. |
+Outputs are dynamically defined by `output_keys`.
 
 ---
 
 ## Execution semantics
 
 - The function signature must be exactly: `f(t, dt)`.
-- The returned value may be scalar, 1D, or 2D and is normalized to a 2D array.
-- The output shape is frozen after first evaluation and must stay constant.
+- The function must return a dict with keys exactly matching `output_keys`.
+- Each returned value may be scalar, 1D, or 2D and is normalized to a 2D array.
+- Output shape is frozen per output key after first evaluation and must stay constant.
 - The block is stateless.
 
 
