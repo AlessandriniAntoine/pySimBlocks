@@ -71,10 +71,42 @@ def _build_plot_config(sim_data: Dict[str, Any]) -> PlotConfig | None:
     return plot_cfg
 
 
-def _adapt_diagram_to_model_dict(diagram_data: Dict[str, Any]) -> Dict[str, Any]:
+def _adapt_diagram_to_model_dict(
+    diagram_data: Dict[str, Any],
+    scope: Dict[str, Any],
+) -> Dict[str, Any]:
     blocks = diagram_data.get("blocks", [])
     if not isinstance(blocks, list):
         raise ValueError("'diagram.blocks' section must be a list")
+
+    model_blocks: list[dict[str, Any]] = []
+    for desc in blocks:
+        if not isinstance(desc, dict):
+            raise ValueError("Each block in 'diagram.blocks' must be a mapping")
+
+        name = desc.get("name")
+        category = desc.get("category")
+        block_type = desc.get("type")
+        if not isinstance(name, str) or not isinstance(category, str) or not isinstance(block_type, str):
+            raise ValueError(
+                "Each block in 'diagram.blocks' must define string fields: "
+                "'name', 'category', and 'type'"
+            )
+
+        params_raw = desc.get("parameters", {})
+        if not isinstance(params_raw, dict):
+            raise ValueError(
+                f"'diagram.blocks[{name}].parameters' must be a mapping"
+            )
+
+        model_blocks.append(
+            {
+                "name": name,
+                "category": category,
+                "type": block_type,
+                "parameters": eval_recursive(params_raw, scope),
+            }
+        )
 
     connections_raw = diagram_data.get("connections", [])
     if not isinstance(connections_raw, list):
@@ -100,7 +132,7 @@ def _adapt_diagram_to_model_dict(diagram_data: Dict[str, Any]) -> Dict[str, Any]
         model_connections.append([src, dst])
 
     return {
-        "blocks": blocks,
+        "blocks": model_blocks,
         "connections": model_connections,
     }
 
@@ -158,8 +190,6 @@ def load_project_config(
     if not isinstance(diagram_data, dict):
         raise ValueError("'diagram' section must be a mapping")
 
-    diagram_eval = eval_recursive(diagram_data, scope)
-    model_dict = _adapt_diagram_to_model_dict(diagram_eval)
+    model_dict = _adapt_diagram_to_model_dict(diagram_data, scope)
 
     return sim_cfg, model_dict, plot_cfg, project_name, project_yaml.parent.resolve()
-

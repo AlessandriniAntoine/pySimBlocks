@@ -18,7 +18,7 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-import os
+from pathlib import Path
 
 import yaml
 
@@ -30,15 +30,13 @@ def load_yaml_file(path: str) -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f) or {}
 
-# ===============================================================
-# Custom list type for flow-style sequences
-# ===============================================================
+
 class FlowStyleList(list):
     """Marker class for YAML flow-style lists."""
     pass
 
 
-class ModelYamlDumper(yaml.SafeDumper):
+class ProjectYamlDumper(yaml.SafeDumper):
     pass
 
 
@@ -50,11 +48,8 @@ def _repr_flow_list(dumper, data):
     )
 
 
-
 class FlowMatrix(list):
-    """
-    Marker type for matrices that must be dumped in YAML flow-style.
-    """
+    """Marker type for matrices that must be dumped in YAML flow-style."""
     pass
 
 
@@ -70,9 +65,6 @@ def _is_matrix(obj):
 
 
 def _wrap_flow_matrices(obj):
-    """
-    Recursively wrap matrices into FlowMatrix for YAML dumping.
-    """
     if _is_matrix(obj):
         return FlowMatrix([_wrap_flow_matrices(row) for row in obj])
 
@@ -84,161 +76,116 @@ def _wrap_flow_matrices(obj):
 
     return obj
 
-ModelYamlDumper.add_representer(FlowMatrix, _repr_flow_list)
-ModelYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
 
-# ===============================================================
-# Dump helpers
-# ===============================================================
-def dump_parameter_yaml(
-        project_state: ProjectState | None = None,
-        raw: dict | None = None
-        ) -> str:
-    if project_state:
-        data = build_parameters_yaml(project_state)
-    elif raw:
-        data = raw
-    else:
-        raise ValueError("project or raw must be set")
+ProjectYamlDumper.add_representer(FlowMatrix, _repr_flow_list)
+ProjectYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
 
-    data = _wrap_flow_matrices(data)
 
+def dump_project_yaml(
+    project_state: ProjectState | None = None,
+    block_items: dict[str, BlockItem] | None = None,
+    raw: dict | None = None,
+) -> str:
+    if raw is None:
+        if project_state is None:
+            raise ValueError("project_state or raw must be set")
+        raw = build_project_yaml(project_state, block_items if block_items is not None else {})
+
+    data = _wrap_flow_matrices(raw)
     return yaml.dump(
         data,
-        Dumper=ModelYamlDumper,
-        sort_keys=False
-    )
-
-def dump_model_yaml(
-        project_state: ProjectState | None = None,
-        raw: dict | None = None
-        ) -> str:
-    if project_state:
-        data = build_model_yaml(project_state)
-    elif raw:
-        data = raw
-    else:
-        raise ValueError("project or raw must be set")
-
-    if "connections" in data:
-        data["connections"] = [
-            FlowStyleList(conn) for conn in data["connections"]
-        ]
-
-    return yaml.dump(
-        data,
-        Dumper=ModelYamlDumper,
+        Dumper=ProjectYamlDumper,
         sort_keys=False,
     )
 
-def dump_layout_yaml(
-        block_items: dict[str, BlockItem] | None = None,
-        raw: dict | None = None
-        ) -> str:
-    if block_items is not None:
-        data = build_layout_yaml(block_items)
-    elif raw:
-        data = raw
-    else:
-        raise ValueError("block_items or raw must be set")
 
-    return yaml.dump(
-        data,
-        Dumper=ModelYamlDumper,
-        sort_keys=False,
-    )
-
-# ===============================================================
-# Save functions
-# ===============================================================
 def save_yaml(
-        project_state: ProjectState,
-        block_items: dict[str, BlockItem] | None = None,
-        temp: bool = False) -> None:
-
+    project_state: ProjectState,
+    block_items: dict[str, BlockItem] | None = None,
+    runtime: bool = False,
+) -> None:
     directory = project_state.directory_path
-    params_yaml = build_parameters_yaml(project_state)
-    model_yaml = build_model_yaml(project_state)
+    if directory is None:
+        raise ValueError("project_state.directory_path must be set")
 
-    if temp:
-        temp_dir = directory / ".temp"
-        if "external" in params_yaml:
-            external_abs = directory / params_yaml["external"]
-            external_temp = os.path.relpath(external_abs, temp_dir)
-            params_yaml["external"] = external_temp
-        directory = temp_dir
-
+    project_raw = build_project_yaml(project_state, block_items if block_items is not None else {})
     directory.mkdir(parents=True, exist_ok=True)
+    target = ".project.runtime.yaml" if runtime else "project.yaml"
+    (directory / target).write_text(dump_project_yaml(raw=project_raw))
 
-    (directory / "parameters.yaml").write_text(dump_parameter_yaml(raw=params_yaml))
-    (directory / "model.yaml").write_text(dump_model_yaml(raw=model_yaml))
-    if not temp and block_items is not None:
-        layout_yaml = build_layout_yaml(block_items)
-        (directory / "layout.yaml").write_text(dump_layout_yaml(raw=layout_yaml))
 
-# ===============================================================
-# Build function
-# ===============================================================
-def build_parameters_yaml(project_state: ProjectState) -> dict:
-    data = {
-        "simulation": project_state.simulation.__dict__.copy(),
-        "blocks": {},
-        "logging": project_state.logging,
-        "plots": project_state.plots,
-    }
+def runtime_project_yaml_path(project_dir: Path) -> Path:
+    return project_dir / ".project.runtime.yaml"
 
-    if data["simulation"]["clock"] == "internal":
-        data["simulation"].pop("clock")
 
+def cleanup_runtime_project_yaml(project_dir: Path | None) -> None:
+    if project_dir is None:
+        return
+
+    runtime_yaml = runtime_project_yaml_path(project_dir)
+    if runtime_yaml.exists():
+        runtime_yaml.unlink(missing_ok=True)
+
+
+def _build_simulation_section(project_state: ProjectState) -> dict:
+    simulation = project_state.simulation.__dict__.copy()
+    if simulation.get("clock") == "internal":
+        simulation.pop("clock", None)
+
+    if project_state.external is not None:
+        simulation["external_module"] = project_state.external
+
+    simulation["logging"] = list(project_state.logging)
+    simulation["plots"] = list(project_state.plots)
+    return simulation
+
+
+def _build_blocks_section(project_state: ProjectState) -> list[dict]:
+    blocks = []
     for b in project_state.blocks:
         params = {
             k: v for k, v in b.parameters.items()
             if v is not None and b.meta.is_parameter_active(k, b.parameters)
         }
-        data["blocks"][b.name] = params
-
-    if project_state.external is not None:
-        data["external"] = project_state.external
-
-    return data
-
-
-def build_model_yaml(project_state: ProjectState) -> dict:
-    return {
-        "blocks": [
+        blocks.append(
             {
                 "name": b.name,
                 "category": b.meta.category,
                 "type": b.meta.type,
+                "parameters": params,
             }
-            for b in project_state.blocks
-        ],
-        "connections": [
-             [f"{c.src_block().name}.{c.src_port.name}",
-              f"{c.dst_block().name}.{c.dst_port.name}",
-            ]
-            for c in project_state.connections
-        ],
-    }
+        )
+    return blocks
 
-def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
-    """
-    Build layout.yaml content from the current diagram view.
 
-    This function extracts ONLY visual information.
-    """
+def _build_connections_section(project_state: ProjectState) -> tuple[list[dict], dict[tuple[str, str], str]]:
+    connections = []
+    conn_name_map: dict[tuple[str, str], str] = {}
 
-    data = {
-        "version": 1,
-        "blocks": {}
-    }
+    for i, c in enumerate(project_state.connections, start=1):
+        src = f"{c.src_block().name}.{c.src_port.name}"
+        dst = f"{c.dst_block().name}.{c.dst_port.name}"
+        conn_name = f"c{i}"
+        conn_name_map[(src, dst)] = conn_name
 
+        connections.append(
+            {
+                "name": conn_name,
+                "ports": FlowStyleList([src, dst]),
+            }
+        )
+    return connections, conn_name_map
+
+
+def _build_layout_section(
+    block_items: dict[str, BlockItem],
+    conn_name_map: dict[tuple[str, str], str],
+) -> dict:
+    data: dict = {"blocks": {}}
     manual_connections = {}
     seen = set()
 
     for block in block_items.values():
-
-        # block logic
         name = block.instance.name
         pos = block.pos()
         data["blocks"][name] = {
@@ -249,41 +196,115 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
             "height": float(block.rect().height()),
         }
 
-    if len(data["blocks"]) == 0:
+    if not block_items:
         return data
 
-    view = block.view
-
+    view = next(iter(block_items.values())).view
     for conn in view.connections.values():
         if conn in seen:
             continue
         seen.add(conn)
-
         if not conn.is_manual:
             continue
 
-        src_port = conn.src_port
-        src_bname = src_port.parent_block.instance.name
-        src_pname = src_port.instance.name
-        dst_port = conn.dst_port
-        dst_bname = dst_port.parent_block.instance.name
-        dst_pname = dst_port.instance.name
+        src = f"{conn.src_port.parent_block.instance.name}.{conn.src_port.instance.name}"
+        dst = f"{conn.dst_port.parent_block.instance.name}.{conn.dst_port.instance.name}"
+        conn_name = conn_name_map.get((src, dst), None)
+        if conn_name is None:
+            continue
 
-        key = f"{src_bname}.{src_pname} -> {dst_bname}.{dst_pname}"
-        value = {
-            "ports": FlowStyleList( [
-                f"{src_bname}.{src_pname}", f"{dst_bname}.{dst_pname}"
-                ]),
+        manual_connections[conn_name] = {
             "route": FlowStyleList([
                 FlowStyleList([float(p.x()), float(p.y())])
                 for p in conn.route.points
-                ])
-            }
-
-        manual_connections[key] = value
+            ])
+        }
 
     if manual_connections:
         data["connections"] = manual_connections
 
-
     return data
+
+
+def build_project_yaml(
+    project_state: ProjectState,
+    block_items: dict[str, BlockItem] | None = None,
+) -> dict:
+    block_items = block_items if block_items is not None else {}
+    project_name = (
+        project_state.directory_path.name
+        if project_state.directory_path is not None
+        else "project"
+    )
+
+    blocks = _build_blocks_section(project_state)
+    connections, conn_name_map = _build_connections_section(project_state)
+    layout = _build_layout_section(block_items, conn_name_map)
+
+    return {
+        "schema_version": 1,
+        "project": {
+            "name": project_name,
+            "metadata": {
+                "created_by": "pySimBlocks",
+                "created_at": "2026-02-18T00:00:00Z",
+            },
+        },
+        "simulation": _build_simulation_section(project_state),
+        "diagram": {
+            "blocks": blocks,
+            "connections": connections,
+        },
+        "gui": {
+            "layout": layout,
+        },
+    }
+
+
+# ---------------------------------------------------------------------
+# Compatibility helpers (used by current DisplayYamlDialog)
+# ---------------------------------------------------------------------
+def dump_parameter_yaml(
+    project_state: ProjectState | None = None,
+    raw: dict | None = None,
+) -> str:
+    if raw is None:
+        if project_state is None:
+            raise ValueError("project_state or raw must be set")
+        raw = _build_simulation_section(project_state)
+    return yaml.dump(
+        _wrap_flow_matrices(raw),
+        Dumper=ProjectYamlDumper,
+        sort_keys=False,
+    )
+
+
+def dump_model_yaml(
+    project_state: ProjectState | None = None,
+    raw: dict | None = None,
+) -> str:
+    if raw is None:
+        if project_state is None:
+            raise ValueError("project_state or raw must be set")
+        blocks = _build_blocks_section(project_state)
+        connections, _ = _build_connections_section(project_state)
+        raw = {"blocks": blocks, "connections": connections}
+    return yaml.dump(
+        _wrap_flow_matrices(raw),
+        Dumper=ProjectYamlDumper,
+        sort_keys=False,
+    )
+
+
+def dump_layout_yaml(
+    block_items: dict[str, BlockItem] | None = None,
+    raw: dict | None = None,
+) -> str:
+    if raw is None:
+        block_items = block_items if block_items is not None else {}
+        raw = _build_layout_section(block_items, {})
+    return yaml.dump(
+        _wrap_flow_matrices(raw),
+        Dumper=ProjectYamlDumper,
+        sort_keys=False,
+    )

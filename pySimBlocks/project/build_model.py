@@ -57,6 +57,10 @@ def build_model_from_dict(
         try:
             block_info = blocks_index[category][block_type]
         except KeyError:
+            print(f"Available blocks in category '{category}':")
+            for bt in blocks_index.get(category, {}):
+                print(f"  - {bt}")
+            print(desc)
             raise ValueError(
                 f"Unknown block '{block_type}' in category '{category}'."
             )

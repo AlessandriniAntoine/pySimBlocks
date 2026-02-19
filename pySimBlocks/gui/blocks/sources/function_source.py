@@ -47,7 +47,7 @@ class FunctionSourceMeta(BlockMeta):
                 required=True,
                 description=(
                     "Path to the Python file containing the function, relative to "
-                    "the parameters.yaml file."
+                    "the project.yaml file."
                 ),
             ),
             ParameterMeta(

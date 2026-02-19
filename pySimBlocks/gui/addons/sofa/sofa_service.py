@@ -26,7 +26,11 @@ from PySide6.QtCore import QProcess, QProcessEnvironment
 
 from pySimBlocks.gui.models.project_state import ProjectState
 from pySimBlocks.gui.project_controller import ProjectController
-from pySimBlocks.gui.services.yaml_tools import save_yaml
+from pySimBlocks.gui.services.yaml_tools import (
+    cleanup_runtime_project_yaml,
+    runtime_project_yaml_path,
+    save_yaml,
+)
 from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
 
 
@@ -87,16 +91,14 @@ class SofaService:
         if not self.scene_file or not os.path.exists(self.scene_file):
             return False, "scene file not found", ""
 
-        # save yaml on temp dir
         project_dir = self.project_state.directory_path
         if project_dir is None:
             return {}, False, "Project directory is not set.\nPlease define it in settings."
-        temp_dir = project_dir / ".temp"
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        temp_dir.mkdir(parents=True)
-        save_yaml(project_state=self.project_state, temp=True)
-        generate_sofa_controller(temp_dir)
+
+        runtime_yaml = runtime_project_yaml_path(project_dir)
+        cleanup_runtime_project_yaml(project_dir)
+        save_yaml(project_state=self.project_state, runtime=True)
+        generate_sofa_controller(project_yaml=runtime_yaml)
 
         # set command
         plugins = "SofaPython3"
@@ -111,25 +113,28 @@ class SofaService:
         self.process.setArguments(args)
 
         self.process.setProcessChannelMode(QProcess.MergedChannels)
-        self.process.start()
-        if not self.process.waitForStarted():
-            return False, "Launch failed", "runSofa could not start"
-        self.process.waitForFinished(-1)
-
         try:
-            generate_sofa_controller(project_dir)
-        except Exception as e:
-            return False, "Could not regenerate controller", "model and parameters yaml does not exists.\n" + str(e)
+            self.process.start()
+            if not self.process.waitForStarted():
+                return False, "Launch failed", "runSofa could not start"
+            self.process.waitForFinished(-1)
 
-        # get output results
-        output = self.process.readAllStandardOutput().data().decode()
-        errors = self.process.readAllStandardError().data().decode()
-        full_log = output + "\n" + errors
-        exit_code = self.process.exitCode()
-        if exit_code != 0:
-            return False, "SOFA exited with error", f"exit code = {exit_code}\n\n{full_log}"
+            try:
+                generate_sofa_controller(project_dir)
+            except Exception as e:
+                return False, "Could not regenerate controller", "project.yaml does not exist.\n" + str(e)
 
-        return True, "SOFA finished", "Process terminated correctly"
+            # get output results
+            output = self.process.readAllStandardOutput().data().decode()
+            errors = self.process.readAllStandardError().data().decode()
+            full_log = output + "\n" + errors
+            exit_code = self.process.exitCode()
+            if exit_code != 0:
+                return False, "SOFA exited with error", f"exit code = {exit_code}\n\n{full_log}"
+
+            return True, "SOFA finished", "Process terminated correctly"
+        finally:
+            cleanup_runtime_project_yaml(project_dir)
 
     def _check_sofa_environnment(self):
         sofa_root = os.environ.get("SOFA_ROOT")

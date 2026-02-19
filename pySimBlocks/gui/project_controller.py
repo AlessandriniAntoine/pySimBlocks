@@ -19,7 +19,6 @@
 # ******************************************************************************
 
 import copy
-import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -34,6 +33,7 @@ from pySimBlocks.gui.models import (
 )
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
+from pySimBlocks.gui.services.yaml_tools import cleanup_runtime_project_yaml
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.services.project_loader import ProjectLoader
@@ -241,10 +241,7 @@ class ProjectController(QObject):
 
     # ------------------------------------------------------------------
     def update_project_param(self, new_path: Path, ext: str):
-        if self.project_state.directory_path:
-            temp = self.project_state.directory_path / ".temp"
-            if temp.exists():
-                shutil.rmtree(temp, ignore_errors=True)
+        cleanup_runtime_project_yaml(self.project_state.directory_path)
         if new_path != self.project_state.directory_path:
             self.make_dirty()
         self.project_state.directory_path = new_path

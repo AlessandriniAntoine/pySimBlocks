@@ -18,8 +18,6 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from ast import Constant
-import shutil
 from pathlib import Path
 from typing import Dict, List
 
@@ -34,6 +32,7 @@ from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
 from pySimBlocks.gui.services.simulation_runner import SimulationRunner
+from pySimBlocks.gui.services.yaml_tools import cleanup_runtime_project_yaml
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
@@ -103,13 +102,8 @@ class MainWindow(QMainWindow):
     # Auto Load
     # --------------------------------------------------------------------------
     def auto_load_detection(self, project_path: Path) -> bool:
-        param_yaml = self._auto_detect_yaml(
-            project_path, ["parameters.yaml"])
-        model_yaml = self._auto_detect_yaml(
-            project_path, ["model.yaml"])
-        if param_yaml and model_yaml:
-            return True
-        return False
+        project_yaml = self._auto_detect_yaml(project_path, ["project.yaml"])
+        return project_yaml is not None
 
     # ------------------------------------------------------------------
     def _auto_detect_yaml(self, project_path: Path, names: list[str]) -> str | None:
@@ -141,9 +135,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
     def cleanup(self):
-        temp_path = self.project_state.directory_path / ".temp"
-        if temp_path.exists():
-            shutil.rmtree(temp_path, ignore_errors=True)
+        cleanup_runtime_project_yaml(self.project_state.directory_path)
 
     # ------------------------------------------------------------------
     def closeEvent(self, event):

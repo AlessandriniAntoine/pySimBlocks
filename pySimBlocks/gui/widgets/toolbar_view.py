@@ -53,7 +53,7 @@ class ToolBarView(QToolBar):
         export_action.triggered.connect(self.on_export_project)
         self.addAction(export_action)
 
-        display_action = QAction("Display files", self)
+        display_action = QAction("Project YAML", self)
         display_action.triggered.connect(self.on_open_display_yaml)
         self.addAction(display_action)
 

@@ -23,18 +23,26 @@ class ProjectSaverYaml(ProjectSaver):
     def save(self, 
              project_state: ProjectState, 
              block_items: dict[str, BlockItem] | None = None
-    ):        
-        save_yaml(project_state, block_items if block_items is not None else {})
+    ):
+        save_yaml(
+            project_state,
+            block_items if block_items is not None else {},
+        )
 
 
     def export(self, 
                project_state: ProjectState,
                block_items: dict[str, BlockItem] | None = None
     ):
-        save_yaml(project_state, block_items if block_items is not None else {})
+        if project_state.directory_path is None:
+            raise ValueError("Project directory is not set.")
+
+        save_yaml(
+            project_state,
+            block_items if block_items is not None else {},
+        )
         run_py = project_state.directory_path / "run.py"
         run_py.write_text(
-            generate_python_content(
-                model_yaml_path="model.yaml", parameters_yaml_path="parameters.yaml"
-            )
+            generate_python_content(project_yaml_path="project.yaml")
         )
+        

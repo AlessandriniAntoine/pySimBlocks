@@ -120,7 +120,7 @@ class NonLinearStateSpace(Block):
                 f"NonLinearStateSpace adapter missing parameter: {e}"
             )
 
-        # --- 2. Resolve file path (relative to parameters.yaml)
+        # --- 2. Resolve file path (relative to project.yaml directory)
         path = Path(file_path)
         if not path.is_absolute():
             path = (params_dir / path).resolve()

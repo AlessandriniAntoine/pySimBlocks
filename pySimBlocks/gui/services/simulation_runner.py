@@ -1,8 +1,11 @@
 import os
-import shutil
 import sys
 from pySimBlocks.gui.models import ProjectState
-from pySimBlocks.gui.services.yaml_tools import save_yaml
+from pySimBlocks.gui.services.yaml_tools import (
+    cleanup_runtime_project_yaml,
+    runtime_project_yaml_path,
+    save_yaml,
+)
 from pySimBlocks.project.generate_run_script import generate_python_content
 
 
@@ -15,21 +18,13 @@ class SimulationRunner:
                 False,
                 "Project directory is not set.\nPlease define it in settings.",
             )
-        
-        temp_dir = project_dir / ".temp"
 
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        temp_dir.mkdir(parents=True)
-        save_yaml(project_state, temp=True)
-
-        model_path = temp_dir / "model.yaml"
-        param_path = temp_dir / "parameters.yaml"
+        project_path = runtime_project_yaml_path(project_dir)
+        cleanup_runtime_project_yaml(project_dir)
+        save_yaml(project_state, runtime=True)
 
         code = generate_python_content(
-            model_yaml_path=str(model_path),
-            parameters_yaml_path=str(param_path),
-            parameters_dir=str(project_dir),
+            project_yaml_path=str(project_path),
             enable_plots=False,
         )
 
@@ -37,7 +32,7 @@ class SimulationRunner:
         old_sys_path = list(sys.path)
         env = {}
         try:
-            os.chdir(temp_dir)
+            os.chdir(project_dir)
             sys.path.insert(0, str(project_dir))
             exec(code, env, env)
             logs = env.get("logs")
@@ -48,3 +43,4 @@ class SimulationRunner:
         finally:
             os.chdir(old_cwd)
             sys.path[:] = old_sys_path
+            cleanup_runtime_project_yaml(project_dir)

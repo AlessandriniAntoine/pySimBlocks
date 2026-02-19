@@ -52,7 +52,7 @@ class AlgebraicFunctionMeta(BlockMeta):
                 name="file_path",
                 type="string",
                 required=True,
-                description="Path to the Python file containing the function relative to the parameters.yaml file."
+                description="Path to the Python file containing the function relative to the project.yaml file."
             ),
             ParameterMeta(
                 name="function_name",

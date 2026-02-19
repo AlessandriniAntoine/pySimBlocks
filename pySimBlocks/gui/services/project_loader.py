@@ -1,76 +1,90 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from pySimBlocks.gui.services.yaml_tools import load_yaml_file
-from pySimBlocks.gui.project_controller import ProjectController
 from PySide6.QtCore import QPointF
 
+from pySimBlocks.gui.project_controller import ProjectController
+from pySimBlocks.gui.services.yaml_tools import load_yaml_file
+
+
 class ProjectLoader(ABC):
-    
     @abstractmethod
     def load(self, controller: ProjectController, directory: Path):
         pass
 
+
 class ProjectLoaderYaml(ProjectLoader):
-
     def load(self, controller: ProjectController, directory: Path):
-        model_yaml = directory / "model.yaml"
-        params_yaml = directory / "parameters.yaml"
-        layout_yaml = directory / "layout.yaml"
+        project_yaml = directory / "project.yaml"
+        project_data = load_yaml_file(str(project_yaml))
 
-        # 1. Parse YAML
-        model_data = load_yaml_file(str(model_yaml))
-        params_data = load_yaml_file(str(params_yaml))
-        layout_blocks, layout_conns, layout_warnings = self._load_layout_data(
-            layout_yaml
-        )
+        if not isinstance(project_data, dict):
+            raise ValueError("project.yaml is not a valid mapping.")
+
+        sim_data = project_data.get("simulation", {})
+        diagram_data = project_data.get("diagram", {})
+        gui_data = project_data.get("gui", {})
+
+        layout_blocks, layout_conns, layout_warnings = self._load_layout_data(gui_data)
         for w in layout_warnings:
             print(f"[Layout warning] {w}")
 
-        # 2. Reset current state
         controller.clear()
 
-        # 3. build model
-        self._load_simulation(controller, params_data)
-        self._load_blocks(controller, model_data, params_data, layout_blocks)
-        self._load_connections(controller, model_data, layout_conns)
-        self._load_logging(controller, params_data)
-        self._load_plots(controller, params_data)
+        self._load_simulation(controller, sim_data)
+        self._load_blocks(controller, diagram_data, layout_blocks)
+        self._load_connections(controller, diagram_data, layout_conns)
+        self._load_logging(controller, sim_data)
+        self._load_plots(controller, sim_data)
 
         controller.clear_dirty()
 
-    
-    def _load_simulation(self, controller: ProjectController, params_data: dict):
-        sim_data: dict = params_data.get("simulation", {})
-        controller.project_state.load_simulation(sim_data, params_data.get("external", None))
+    def _load_simulation(self, controller: ProjectController, sim_data: dict):
+        if not isinstance(sim_data, dict):
+            sim_data = {}
+        controller.project_state.load_simulation(
+            sim_data, sim_data.get("external_module", None)
+        )
 
-    def _load_blocks(self, 
-                     controller: ProjectController, 
-                     model_data: dict, 
-                     params_data: dict,
-                     layout_blocks: dict = {}):
+    def _load_blocks(
+        self,
+        controller: ProjectController,
+        diagram_data: dict,
+        layout_blocks: dict | None = None,
+    ):
         positions, position_warnings = self._compute_block_positions(
-            model_data, layout_blocks
-            )
+            diagram_data, layout_blocks
+        )
         for w in position_warnings:
             print(f"[Layout blocks warning] {w}")
-        
-        blocks = model_data.get("blocks", [])
-        params_blocks = params_data.get("blocks", {})
 
-        for block in blocks:
-            name = block["name"]
-            category = block["category"]
-            block_type = block["type"]
-            
-            block_layout = self._sanitize_block_layout(layout_blocks.get(name, {}))
+        blocks = diagram_data.get("blocks", [])
+        if not isinstance(blocks, list):
+            raise ValueError("'diagram.blocks' must be a list.")
+
+        for desc in blocks:
+            if not isinstance(desc, dict):
+                print("[Block warning] Invalid block entry in diagram.blocks, ignored.")
+                continue
+
+            name = desc.get("name")
+            category = desc.get("category")
+            block_type = desc.get("type")
+            if not isinstance(name, str) or not isinstance(category, str) or not isinstance(block_type, str):
+                print("[Block warning] Block missing required fields (name/category/type), ignored.")
+                continue
+
+            block_layout = self._sanitize_block_layout((layout_blocks or {}).get(name, {}))
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
             block = controller.add_block(category, block_type, block_layout)
             controller.rename_block(block, name)
 
-            # ---- parameters ----
-            raw_params = params_blocks.get(name, {})
+            raw_params = desc.get("parameters", {})
+            if not isinstance(raw_params, dict):
+                print(f"[Block warning] Invalid parameters for block '{name}', ignored.")
+                raw_params = {}
+
             for pmeta in block.meta.parameters:
                 pname = pmeta.name
                 if pname in raw_params:
@@ -101,34 +115,49 @@ class ProjectLoaderYaml(ProjectLoader):
 
         return out
 
-    def _load_connections(self, 
-                          controller: ProjectController,
-                          model_data: dict,
-                          layout_conns: dict | None):
-        connections = model_data.get("connections", [])
+    def _load_connections(
+        self,
+        controller: ProjectController,
+        diagram_data: dict,
+        layout_conns: dict | None,
+    ):
+        connections = diagram_data.get("connections", [])
+        if not isinstance(connections, list):
+            raise ValueError("'diagram.connections' must be a list.")
 
-        routes, routes_warnings = self._parse_manual_routes(
-                model_data, layout_conns
-                )
+        routes, routes_warnings = self._parse_manual_routes(diagram_data, layout_conns)
         for w in routes_warnings:
             print(f"[Layout connections warning] {w}")
 
-        for src, dst in connections:
-            
+        for conn in connections:
+            if not isinstance(conn, dict):
+                print("[Connection warning] Invalid connection entry, ignored.")
+                continue
+
+            conn_name = conn.get("name", None)
+            ports = conn.get("ports", None)
+            if not isinstance(ports, list) or len(ports) != 2:
+                print("[Connection warning] Connection has invalid ports, ignored.")
+                continue
+            src, dst = ports
+            if not isinstance(src, str) or not isinstance(dst, str):
+                print("[Connection warning] Connection ports must be strings, ignored.")
+                continue
+
             src_block_name, src_port_name = src.split(".")
             dst_block_name, dst_port_name = dst.split(".")
 
             src_block = controller.project_state.get_block(src_block_name)
             dst_block = controller.project_state.get_block(dst_block_name)
 
-            src_port = next(
-                (p for p in src_block.ports if p.name == src_port_name),
-                None
-            )
-            dst_port = next(
-                (p for p in dst_block.ports if p.name == dst_port_name),
-                None
-            )
+            if src_block is None or dst_block is None:
+                print(
+                    f"[Connection warning] Cannot create connection {src} -> {dst}, missing block(s)."
+                )
+                continue
+
+            src_port = next((p for p in src_block.ports if p.name == src_port_name), None)
+            dst_port = next((p for p in dst_block.ports if p.name == dst_port_name), None)
 
             if src_port is None or dst_port is None:
                 missing = []
@@ -136,83 +165,79 @@ class ProjectLoaderYaml(ProjectLoader):
                     missing.append(f"{src_block_name}.{src_port_name}")
                 if dst_port is None:
                     missing.append(f"{dst_block_name}.{dst_port_name}")
-                print(f"[Connection warning] Cannot create connection {src} -> {dst}, missing port(s): {', '.join(missing)}")
+                print(
+                    f"[Connection warning] Cannot create connection {src} -> {dst}, "
+                    f"missing port(s): {', '.join(missing)}"
+                )
                 continue
 
-            points = routes.get(f"{src} -> {dst}", None)
+            points = routes.get(conn_name, None) if isinstance(conn_name, str) else None
             controller.add_connection(src_port, dst_port, points)
 
-    def _load_logging(self, 
-                      controller: ProjectController,
-                      params_data: dict):
-        log_data = params_data.get("logging", {})
-        controller.project_state.logging = log_data
+    def _load_logging(self, controller: ProjectController, sim_data: dict):
+        log_data = sim_data.get("logging", [])
+        controller.project_state.logging = log_data if isinstance(log_data, list) else []
 
-    def _load_plots(self, 
-                    controller: ProjectController,
-                    params_data: dict):
-        plot_data = params_data.get("plots", {})
-        controller.project_state.plots = plot_data
+    def _load_plots(self, controller: ProjectController, sim_data: dict):
+        plot_data = sim_data.get("plots", [])
+        controller.project_state.plots = plot_data if isinstance(plot_data, list) else []
 
-    def _load_layout_data(self, layout_path: Path) -> tuple[dict, dict, list[str]]:
+    def _load_layout_data(self, gui_data: dict) -> tuple[dict, dict, list[str]]:
         """
-        Load layout.yaml if it exists.
-
-        Returns:
-            layout_data: dict or None
-            warnings: list of warning strings
+        Load layout data from:
+            gui.layout.blocks
+            gui.layout.connections
         """
         warnings = []
 
-        if not layout_path.exists():
+        if not isinstance(gui_data, dict):
             return {}, {}, warnings
 
-        try:
-            data = load_yaml_file(str(layout_path))
-        except Exception as e:
-            warnings.append(f"Failed to parse layout.yaml: {e}")
+        layout = gui_data.get("layout", {})
+        if layout is None:
+            return {}, {}, warnings
+        if not isinstance(layout, dict):
+            warnings.append("project.yaml gui.layout is invalid, ignored.")
             return {}, {}, warnings
 
-        if not isinstance(data, dict):
-            warnings.append("layout.yaml is not a valid mapping, ignored.")
-            return {}, {}, warnings
-
-        blocks = data.get("blocks", {})
+        blocks = layout.get("blocks", {})
         if not isinstance(blocks, dict):
-            warnings.append("layout.yaml.blocks is invalid, ignored.")
+            warnings.append("project.yaml gui.layout.blocks is invalid, ignored.")
             return {}, {}, warnings
 
-        conns = data.get("connections", {})
+        conns = layout.get("connections", {})
         if conns is not None and not isinstance(conns, dict):
-            warnings.append("layout.yaml.connections is invalid, ignored.")
+            warnings.append("project.yaml gui.layout.connections is invalid, ignored.")
             conns = {}
 
         return blocks, conns, warnings
 
     def _compute_block_positions(
         self,
-        model_data: dict, layout_blocks: dict | None
+        diagram_data: dict,
+        layout_blocks: dict | None,
     ) -> tuple[dict[str, QPointF], list[str]]:
-        """
-        Decide final positions for each block in the model.
-
-        Returns:
-            positions: dict[name -> QPointF]
-            warnings: list of warning strings
-        """
         warnings = []
         positions = {}
 
-        # automatic layout parameters
         x, y = 0, 0
         dx, dy = 180, 120
 
-        blocks = model_data.get("blocks", [])
+        blocks = diagram_data.get("blocks", [])
+        if not isinstance(blocks, list):
+            return positions, ["'diagram.blocks' must be a list."]
 
-        model_block_names = {b["name"] for b in blocks}
+        model_block_names = {
+            b.get("name")
+            for b in blocks
+            if isinstance(b, dict) and isinstance(b.get("name"), str)
+        }
         layout_block_names = set(layout_blocks.keys()) if layout_blocks else set()
 
         for block in blocks:
+            if not isinstance(block, dict) or not isinstance(block.get("name"), str):
+                continue
+
             name = block["name"]
 
             if layout_blocks and name in layout_blocks:
@@ -223,82 +248,93 @@ class ProjectLoaderYaml(ProjectLoader):
                 if isinstance(x_val, (int, float)) and isinstance(y_val, (int, float)):
                     positions[name] = QPointF(float(x_val), float(y_val))
                     continue
-                else:
-                    warnings.append(
-                        f"Invalid position for block '{name}' in layout.yaml, auto-placed."
-                    )
+                warnings.append(
+                    f"Invalid position for block '{name}' in project.yaml gui.layout.blocks, auto-placed."
+                )
 
             else:
                 if layout_blocks is not None:
                     warnings.append(
-                        f"Block '{name}' not found in layout.yaml, auto-placed."
+                        f"Block '{name}' not found in project.yaml gui.layout.blocks, auto-placed."
                     )
 
-            # fallback automatic placement
             positions[name] = QPointF(x, y)
             x += dx
             if x > 800:
                 x = 0
                 y += dy
 
-        # layout blocks not in model
         for name in layout_block_names - model_block_names:
             warnings.append(
-                f"layout.yaml contains block '{name}' not present in model.yaml."
+                f"project.yaml gui.layout.blocks contains '{name}' not present in diagram.blocks."
             )
 
         return positions, warnings
 
-
     def _parse_manual_routes(
         self,
-        model_data: dict,
-        layout_connections: dict | None
+        diagram_data: dict,
+        layout_connections: dict | None,
     ) -> tuple[dict[str, list[QPointF]], list[str]]:
-        """
-        Returns:
-            routes: dict[key -> list[QPointF]] for VALID routes only
-            warnings: list[str]
-        """
         warnings = []
         routes: dict[str, list[QPointF]] = {}
 
         if not layout_connections:
             return routes, warnings
 
-        blocks = model_data.get("blocks", [])
-        model_block_names = {b["name"] for b in blocks}
-        model_conn_keys = model_data.get("connections", [])
+        blocks = diagram_data.get("blocks", [])
+        connections = diagram_data.get("connections", [])
+        if not isinstance(blocks, list) or not isinstance(connections, list):
+            return routes, warnings
 
-        for key, payload in layout_connections.items():
+        model_block_names = {
+            b.get("name")
+            for b in blocks
+            if isinstance(b, dict) and isinstance(b.get("name"), str)
+        }
+        model_connections_by_name = {}
+        for conn in connections:
+            if not isinstance(conn, dict):
+                continue
+            name = conn.get("name")
+            ports = conn.get("ports")
+            if isinstance(name, str) and isinstance(ports, list) and len(ports) == 2:
+                model_connections_by_name[name] = ports
 
+        for conn_name, payload in layout_connections.items():
+            if conn_name not in model_connections_by_name:
+                warnings.append(
+                    f"project.yaml gui.layout.connections contains unknown connection '{conn_name}', ignored."
+                )
+                continue
+
+            ports = model_connections_by_name[conn_name]
             try:
-                ports = payload["ports"]
-                src_block, src_port = [s.strip() for s in ports[0].split(".", 1)]
-                dst_block, dst_port = [s.strip() for s in ports[1].split(".", 1)]
+                src_block, _src_port = [s.strip() for s in ports[0].split(".", 1)]
+                dst_block, _dst_port = [s.strip() for s in ports[1].split(".", 1)]
             except Exception:
-                warnings.append(f"Invalid connection key '{key}' in layout.yaml, ignored.")
+                warnings.append(
+                    f"Invalid ports for connection '{conn_name}' in diagram.connections, ignored."
+                )
                 continue
 
             if src_block not in model_block_names or dst_block not in model_block_names:
                 warnings.append(
-                    f"layout.yaml contains connection '{key}' but a block is missing in model.yaml, ignored."
-                )
-                continue
-
-            if ports not in model_conn_keys:
-                warnings.append(
-                    f"layout.yaml contains connection '{ports}' not present in model.yaml, ignored."
+                    f"project.yaml layout connection '{conn_name}' references missing block(s), ignored."
                 )
                 continue
 
             if not isinstance(payload, dict) or "route" not in payload:
-                warnings.append(f"layout.yaml connection '{key}' has no valid 'route', ignored.")
+                warnings.append(
+                    f"project.yaml layout connection '{conn_name}' has no valid 'route', ignored."
+                )
                 continue
 
             raw_route = payload["route"]
             if not isinstance(raw_route, list) or len(raw_route) < 2:
-                warnings.append(f"layout.yaml connection '{key}' route is invalid/too short, ignored.")
+                warnings.append(
+                    f"project.yaml layout connection '{conn_name}' route is invalid/too short, ignored."
+                )
                 continue
 
             pts: list[QPointF] = []
@@ -315,9 +351,11 @@ class ProjectLoaderYaml(ProjectLoader):
                 pts.append(QPointF(float(pt[0]), float(pt[1])))
 
             if not ok:
-                warnings.append(f"layout.yaml connection '{key}' route has invalid points, ignored.")
+                warnings.append(
+                    f"project.yaml layout connection '{conn_name}' route has invalid points, ignored."
+                )
                 continue
 
-            routes[key] = pts
+            routes[conn_name] = pts
 
         return routes, warnings
