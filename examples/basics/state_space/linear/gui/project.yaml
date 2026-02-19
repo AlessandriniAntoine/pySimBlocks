@@ -1,0 +1,133 @@
+schema_version: 1
+
+project:
+  name: linear_state_space_gui
+  metadata:
+    created_by: pySimBlocks
+    created_at: "2026-02-18T00:00:00Z"
+
+simulation:
+  dt: 0.01
+  T: 5.0
+  solver: fixed
+  clock: internal
+  logging:
+    - ref.outputs.out
+    - delay.outputs.out
+    - plant.outputs.x
+    - plant.outputs.y
+    - C.outputs.out
+  plots:
+    - title: System response
+      signals: [delay.outputs.out, plant.outputs.x, ref.outputs.out]
+
+diagram:
+  blocks:
+    - name: ref
+      category: sources
+      type: step
+      parameters:
+        value_before: [[0.0]]
+        value_after: [[1.0]]
+        start_time: 0.5
+    - name: sum
+      category: operators
+      type: sum
+      parameters:
+        signs: ++
+    - name: A
+      category: operators
+      type: gain
+      parameters:
+        gain: [[0.0, 0.25], [0.3, 0.91]]
+        multiplication: Matrix (K @ u)
+    - name: B
+      category: operators
+      type: gain
+      parameters:
+        gain: [[0.5], [0.3]]
+        multiplication: Matrix (K @ u)
+    - name: delay
+      category: operators
+      type: delay
+      parameters:
+        num_delays: 1
+        initial_output: [[0.0], [0.0]]
+    - name: plant
+      category: systems
+      type: linear_state_space
+      parameters:
+        A: [[0.0, 0.25], [0.3, 0.91]]
+        B: [[0.5], [0.3]]
+        C: [[0.0, 1.0]]
+        x0: [[0.0], [0.0]]
+    - name: C
+      category: operators
+      type: gain
+      parameters:
+        gain: [[0.0, 1.0]]
+        multiplication: Matrix (K @ u)
+  connections:
+    - name: c1
+      ports: [ref.out, B.in]
+    - name: c2
+      ports: [B.out, sum.in1]
+    - name: c3
+      ports: [A.out, sum.in2]
+    - name: c4
+      ports: [sum.out, delay.in]
+    - name: c5
+      ports: [delay.out, A.in]
+    - name: c6
+      ports: [ref.out, plant.u]
+    - name: c7
+      ports: [delay.out, C.in]
+
+gui:
+  layout:
+    blocks:
+      ref:
+        x: 0.0
+        y: -5.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      sum:
+        x: 348.0
+        y: 5.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      A:
+        x: 430.0
+        y: 140.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      B:
+        x: 175.0
+        y: -5.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      delay:
+        x: 545.0
+        y: 15.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      plant:
+        x: 176.0
+        y: -99.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      C:
+        x: 745.0
+        y: 15.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+    connections:
+      c3:
+        route: [[415.0, 170.0], [407.0, 170.0], [407.0, 170.0], [334.0, 170.0], [334.0, 45.0], [342.0, 45.0]]

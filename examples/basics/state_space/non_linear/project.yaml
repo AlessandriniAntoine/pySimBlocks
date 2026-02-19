@@ -1,0 +1,52 @@
+schema_version: 1
+
+project:
+  name: non_linear_state_space
+  metadata:
+    created_by: pySimBlocks
+    created_at: "2026-02-18T00:00:00Z"
+
+simulation:
+  dt: 0.1
+  T: 10.0
+  solver: fixed
+  clock: internal
+  logging:
+    - Step.outputs.out
+    - NLSS.outputs.y
+  plots: []
+
+diagram:
+  blocks:
+    - name: Step
+      category: sources
+      type: step
+      parameters:
+        value_before: [[0.0]]
+        value_after: [[1.0]]
+        start_time: 1.0
+    - name: NLSS
+      category: systems
+      type: non_linear_state_space
+      parameters:
+        file_path: nlss.py
+        state_function_name: f
+        output_function_name: g
+        input_keys: [u]
+        output_keys: [y]
+        x0: [[0.0], [0.0]]
+  connections:
+    - name: c1
+      ports: [Step.out, NLSS.u]
+
+gui:
+  layout:
+    blocks:
+      Step:
+        x: 10.0
+        y: 0.0
+        orientation: normal
+      NLSS:
+        x: 180.0
+        y: 0.0
+        orientation: normal

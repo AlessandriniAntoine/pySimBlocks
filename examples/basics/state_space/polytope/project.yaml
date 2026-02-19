@@ -1,0 +1,76 @@
+schema_version: 1
+
+project:
+  name: polytopic_state_space
+  metadata:
+    created_by: pySimBlocks
+    created_at: "2026-02-18T00:00:00Z"
+
+simulation:
+  dt: 0.1
+  T: 10.0
+  solver: fixed
+  clock: internal
+  external_module: params.py
+  logging:
+    - Polytope.outputs.x
+    - Polytope.outputs.y
+    - weights.outputs.w
+  plots: []
+
+diagram:
+  blocks:
+    - name: Polytope
+      category: systems
+      type: polytopic_state_space
+      parameters:
+        A: '#A'
+        B: '#B'
+        C: '#C'
+    - name: weights
+      category: operators
+      type: algebraic_function
+      parameters:
+        file_path: weights.py
+        function_name: get_weights
+        input_keys: [c]
+        output_keys: [w]
+    - name: Step
+      category: sources
+      type: step
+      parameters:
+        value_before: [[0.0]]
+        value_after: [[1.0]]
+        start_time: 1.0
+    - name: Constant
+      category: sources
+      type: constant
+      parameters:
+        value: [[0.3]]
+  connections:
+    - name: c1
+      ports: [Step.out, Polytope.u]
+    - name: c2
+      ports: [weights.w, Polytope.w]
+    - name: c3
+      ports: [Constant.out, weights.c]
+
+gui:
+  layout:
+    blocks:
+      Polytope:
+        x: -164.0
+        y: -107.0
+        orientation: normal
+      weights:
+        x: -400.0
+        y: -150.0
+        orientation: normal
+      Step:
+        x: -400.0
+        y: -60.0
+        orientation: normal
+      Constant:
+        x: -575.0
+        y: -150.0
+        orientation: normal
