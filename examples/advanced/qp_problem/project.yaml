@@ -1,0 +1,65 @@
+schema_version: 1
+project:
+  name: qp_problem
+  metadata:
+    created_by: pySimBlocks
+    created_at: '2026-02-18T00:00:00Z'
+simulation:
+  dt: 0.1
+  T: 10.0
+  solver: fixed
+  external_module: params.py
+  logging:
+  - QuadraticProgram.outputs.x
+  - QuadraticProgram.outputs.status
+  - QuadraticProgram.outputs.cost
+  - P.outputs.out
+  - q.outputs.out
+  plots: []
+diagram:
+  blocks:
+  - name: QuadraticProgram
+    category: optimizers
+    type: quadratic_program
+    parameters:
+      solver: clarabel
+  - name: P
+    category: sources
+    type: constant
+    parameters:
+      value: '#P'
+  - name: q
+    category: sources
+    type: constant
+    parameters:
+      value: '#q'
+  connections:
+  - name: c1
+    ports:
+    - P.out
+    - QuadraticProgram.P
+  - name: c2
+    ports:
+    - q.out
+    - QuadraticProgram.q
+gui:
+  layout:
+    blocks:
+      QuadraticProgram:
+        x: 155.0
+        y: -710.0
+        orientation: normal
+        width: 245.0
+        height: 175.0
+      P:
+        x: -80.0
+        y: -720.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      q:
+        x: -75.0
+        y: -610.0
+        orientation: normal
+        width: 120.0
+        height: 60.0

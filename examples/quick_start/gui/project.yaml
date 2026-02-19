@@ -1,0 +1,114 @@
+schema_version: 1
+project:
+  name: gui
+  metadata:
+    created_by: pySimBlocks
+    created_at: '2026-02-18T00:00:00Z'
+simulation:
+  dt: 0.05
+  T: 30.0
+  solver: fixed
+  logging:
+  - v.outputs.out
+  - x.outputs.out
+  plots:
+  - title: Position and Velocity
+    signals:
+    - v.outputs.out
+    - x.outputs.out
+diagram:
+  blocks:
+  - name: v
+    category: operators
+    type: discrete_integrator
+    parameters:
+      initial_state: 5.0
+      method: euler forward
+  - name: x
+    category: operators
+    type: discrete_integrator
+    parameters:
+      initial_state: 2.0
+      method: euler forward
+  - name: Sum
+    category: operators
+    type: sum
+    parameters:
+      signs: --
+  - name: damping
+    category: operators
+    type: gain
+    parameters:
+      gain: 0.5
+      multiplication: Element wise (K * u)
+  - name: stiffness
+    category: operators
+    type: gain
+    parameters:
+      gain: 2.0
+      multiplication: Element wise (K * u)
+  connections:
+  - name: c1
+    ports:
+    - Sum.out
+    - v.in
+  - name: c2
+    ports:
+    - v.out
+    - x.in
+  - name: c3
+    ports:
+    - v.out
+    - damping.in
+  - name: c4
+    ports:
+    - x.out
+    - stiffness.in
+  - name: c5
+    ports:
+    - damping.out
+    - Sum.in2
+  - name: c6
+    ports:
+    - stiffness.out
+    - Sum.in1
+gui:
+  layout:
+    blocks:
+      v:
+        x: -570.0
+        y: -300.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      x:
+        x: -370.0
+        y: -300.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Sum:
+        x: -740.0
+        y: -300.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      damping:
+        x: -570.0
+        y: -210.0
+        orientation: flipped
+        width: 130.0
+        height: 65.0
+      stiffness:
+        x: -555.0
+        y: -410.0
+        orientation: flipped
+        width: 135.0
+        height: 65.0
+    connections:
+      c4:
+        route: [[-235.0, -270.0], [-225.0, -270.0], [-225.0, -322.5], [-225.0, -322.5],
+          [-225.0, -377.5], [-414.0, -377.5]]
+      c6:
+        route: [[-570.0, -377.5], [-755.0, -377.5], [-755.0, -322.5], [-755.0, -322.5],
+          [-755.0, -280.0], [-746.0, -280.0]]

@@ -1,0 +1,249 @@
+schema_version: 1
+project:
+  name: hardware
+  metadata:
+    created_by: pySimBlocks
+    created_at: '2026-02-18T00:00:00Z'
+simulation:
+  dt: 1/60
+  T: 10.0
+  solver: fixed
+  clock: external
+  external_module: parameters.py
+  logging:
+  - Cmd.outputs.out
+  - SF.outputs.u
+  - Ref_cl.outputs.out
+  - Ref_ol.outputs.out
+  - Select.outputs.u
+  - Mode.outputs.out
+  plots: []
+diagram:
+  blocks:
+  - name: Cmd
+    category: interfaces
+    type: external_output
+    parameters: {}
+  - name: SF
+    category: controllers
+    type: state_feedback
+    parameters:
+      K: '#K'
+      G: '#G'
+  - name: Ref_cl
+    category: interfaces
+    type: external_input
+    parameters: {}
+  - name: Ref_ol
+    category: interfaces
+    type: external_input
+    parameters: {}
+  - name: Select
+    category: operators
+    type: algebraic_function
+    parameters:
+      file_path: block_diagram.py
+      function_name: select_cmd
+      input_keys:
+      - u_cl
+      - u_ol
+      - mode
+      output_keys:
+      - u
+  - name: Mode
+    category: interfaces
+    type: external_input
+    parameters: {}
+  - name: Filter
+    category: operators
+    type: algebraic_function
+    parameters:
+      file_path: block_diagram.py
+      function_name: filter_first_order
+      input_keys:
+      - u
+      - u_prev
+      output_keys:
+      - u_filter
+  - name: Delay
+    category: operators
+    type: delay
+    parameters:
+      num_delays: 1
+      initial_output: np.zeros((2,1))
+  - name: Rate
+    category: operators
+    type: rate_limiter
+    parameters:
+      rising_slope: 7.906
+      falling_slope: -7.906
+  - name: Luenberger
+    category: observers
+    type: luenberger
+    parameters:
+      A: '#A'
+      B: '#B'
+      C: '#C'
+      L: '#L'
+      x0: '#x0'
+  - name: Mux
+    category: operators
+    type: mux
+    parameters:
+      num_inputs: 2
+  - name: Delay_1
+    category: operators
+    type: delay
+    parameters:
+      num_delays: 1
+      initial_output: np.zeros((2,1))
+  - name: Camera
+    category: interfaces
+    type: external_input
+    parameters: {}
+  connections:
+  - name: c1
+    ports:
+    - Ref_cl.out
+    - SF.r
+  - name: c2
+    ports:
+    - Ref_ol.out
+    - Select.u_ol
+  - name: c3
+    ports:
+    - Mode.out
+    - Select.mode
+  - name: c4
+    ports:
+    - SF.u
+    - Select.u_cl
+  - name: c5
+    ports:
+    - Select.u
+    - Filter.u
+  - name: c6
+    ports:
+    - Delay.out
+    - Filter.u_prev
+  - name: c7
+    ports:
+    - Filter.u_filter
+    - Delay.in
+  - name: c8
+    ports:
+    - Filter.u_filter
+    - Rate.in
+  - name: c9
+    ports:
+    - Rate.out
+    - Cmd.in
+  - name: c10
+    ports:
+    - Luenberger.x_hat
+    - Mux.in1
+  - name: c11
+    ports:
+    - Mux.out
+    - SF.x
+  - name: c12
+    ports:
+    - Rate.out
+    - Delay_1.in
+  - name: c13
+    ports:
+    - Delay_1.out
+    - Luenberger.u
+  - name: c14
+    ports:
+    - Delay_1.out
+    - Mux.in2
+  - name: c15
+    ports:
+    - Camera.out
+    - Luenberger.y
+gui:
+  layout:
+    blocks:
+      Cmd:
+        x: 1000.0
+        y: 75.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      SF:
+        x: 225.0
+        y: -20.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Ref_cl:
+        x: 25.0
+        y: -30.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Ref_ol:
+        x: 230.0
+        y: 65.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Select:
+        x: 420.0
+        y: 65.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Mode:
+        x: 230.0
+        y: 140.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Filter:
+        x: 625.0
+        y: 75.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Delay:
+        x: 635.0
+        y: 155.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      Rate:
+        x: 800.0
+        y: 75.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Luenberger:
+        x: 465.0
+        y: -135.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      Mux:
+        x: 235.0
+        y: -135.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      Delay_1:
+        x: 675.0
+        y: -80.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      Camera:
+        x: 650.0
+        y: -190.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+    connections:
+      c14:
+        route: [[660.0, -50.0], [652.0, -50.0], [410.0, -50.0], [410.0, -95.0], [
+            369.0, -95.0], [361.0, -95.0]]

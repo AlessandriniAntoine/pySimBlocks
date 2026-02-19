@@ -110,6 +110,9 @@ To open the graphical editor, run:
 pysimblocks examples/quick_start/gui
 ```
 
+The quick-start GUI project is stored in a single
+`examples/quick_start/gui/project.yaml` file.
+
 ### Tutorials
 
 See the [Getting Started Guide](./docs/User_Guide/getting_started.md) for
