@@ -146,7 +146,7 @@ class SofaService:
             return False, "SOFA_ROOT is not set."
 
         if not sofa_py3:
-            return False, "SOFAPYTHON3_ROOT is not set."
+             return False, "SOFAPYTHON3_ROOT is not set."
 
         return True, "OK"
 
@@ -154,6 +154,14 @@ class SofaService:
         detected = shutil.which("runSofa")
         if not detected:
             detected = shutil.which("runsofa")
+        
+        if not detected:
+            sofa_root = os.environ.get("SOFA_ROOT")
+            if sofa_root:
+                potential_path = Path(sofa_root) / "bin" / "runSofa"
+                if potential_path.exists():
+                    detected = str(potential_path) 
+
         if detected:
             self.sofa_path = detected
 
