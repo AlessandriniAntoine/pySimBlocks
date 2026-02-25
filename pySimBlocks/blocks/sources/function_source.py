@@ -21,7 +21,7 @@
 import importlib.util
 import inspect
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 
@@ -38,14 +38,16 @@ class FunctionSource(BlockSource):
 
     Notes:
         - The function must accept exactly (t, dt).
-        - Returned value can be scalar, 1D, or 2D (internally normalized to 2D).
-        - Output shape is frozen after first successful evaluation.
+        - Function must return a dict with keys matching output_keys.
+        - Each output value can be scalar, 1D, or 2D (internally normalized to 2D).
+        - Output shape is frozen independently for each output key.
     """
 
     def __init__(
         self,
         name: str,
         function: Callable,
+        output_keys: List[str] | None = None,
         sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
@@ -54,8 +56,14 @@ class FunctionSource(BlockSource):
             raise TypeError(f"[{self.name}] 'function' must be callable.")
 
         self._func = function
-        self._out_shape: tuple[int, int] | None = None
-        self.outputs["out"] = np.zeros((1, 1), dtype=float)
+        self.output_keys = ["out"] if output_keys is None else list(output_keys)
+        if len(self.output_keys) == 0:
+            raise ValueError(f"[{self.name}] output_keys cannot be empty.")
+
+        self.outputs: Dict[str, np.ndarray | None] = {k: None for k in self.output_keys}
+        self._out_shapes: Dict[str, tuple[int, int] | None] = {
+            k: None for k in self.output_keys
+        }
 
     # --------------------------------------------------------------------------
     # Class Methods
@@ -107,6 +115,8 @@ class FunctionSource(BlockSource):
         adapted.pop("file_path", None)
         adapted.pop("function_name", None)
         adapted["function"] = func
+        if "output_keys" not in adapted:
+            adapted["output_keys"] = ["out"]
         return adapted
 
     # --------------------------------------------------------------------------
@@ -114,38 +124,55 @@ class FunctionSource(BlockSource):
     # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self._validate_signature()
-        self.outputs["out"] = self._call_func(t0, 0.0)
+        out = self._call_func(t0, 0.0)
+        for key in self.output_keys:
+            self.outputs[key] = out[key]
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        self.outputs["out"] = self._call_func(t, dt)
+        out = self._call_func(t, dt)
+        for key in self.output_keys:
+            self.outputs[key] = out[key]
 
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
-    def _call_func(self, t: float, dt: float) -> np.ndarray:
+    def _call_func(self, t: float, dt: float) -> Dict[str, np.ndarray]:
         try:
-            y = self._func(t, dt)
+            out = self._func(t, dt)
         except Exception as e:
             raise RuntimeError(f"[{self.name}] function call error: {e}")
 
-        y = self._to_2d_array("out", y, dtype=float)
-        if y.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] function output must be scalar, 1D, or 2D."
+        if not isinstance(out, dict):
+            raise RuntimeError(
+                f"[{self.name}] function must return a dict with output keys: "
+                f"{self.output_keys}."
             )
 
-        if self._out_shape is None:
-            self._out_shape = y.shape
-            return y
-
-        if y.shape != self._out_shape:
-            raise ValueError(
-                f"[{self.name}] output 'out' shape changed: expected "
-                f"{self._out_shape}, got {y.shape}."
+        if set(out.keys()) != set(self.output_keys):
+            raise RuntimeError(
+                f"[{self.name}] output keys mismatch "
+                f"(expected {self.output_keys}, got {list(out.keys())})."
             )
 
-        return y
+        normalized: Dict[str, np.ndarray] = {}
+        for key in self.output_keys:
+            y = self._to_2d_array(key, out[key], dtype=float)
+            if y.ndim != 2:
+                raise ValueError(
+                    f"[{self.name}] output '{key}' must be scalar, 1D, or 2D."
+                )
+
+            if self._out_shapes[key] is None:
+                self._out_shapes[key] = y.shape
+            elif y.shape != self._out_shapes[key]:
+                raise ValueError(
+                    f"[{self.name}] output '{key}' shape changed: expected "
+                    f"{self._out_shapes[key]}, got {y.shape}."
+                )
+            normalized[key] = y
+
+        return normalized
 
     # ------------------------------------------------------------------
     def _validate_signature(self) -> None:

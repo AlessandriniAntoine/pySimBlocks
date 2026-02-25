@@ -22,11 +22,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
 
 from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit, QPushButton
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta, ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
+from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class FunctionSourceMeta(BlockMeta):
@@ -40,7 +42,8 @@ class FunctionSourceMeta(BlockMeta):
             "This block evaluates a user-provided Python function with no inputs:\n\n"
             "    y = f(t, dt)\n\n"
             "The function is loaded from an external Python file and executed at each\n"
-            "activation. The output is exposed on the `out` port."
+            "activation. The function must return a dict whose keys match\n"
+            "`output_keys`. One output port is created for each key."
         )
 
         self.parameters = [
@@ -60,6 +63,14 @@ class FunctionSourceMeta(BlockMeta):
                 description="Name of the function to call inside the Python file.",
             ),
             ParameterMeta(
+                name="output_keys",
+                type="list[string]",
+                required=True,
+                autofill=True,
+                default=["out"],
+                description="List of output port names. The function must return a dict with exactly these keys.",
+            ),
+            ParameterMeta(
                 name="sample_time",
                 type="float",
                 description="Optional execution period of the block.",
@@ -69,11 +80,36 @@ class FunctionSourceMeta(BlockMeta):
         self.outputs = [
             PortMeta(
                 name="out",
-                display_as="out",
-                shape=["n", "m"],
-                description="Function output signal.",
+                display_as="",
+                shape=[],
+                description="Function output signals defined by output_keys.",
             )
         ]
+
+    # --------------------------------------------------------------------------
+    # Port resolution
+    # --------------------------------------------------------------------------
+    def resolve_port_group(
+        self,
+        port_meta: PortMeta,
+        direction: Literal["input", "output"],
+        instance: "BlockInstance",
+    ) -> list["PortInstance"]:
+        if direction == "output":
+            keys = instance.parameters.get("output_keys", [])
+            if keys is None:
+                return []
+            return [
+                PortInstance(
+                    name=f"{key}",
+                    display_as=key,
+                    direction="output",
+                    block=instance,
+                )
+                for key in keys
+            ]
+
+        return super().resolve_port_group(port_meta, direction, instance)
 
     # --------------------------------------------------------------------------
     # Dialog methods
