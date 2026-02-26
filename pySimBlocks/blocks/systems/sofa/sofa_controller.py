@@ -34,6 +34,8 @@ try:
 except ImportError:
     _imgui = False
 
+print(f"SOFA ImGui support: {_imgui}")
+
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
     """
@@ -352,6 +354,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         if not self._imgui:
             return
+
         if self.sim is None:
             raise RuntimeError("Simulator not initialized.")
 
@@ -376,6 +379,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         Update ImGui sliders for selected variables.
         """
+        if not self._imgui:
+            return 
+
         for var in self._slider_data:
             block_name, key = var.split(".")
             block = self.get_block(block_name)

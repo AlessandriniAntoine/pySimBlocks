@@ -19,7 +19,7 @@ We build a simple closed-loop control system composed of three elements:
 - a PI controller, 
 - a first-order discrete-time linear plant.
 
-![Alt Text](./images/tutorial_1-block_diagram.png)
+![Block-Diagram](./images/tutorial_1-block_diagram.png)
 
 **Plant — Linear State-Space System**  
 The plant is a discrete-time first-order linear system defined by:

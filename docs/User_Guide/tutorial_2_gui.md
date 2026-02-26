@@ -22,7 +22,7 @@ We build a simple closed-loop control system composed of three elements:
 - a PI controller, 
 - a first-order discrete-time linear plant.
 
-![Alt Text](./images/tutorial_1-block_diagram.png)
+![Block Diagram](./images/tutorial_1-block_diagram.png)
 
 ## 2. Step-by-Step Construction
 
@@ -35,7 +35,7 @@ $ cd tutorial-gui
 $ pysimblocks
 ```
 The main window opens, with the `Toolbar` at the top, the `Blocks List` on the left, and the `Diagram View` on the right.
-![Alt Text](./images/tutorial_2-gui_main.png)
+![Gui](./images/tutorial_2-gui_main.png)
 
 ### 2.2 Add the Blocks 
 
@@ -44,7 +44,7 @@ Add the required blocks to the diagram.
 2. Drag the selected block into the `Diagram View` 
 3. Repeat this for all required blocks and arrange them in the `Diagram View`. 
 
-![Alt Text](./images/tutorial_2-drag_drop.gif)
+![Drag-Drop](./images/tutorial_2-drag_drop.gif)
 
 **Tips:** 
 - Once you have all your blocks, if you click anywhere in the `Diagram View`, you can use `space` to center the view on all blocks.
@@ -58,7 +58,7 @@ To connect two blocks: Select the first port (input or output) and drag the conn
 
 When dragging the cable, a dashed line appears between the starting port and the cursor. The line becomes solid once the connection is valid.
 
-![Alt Text](./images/tutorial_2-connections.gif)
+![Connection](./images/tutorial_2-connections.gif)
 
 ⚠️ The two ports must be of different types (input to output). 
 
@@ -90,7 +90,7 @@ Renaming a block updates its label in the `Diagram View`. In [Tutorial 1](./tuto
 
 All required parameters must be defined before running the simulation.
 
-![Alt Text](./images/tutorial_2-block_dialog.gif)
+![Block-Dialog](./images/tutorial_2-block_dialog.gif)
 
 **Tips:** 
 - Scalars are represented as `(1,1)` arrays. But you can create matrix or vector by defining `[[0.5], [0.3]]`  which will be set to a `(2,1)` numpy array.
@@ -108,7 +108,7 @@ Click the `Settings` button in the `Toolbar`. A dialog opens with multiple panel
 Custom plots can be defined in the `Plots` panel for quick access after the simulation You must define:
 - the title 
 - the signals 
-![Alt Text](./images/tutorial_2-setting.gif)
+![Setting](./images/tutorial_2-setting.gif)
 
 ⚠️ Click `Apply` before switching panels, otherwise the changes will not be saved.  
 Click on `ok` to close.
@@ -120,13 +120,13 @@ Once all parameters are configured, run the simulation using the `Run` button in
 Click the `Plot` button in the `Toolbar` to visualize the results. A dialog opens where you can either:
 - Plot selected logged signals in a single graph.
 - Open your predefined plots. 
-![Alt Text](./images/tutorial_2-plots.gif)
+![Plots](./images/tutorial_2-plots.gif)
 
 Under the hood, the GUI generates the same `Model` structure used in [Tutorial 1](./tutorial_1_python.md). The execution engine remains identical.
 
 ## 3. Generate Project Files 
 
-### Saving
+### 3.1 Saving
 
 Saving the project using the `Save` button in the `Toolbar` creates a unified `project.yaml` file in the current folder.
 
@@ -138,7 +138,7 @@ This file contains:
 
 This single file fully describes the model and can be reloaded in the GUI or executed programmatically in Python.
 
-### Exporting a Python Runner
+### 3.2 Exporting a Python Runner
 
 The `Export` button in the `Toolbar` generates a `run.py` file.
 
