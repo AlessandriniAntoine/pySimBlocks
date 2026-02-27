@@ -33,6 +33,7 @@ class SimulationSettingsWidget(QWidget):
         super().__init__()
         self.project_state = project_state
         self.project_controller = project_controller
+        self._logs_dirty = False
 
         layout = QFormLayout(self)
         layout.addRow(QLabel("<b>Simulation Settings</b>"))
@@ -84,7 +85,9 @@ class SimulationSettingsWidget(QWidget):
         ]
 
         self.project_controller.update_simulation_params(params)
-        self.project_controller.set_logged_signals(selected_signals)
+        if self._logs_dirty:
+            self.project_controller.set_logged_signals(selected_signals)
+            self._logs_dirty = False
 
     def refresh_from_project(self):
         """
@@ -103,6 +106,7 @@ class SimulationSettingsWidget(QWidget):
             )
 
         self.logs_list.blockSignals(False)
+        self._logs_dirty = False
 
     def _define_log_list(self):
         self.logs_list.blockSignals(True)
@@ -115,8 +119,10 @@ class SimulationSettingsWidget(QWidget):
             item.setCheckState(Qt.Checked if sig in selected else Qt.Unchecked)
             self.logs_list.addItem(item)
         self.logs_list.blockSignals(False)
+        self._logs_dirty = False
 
     def _on_log_changed(self, item: QListWidgetItem):
+        self._logs_dirty = True
         if item.checkState() == Qt.Unchecked:
             used = any(
                 item.text() in plot["signals"]
