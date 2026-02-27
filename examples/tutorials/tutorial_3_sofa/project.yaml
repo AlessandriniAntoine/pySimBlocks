@@ -1,0 +1,100 @@
+schema_version: 1
+project:
+  name: tutorial_3_sofa
+  metadata:
+    created_by: pySimBlocks
+    created_at: '2026-02-18T00:00:00Z'
+simulation:
+  dt: 0.01
+  T: 10.0
+  solver: fixed
+  logging:
+  - ref.outputs.out
+  - Sofa.outputs.measure
+  plots:
+  - title: Ref vs Output
+    signals:
+    - ref.outputs.out
+    - Sofa.outputs.measure
+diagram:
+  blocks:
+  - name: ref
+    category: sources
+    type: constant
+    parameters:
+      value: [[1.0]]
+  - name: error
+    category: operators
+    type: sum
+    parameters:
+      signs: +-
+  - name: PID
+    category: controllers
+    type: pid
+    parameters:
+      controller: PI
+      Kp: 0.2
+      Ki: 1.3
+  - name: Sofa
+    category: systems
+    type: sofa_plant
+    parameters:
+      scene_file: finger/Finger.py
+      input_keys:
+      - cable
+      output_keys:
+      - measure
+      slider_params:
+        ref.value:
+        - -10.0
+        - 50.0
+        PID.Kp:
+        - 0.01
+        - 3.0
+        PID.Ki:
+        - 0.01
+        - 3.0
+  connections:
+  - name: c1
+    ports:
+    - error.out
+    - PID.e
+  - name: c2
+    ports:
+    - ref.out
+    - error.in1
+  - name: c3
+    ports:
+    - PID.u
+    - Sofa.cable
+  - name: c4
+    ports:
+    - Sofa.measure
+    - error.in2
+gui:
+  layout:
+    blocks:
+      ref:
+        x: -480.0
+        y: -45.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      error:
+        x: -265.0
+        y: -35.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      PID:
+        x: -95.0
+        y: -35.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Sofa:
+        x: 95.0
+        y: -35.0
+        orientation: normal
+        width: 155.0
+        height: 60.0

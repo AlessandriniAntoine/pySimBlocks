@@ -46,9 +46,10 @@ Add the required blocks to the diagram.
 
 ![Drag-Drop](./images/tutorial_2-drag_drop.gif)
 
-**Tips:** 
-- Once you have all your blocks, if you click anywhere in the `Diagram View`, you can use `space` to center the view on all blocks.
-- To rotate a block, select it and press `Ctrl+R`. 
+> **Notes:** 
+> - You can click anywhere in the `Diagram View`, and use `space` to center the view on 
+> all blocks.
+> - To rotate a block, select it and press `Ctrl+R`. 
 
 ### 2.3 Connect the Blocks
 
@@ -62,7 +63,8 @@ When dragging the cable, a dashed line appears between the starting port and the
 
 ⚠️ The two ports must be of different types (input to output). 
 
-**Tips:** You can move a connection by selecting the line and moving your mouse. However, if a connected block moves, the connection is recomputed.
+>  **Notes:** You can move a connection by selecting the line and moving your mouse. 
+>  However, if a connected block moves, the connection is recomputed.
 
 ### 2.4 Configure the Parameters 
 
@@ -92,9 +94,10 @@ All required parameters must be defined before running the simulation.
 
 ![Block-Dialog](./images/tutorial_2-block_dialog.gif)
 
-**Tips:** 
-- Scalars are represented as `(1,1)` arrays. But you can create matrix or vector by defining `[[0.5], [0.3]]`  which will be set to a `(2,1)` numpy array.
-- Use the Help button for a detailed description of the block.
+> **Notes:** 
+> - Scalars are represented as `(1,1)` arrays. But you can create matrix or vector by
+> defining `[[0.5], [0.3]]`  which will be set to a `(2,1)` numpy array.
+> - Use the Help button for a detailed description of the block.
 
 #### 2.4.b For the Simulation
 
@@ -183,4 +186,4 @@ After modifying the model, save the project and export a new `run.py` file.
 Run it from the command line to verify that the exported script reproduces the same behavior.
 
 This tutorial demonstrates how to build and execute a model visually.  
-The next tutorials extend this approach to SOFA integration and real-time execution.
+The next tutorials extend this approach to [SOFA integration](./tutorial_3_sofa.md) and real-time execution.
