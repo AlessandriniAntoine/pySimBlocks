@@ -370,7 +370,11 @@ class MyBlockMeta(BlockMeta):
         try:
             relative_path = selected_path.relative_to(base_resolved)
         except ValueError:
-            relative_path = Path(os.path.relpath(str(selected_path), str(base_resolved)))
+            try:
+                relative_path = Path(os.path.relpath(str(selected_path), str(base_resolved)))
+            except ValueError:
+                # Windows cross-drive case (e.g. C: -> D:): keep absolute path.
+                relative_path = selected_path
 
         edit.setText(relative_path.as_posix())
 
