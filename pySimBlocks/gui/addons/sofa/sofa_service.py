@@ -149,9 +149,12 @@ class SofaService:
         detected = None
         sofa_root = os.environ.get("SOFA_ROOT")
         if sofa_root:
-            potential_path = Path(sofa_root) / "bin" / "runSofa"
-            if potential_path.exists():
-                detected = str(potential_path) 
+            bin_dir = Path(sofa_root) / "bin"
+            for candidate in ("runSofa", "runSofa.exe"):
+                potential_path = bin_dir / candidate
+                if potential_path.exists():
+                    detected = str(potential_path)
+                    break
 
         if not detected:
             detected = shutil.which("runSofa")

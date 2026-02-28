@@ -110,8 +110,15 @@ def inject_project_path_into_controller(
     src = inject_base_dir(src)
 
     controller_dir = controller_file.parent
-    rel_project = os.path.relpath(project_yaml, controller_dir)
-    expr = f'self.project_yaml = str((BASE_DIR / "{rel_project}").resolve())'
+    project_yaml = project_yaml.resolve()
+
+    try:
+        rel_project = Path(os.path.relpath(project_yaml, controller_dir))
+        project_expr = f"(BASE_DIR / {rel_project.as_posix()!r}).resolve()"
+    except ValueError:
+        project_expr = f"Path({project_yaml.as_posix()!r}).resolve()"
+
+    expr = f"self.project_yaml = str({project_expr})"
 
     pattern = r"self\.project_yaml\s*=.*"
     if re.search(pattern, src):
