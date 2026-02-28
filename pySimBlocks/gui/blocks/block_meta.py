@@ -372,7 +372,7 @@ class MyBlockMeta(BlockMeta):
         except ValueError:
             relative_path = Path(os.path.relpath(str(selected_path), str(base_resolved)))
 
-        edit.setText(str(relative_path))
+        edit.setText(relative_path.as_posix())
 
     # ------------------------------------------------------------
     def _on_param_changed( self, val: str, name: str, session: BlockDialogSession, readonly: bool,):

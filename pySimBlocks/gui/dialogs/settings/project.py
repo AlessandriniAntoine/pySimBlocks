@@ -114,7 +114,7 @@ class ProjectSettingsWidget(QWidget):
         except ValueError:
             relative_path = Path(os.path.relpath(str(selected_path), str(base_dir.resolve())))
 
-        self.external_edit.setText(str(relative_path))
+        self.external_edit.setText(relative_path.as_posix())
 
     def browse_project_directory(self):
         current_dir = Path(self.dir_edit.text()).expanduser()
