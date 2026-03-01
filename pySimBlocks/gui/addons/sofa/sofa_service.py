@@ -170,7 +170,7 @@ class SofaService:
         if project_dir is None:
             raise RuntimeError("Project directory is not set")
 
-        path = Path(scene_file)
+        path = Path(scene_file).expanduser()
         if not path.is_absolute():
             path = (project_dir / path).resolve()
 

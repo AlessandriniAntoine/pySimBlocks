@@ -53,7 +53,9 @@ def _load_scope(raw: Dict[str, Any], project_yaml: Path) -> Tuple[Any, Dict[str,
     if not isinstance(external_module_path, str):
         raise ValueError("'simulation.external_module' must be a path to a Python file")
 
-    external_path = project_yaml.parent / external_module_path
+    external_path = Path(external_module_path).expanduser()
+    if not external_path.is_absolute():
+        external_path = project_yaml.parent / external_path
     external_module, scope = _load_external_module(external_path)
     return external_module, scope
 

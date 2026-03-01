@@ -180,7 +180,7 @@ def _resolve_scene_file(project_yaml: Path, sofa_block: dict) -> Path:
             f"'scene_file' must be defined in parameters for block '{sofa_block.get('name', '?')}'"
         )
 
-    path = Path(scene_file)
+    path = Path(scene_file).expanduser()
     if not path.is_absolute():
         path = (project_yaml.parent / path).resolve()
     return path

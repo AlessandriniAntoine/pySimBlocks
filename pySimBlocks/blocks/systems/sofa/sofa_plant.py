@@ -159,7 +159,7 @@ class SofaPlant(Block):
         if scene_file is None:
             raise ValueError("Missing 'scene_file' parameter")
 
-        path = Path(scene_file)
+        path = Path(scene_file).expanduser()
         if not path.is_absolute():
             path = (params_dir / path).resolve()
 

@@ -95,7 +95,7 @@ class FileSource(BlockSource):
         if file_path is None:
             return adapted
 
-        path = Path(file_path)
+        path = Path(file_path).expanduser()
         if not path.is_absolute() and params_dir is not None:
             path = (params_dir / path).resolve()
 
