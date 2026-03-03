@@ -162,7 +162,7 @@ class DiagramView(QGraphicsView):
             return
 
         # DELETE
-        if event.key() == Qt.Key_Delete:
+        if event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
             self.delete_selected()
             return
 
