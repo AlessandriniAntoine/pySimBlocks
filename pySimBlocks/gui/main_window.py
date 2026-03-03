@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self.addAction(self.save_action)
 
         self.quit_action = QAction("Quit", self)
-        self.quit_action.setShortcut(QKeySequence.Quit)
+        self.quit_action.setShortcuts([QKeySequence("Ctrl+Q"), QKeySequence.Quit])
         self.quit_action.triggered.connect(self.close)
         self.addAction(self.quit_action)
 
