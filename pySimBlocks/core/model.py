@@ -144,10 +144,10 @@ class Model:
             if block_dist.direct_feedthrough:
                 graph[src_block].append(dst_block)
                 indegree[dst_block] += 1
-                vprint(f"  DEPENDENCY: {src_block}.{src_port} → {dst_block}.{dst_port} "
+                vprint(f"  DEPENDENCY: {src_block}.{src_port} -> {dst_block}.{dst_port} "
                        f"(direct-feedthrough)")
             else:
-                vprint(f"  NO DEPENDENCY: {src_block}.{src_port} → {dst_block}.{dst_port} "
+                vprint(f"  NO DEPENDENCY: {src_block}.{src_port} -> {dst_block}.{dst_port} "
                        f"(destination NOT direct-feedthrough)")
 
         # Show resulting graph
@@ -177,7 +177,7 @@ class Model:
             # Decrease indegree for successors
             for succ in graph[current]:
                 indegree[succ] -= 1
-                vprint(f"    indegree[{succ}] → {indegree[succ]}")
+                vprint(f"    indegree[{succ}] -> {indegree[succ]}")
                 if indegree[succ] == 0:
                     ready.append(succ)
                     vprint(f"    '{succ}' added to READY")

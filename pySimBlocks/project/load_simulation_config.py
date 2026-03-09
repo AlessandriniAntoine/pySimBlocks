@@ -124,7 +124,7 @@ def eval_value(value: Any, scope: dict):
     - '#' is stripped (used as internal keyword)
     - lists are wrapped into np.array
     - eval is attempted with a restricted namespace
-    - if eval fails → return original value
+    - if eval fails -> return original value
     """
 
     try:

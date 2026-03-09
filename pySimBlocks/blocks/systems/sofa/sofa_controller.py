@@ -168,11 +168,11 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         SOFA callback executed before each physical integration step.
 
         Sequence:
-            1. Read SOFA outputs  → get_outputs()
+            1. Read SOFA outputs  -> get_outputs()
             2. Push them into the exchange block
-            3. Advance pySimBlocks one step → sim.step()
+            3. Advance pySimBlocks one step -> sim.step()
             4. Retrieve controller inputs from exchange block
-            5. Apply them to SOFA → set_inputs()
+            5. Apply them to SOFA -> set_inputs()
         """
         if self.SOFA_MASTER:
             if self.sim is None:

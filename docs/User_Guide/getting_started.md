@@ -19,7 +19,7 @@ You will learn:
 - How to run a discrete-time simulation
 - How to log and visualize results
 
-→ [Start Tutorial 1 — Python API](tutorial_1_python.md)
+-> [Start Tutorial 1 — Python API](tutorial_1_python.md)
 After this tutorial: You can build and run a basic closed-loop model from code.
 
 ## 2. First Simulation (GUI)
@@ -34,7 +34,7 @@ You will learn:
 - How to configure blocks and simulation settings
 - How to save and export the project
 
-→ [Start Tutorial 2 — GUI](tutorial_2_gui.md)
+-> [Start Tutorial 2 — GUI](tutorial_2_gui.md)
 After this tutorial: You can create and manage equivalent models in the GUI.
 
 ## 3. SOFA Coupling
@@ -50,5 +50,5 @@ You will learn:
 - How to run co-simulations
 - How to use SOFA's GUI for inspection and debugging
 
-→ [Start Tutorial 3 — SOFA Coupling](tutorial_3_sofa.md)
+-> [Start Tutorial 3 — SOFA Coupling](tutorial_3_sofa.md)
 After this tutorial: You can run a pySimBlocks + SOFA co-simulation workflow.

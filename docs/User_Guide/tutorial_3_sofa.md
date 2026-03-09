@@ -277,7 +277,7 @@ In this example, three sliders are created: one to adjust the reference value `r
 
 ### 5.2 Live Signal Plots
 
-Plots defined in the pySimBlocks **Settings → Plots** panel (as in
+Plots defined in the pySimBlocks **Settings -> Plots** panel (as in
 [Tutorial 2](./tutorial_2_gui.md)) are automatically forwarded to the SOFA GUI
 and displayed as live charts that update at each simulation step.
 

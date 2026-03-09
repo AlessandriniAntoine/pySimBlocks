@@ -99,7 +99,7 @@ def generate_blocks_index():
             if not classes:
                 continue
 
-            file_stem = Path(filepath).stem  # snake_case name → key in YAML
+            file_stem = Path(filepath).stem  # snake_case name -> key in YAML
 
             # Compute module path
             rel_path = filepath.split("pySimBlocks")[-1].lstrip("/\\")
