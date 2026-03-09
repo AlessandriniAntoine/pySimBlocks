@@ -100,7 +100,11 @@ class SofaService:
         runtime_yaml = runtime_project_yaml_path(project_dir)
         cleanup_runtime_project_yaml(project_dir)
         save_yaml(project_state=self.project_state, runtime=True)
-        generate_sofa_controller(project_yaml=runtime_yaml)
+        try:
+            generate_sofa_controller(project_yaml=runtime_yaml)
+        except Exception as e:
+            cleanup_runtime_project_yaml(project_dir)
+            return False, "Could not update SOFA controller", str(e)
 
         # set command
         plugins = "SofaPython3"
@@ -111,6 +115,7 @@ class SofaService:
         self.process = QProcess()
         env = QProcessEnvironment.systemEnvironment()
         self.process.setProcessEnvironment(env)
+        self.process.setWorkingDirectory(str(Path(self.scene_file).parent))
         self.process.setProgram(self.sofa_path)
         self.process.setArguments(args)
 

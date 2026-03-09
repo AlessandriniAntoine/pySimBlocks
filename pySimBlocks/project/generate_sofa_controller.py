@@ -70,7 +70,10 @@ def detect_controller_file_from_scene(scene_file: Path) -> Path:
     parent_conn, child_conn = Pipe()
     p = Process(target=_load_scene_in_subprocess, args=(scene_file, child_conn))
     p.start()
-    controller_path = parent_conn.recv()
+    try:
+        controller_path = parent_conn.recv()
+    except EOFError:
+        controller_path = None
     p.join()
 
     if controller_path is None:
