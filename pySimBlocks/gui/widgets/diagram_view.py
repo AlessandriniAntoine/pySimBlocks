@@ -127,6 +127,12 @@ class DiagramView(QGraphicsView):
                 conn_item.invalidate_manual_route()
                 conn_item.update_position()
 
+    # --------------------------------------------------------------
+    def on_block_ports_refreshed(self, block_item: BlockItem):
+        for conn_inst, conn_item in self.connections.items():
+            if conn_inst.is_block_involved(block_item.instance):
+                conn_item.update_position()
+
     # --------------------------------------------------------------------------
     # Event handlers
     # --------------------------------------------------------------------------
