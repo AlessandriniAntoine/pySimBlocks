@@ -83,26 +83,39 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
         Sofa.Simulation.animate(root, dt)
 
     # Send initial outputs
-    controller.get_outputs()
-    initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
-    conn.send(initial)
+    try:
+        controller.get_outputs()
+        initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
+        conn.send(initial)
+    except Exception as e:
+        conn.send({
+            "cmd": "error", 
+            "message": 
+                f"[pySimBlocks] ERROR: Failed to get initial outputs.\n{e}"})
+        conn.close()
+        return
 
     # 2. Main loop
     while True:
         msg = conn.recv()
 
         if msg["cmd"] == "step":
-            # apply inputs
-            for key, val in msg["inputs"].items():
-                controller.inputs[key] = val
+            try:
+                for key, val in msg["inputs"].items():
+                    controller.inputs[key] = val
 
-            controller.set_inputs()
-            Sofa.Simulation.animate(root, dt)
-            controller.get_outputs()
+                controller.set_inputs()
+                Sofa.Simulation.animate(root, dt)
+                controller.get_outputs()
 
-            outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
-                       for k in output_keys}
-            conn.send(outputs)
+                outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
+                           for k in output_keys}
+                conn.send(outputs)
+            except Exception as e:
+                conn.send({
+                    "cmd": "error", 
+                    "message": f"[pySimBlocks] ERROR during step execution.\n{e}"})
+                break
 
         elif msg["cmd"] == "stop":
             break
@@ -254,6 +267,8 @@ class SofaPlant(Block):
 
         # Receive outputs
         outputs = self.conn.recv()
+        if isinstance(outputs, dict) and outputs.get("cmd") == "error":
+            raise RuntimeError(outputs["message"])
 
         for k in self.output_keys:
             self.next_state[k] = outputs[k]
