@@ -50,7 +50,7 @@ class UnsavedChangesDialog(QDialog):
 
         # --- Text ---
         text_label = QLabel(
-            "<b>The project has unsaved changes."
+            "<b>The project has unsaved changes. "
             f"Do you want to save your changes before {action_name}?"
         )
         text_label.setWordWrap(True)

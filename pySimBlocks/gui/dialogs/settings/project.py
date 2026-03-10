@@ -136,6 +136,9 @@ class ProjectSettingsWidget(QWidget):
         self.dir_edit.setText(str(Path(selected_dir).resolve()))
 
     def load_project(self):
+        main_window = self.settings_dialog.parent()
+        if not main_window.confirm_discard_or_save("loading a new project"):
+            return 
         self.apply()
         self.project_controller.load_project(ProjectLoaderYaml())
         ext = self.project_state.external
