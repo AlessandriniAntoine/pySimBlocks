@@ -384,7 +384,7 @@ class MyBlockMeta(BlockMeta):
             return
 
         if name == "name":
-            session.instance.name = val
+            session.local_params["name"] = val
         else:
             text = str(val).strip()
             try:
