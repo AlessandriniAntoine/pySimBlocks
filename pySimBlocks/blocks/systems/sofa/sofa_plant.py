@@ -42,6 +42,35 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
     root = Sofa.Core.Node("root")
     root, controller = mod.createScene(root)
+
+    sofa_outputs_keys = set(controller.outputs.keys())
+    if not set(output_keys) == sofa_outputs_keys:
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"\n[pySimBlocks] ERROR: Output key not found in controller outputs.\n"
+                f"Available keys: {sofa_outputs_keys}\n"
+                f"Provided keys: {set(output_keys)}\n"
+                f"Check the 'output_keys' parameter in your project.yaml."
+            )
+        })
+        conn.close()
+        return
+
+    sofa_inputs_keys = set(controller.inputs.keys())
+    if not set(input_keys) == sofa_inputs_keys:
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"[pySimBlocks] ERROR: Input key not found in controller inputs.\n"
+                f"Available keys: {sofa_inputs_keys}\n"
+                f"Provided keys: {set(input_keys)}\n"
+                f"Check the 'input_keys' parameter in your project.yaml."
+            )
+        })
+        conn.close()
+        return
+
     controller.SOFA_MASTER = False
     Sofa.Simulation.initRoot(root)
 
@@ -187,6 +216,9 @@ class SofaPlant(Block):
 
         # Receive initial outputs
         initial_outputs = self.conn.recv()
+
+        if isinstance(initial_outputs, dict) and initial_outputs.get("cmd") == "error":
+            raise RuntimeError(initial_outputs["message"])
 
         for k in self.output_keys:
             self.outputs[k] = initial_outputs[k]
