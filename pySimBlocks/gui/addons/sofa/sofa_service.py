@@ -153,9 +153,6 @@ class SofaService:
                 line for line in full_log.splitlines()
                 if "[pySimBlocks] ERROR" in line
             ]
-            print("FULL LOG:\n\n\n")
-            print(full_log)
-            print("\n\n\n")
             if pysimblocks_errors:
                 return False, "pySimBlocks configuration error", "\n".join(pysimblocks_errors)
             return True, "SOFA finished", "Process terminated correctly"

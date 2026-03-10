@@ -44,7 +44,7 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
     root, controller = mod.createScene(root)
 
     sofa_outputs_keys = set(controller.outputs.keys())
-    if not set(output_keys) == sofa_outputs_keys:
+    if not set(output_keys).issubset(sofa_outputs_keys):
         conn.send({
             "cmd": "error",
             "message": (
@@ -58,7 +58,7 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
         return
 
     sofa_inputs_keys = set(controller.inputs.keys())
-    if not set(input_keys) == sofa_inputs_keys:
+    if not set(input_keys).issubset(sofa_inputs_keys):
         conn.send({
             "cmd": "error",
             "message": (

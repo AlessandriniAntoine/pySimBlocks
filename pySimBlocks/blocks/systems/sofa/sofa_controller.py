@@ -34,8 +34,6 @@ try:
 except ImportError:
     _imgui = False
 
-print(f"SOFA ImGui support: {_imgui}")
-
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
     """
@@ -276,24 +274,24 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         model_inputs_keys = set(self._sofa_block.inputs.keys())
         sofa_inputs_keys = set(self.inputs.keys())
-        if sofa_inputs_keys != model_inputs_keys:
+        if not model_inputs_keys.issubset(sofa_inputs_keys):
             self._init_failed = True
             raise RuntimeError(
-                "[pySimBlocks] ERROR: Mismatch between SOFA controller inputs and model SOFA block inputs.\n"
+                "[pySimBlocks] ERROR: model input_keys are missing from controller inputs.\n"
                 f"SOFA controller inputs: {sofa_inputs_keys}\n"
                 f"Model block inputs: {model_inputs_keys}\n"
-                f"Ensure that the controller in the SOFA block has the same input keys as the SofaExchangeIO block."
+                f"Ensure that the controller in the SOFA block contains at least the same input keys as the SofaExchangeIO block."
             )
 
         model_outputs_keys = set(self._sofa_block.outputs.keys())
         sofa_outputs_keys = set(self.outputs.keys())
-        if sofa_outputs_keys != model_outputs_keys:
+        if not model_outputs_keys.issubset(sofa_outputs_keys):
             self._init_failed = True
             raise RuntimeError(
-                "[pySimBlocks] ERROR: Mismatch between SOFA controller outputs and model SOFA block outputs.\n"
+                "[pySimBlocks] ERROR: model output_keys are missing from controller outputs.\n"
                 f"SOFA controller outputs: {sofa_outputs_keys}\n"
                 f"Model block outputs: {model_outputs_keys}\n"
-                f"Ensure that the controller in the SOFA block has the same output keys as the SofaExchangeIO block."
+                f"Ensure that the controller in the SOFA block contains at least the same output keys as the SofaExchangeIO block."
             )
 
 

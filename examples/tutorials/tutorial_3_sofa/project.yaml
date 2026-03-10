@@ -39,7 +39,7 @@ diagram:
     category: systems
     type: sofa_plant
     parameters:
-      scene_file: finger/Finger.py
+      scene_file: finger_v25.12/Finger.py
       input_keys:
       - cable
       output_keys:
