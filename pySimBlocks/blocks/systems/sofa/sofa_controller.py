@@ -89,6 +89,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.step_index: int = 0
 
         self.project_yaml: str | None = None
+        self._init_failed = False
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -175,6 +176,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             5. Apply them to SOFA -> set_inputs()
         """
         if self.SOFA_MASTER:
+            if self._init_failed:
+                return
+
             if self.sim is None:
                 self._prepare_pysimblocks()
                 self._get_sofa_outputs()
@@ -234,26 +238,62 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Called once SOFA is initialized AND if SOFA is the master.
         Initialize the pysimblock struture.
         """
-        if self.SOFA_MASTER and self.project_yaml is None:
-            raise RuntimeError("SOFA_MASTER=True requires project_yaml.")
-        if self.dt is None:
-            raise ValueError("Sample time dt Must be set at initialization.")
+        try:
+            if self.SOFA_MASTER and self.project_yaml is None:
+                self._init_failed = True
+                raise RuntimeError("SOFA_MASTER=True requires project_yaml.")
+            if self.dt is None:
+                self._init_failed = True
+                raise ValueError("SOFA_MASTER=True requires self.dt to be set to the SOFA time step.")
 
-        self._build_model()
-        self._detect_sofa_exchange_block()
-        self.sim = Simulator(self.model, self.sim_cfg, verbose=self.verbose)
-        self._get_sofa_outputs()
-        self.sim.initialize()
-        self.sim_index = 0
+            self._build_model()
+            self._detect_sofa_exchange_block()
+            self._secure_keys()
+            self.sim = Simulator(self.model, self.sim_cfg, verbose=self.verbose)
+            self._get_sofa_outputs()
+            self.sim.initialize()
+            self.sim_index = 0
 
-        ratio = self.sim_cfg.dt / self.dt
-        if abs(ratio - round(ratio)) > 1e-12:
-            raise ValueError(
-                            f"pySimBlocks sample time={self.sim_cfg.dt} "
-                            f"is not a multiple of Sofa sample time={self.dt}."
-                        )
-        self.ratio = int(round(ratio))
-        self.counter = 0
+            ratio = self.sim_cfg.dt / self.dt
+            if abs(ratio - round(ratio)) > 1e-12:
+                self._init_failed = True
+                raise ValueError(
+                                f"pySimBlocks sample time={self.sim_cfg.dt} "
+                                f"is not a multiple of Sofa sample time={self.dt}."
+                            )
+            self.ratio = int(round(ratio))
+            self.counter = 0
+        except Exception as e:
+            self._init_failed = True
+            # print(f"Initialization failed: {e}")
+            raise
+
+    # ------------------------------------------------------------------
+    def _secure_keys(self):
+        """
+        Ensure that the keys used for SOFA exchange are consistent between the model and the controller.
+        """
+        model_inputs_keys = set(self._sofa_block.inputs.keys())
+        sofa_inputs_keys = set(self.inputs.keys())
+        if sofa_inputs_keys != model_inputs_keys:
+            self._init_failed = True
+            raise RuntimeError(
+                f"Mismatch between SOFA controller inputs and model SOFA block inputs.\n"
+                f"SOFA controller inputs: {sofa_inputs_keys}\n"
+                f"Model block inputs: {model_inputs_keys}\n"
+                f"Ensure that the controller in the SOFA block has the same input keys as the SofaExchangeIO block."
+            )
+
+        model_outputs_keys = set(self._sofa_block.outputs.keys())
+        sofa_outputs_keys = set(self.outputs.keys())
+        if sofa_outputs_keys != model_outputs_keys:
+            self._init_failed = True
+            raise RuntimeError(
+                f"Mismatch between SOFA controller outputs and model SOFA block outputs.\n"
+                f"SOFA controller outputs: {sofa_outputs_keys}\n"
+                f"Model block outputs: {model_outputs_keys}\n"
+                f"Ensure that the controller in the SOFA block has the same output keys as the SofaExchangeIO block."
+            )
 
 
     # ------------------------------------------------------------------
@@ -278,12 +318,14 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         candidates = [blk for blk in self.model.blocks.values() if isinstance(blk, SofaExchangeIO)]
 
         if len(candidates) == 0:
+            self._init_failed = True
             raise RuntimeError(
                 "No SofaExchangeIO block found in the model. "
                 "The controller must include exactly one SOFA exchange block."
             )
 
         if len(candidates) > 1:
+            self._init_failed = True
             raise RuntimeError(
                 f"Multiple SofaExchangeIO blocks found ({len(candidates)}). "
                 "Only one SOFA IO block is allowed."
