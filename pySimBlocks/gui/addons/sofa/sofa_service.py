@@ -45,6 +45,10 @@ class SofaService:
 
         self._detect_sofa()
 
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
     def get_scene_file(self):
         flag, msg, details = self.can_use_sofa()
         if flag:
@@ -66,6 +70,7 @@ class SofaService:
         else:
             return flag, msg, details
 
+    # ------------------------------------------------------------------
     def can_use_sofa(self):
         sofa_block =  [b for b in self.project_state.blocks if b.meta.type in ["sofa_plant", "sofa_exchange_i_o"]]
         if len(sofa_block) == 0:
@@ -75,6 +80,7 @@ class SofaService:
         else:
             return True, "Sofa can be master", "Only one system found. Diagram can be used from controller."
 
+    # ------------------------------------------------------------------
     def export_controller(self, window, saver):
         if window.confirm_discard_or_save("exporting sofa"):
             saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
@@ -82,6 +88,7 @@ class SofaService:
             raise ValueError("Project directory is not set.\nPlease define it in settings.")
         generate_sofa_controller(self.project_state.directory_path)
 
+    # ------------------------------------------------------------------
     def run(self):
         env_ok, msg = self._check_sofa_environnment()
         if not env_ok:
@@ -112,6 +119,8 @@ class SofaService:
             plugins += ",SofaImgui"
         args = ["-l", plugins, "-g", self.gui, self.scene_file]
 
+        self._full_log = ""
+
         self.process = QProcess()
         env = QProcessEnvironment.systemEnvironment()
         self.process.setProcessEnvironment(env)
@@ -120,6 +129,10 @@ class SofaService:
         self.process.setArguments(args)
 
         self.process.setProcessChannelMode(QProcess.MergedChannels)
+        self.process.readyReadStandardOutput.connect(
+            lambda: self._accumulate_output()
+        )
+
         try:
             self.process.start()
             if not self.process.waitForStarted():
@@ -132,17 +145,32 @@ class SofaService:
                 return False, "Could not regenerate controller", "project.yaml does not exist.\n" + str(e)
 
             # get output results
-            output = self.process.readAllStandardOutput().data().decode()
-            errors = self.process.readAllStandardError().data().decode()
-            full_log = output + "\n" + errors
+            full_log = self._full_log
             exit_code = self.process.exitCode()
             if exit_code != 0:
                 return False, "SOFA exited with error", f"exit code = {exit_code}\n\n{full_log}"
-
+            pysimblocks_errors = [
+                line for line in full_log.splitlines()
+                if "[pySimBlocks] ERROR" in line
+            ]
+            print("FULL LOG:\n\n\n")
+            print(full_log)
+            print("\n\n\n")
+            if pysimblocks_errors:
+                return False, "pySimBlocks configuration error", "\n".join(pysimblocks_errors)
             return True, "SOFA finished", "Process terminated correctly"
         finally:
             cleanup_runtime_project_yaml(project_dir)
 
+    # --------------------------------------------------------------------------
+    # Internal methods
+    # --------------------------------------------------------------------------
+    def _accumulate_output(self):
+        chunk = self.process.readAllStandardOutput().data().decode()
+        print(chunk, end="")
+        self._full_log += chunk
+
+    # ------------------------------------------------------------------
     def _check_sofa_environnment(self):
         sofa_root = os.environ.get("SOFA_ROOT")
         if not sofa_root:
@@ -150,6 +178,7 @@ class SofaService:
 
         return True, "OK"
 
+    # ------------------------------------------------------------------
     def _detect_sofa(self):
         detected = None
         sofa_root = os.environ.get("SOFA_ROOT")
@@ -170,6 +199,7 @@ class SofaService:
         if detected:
             self.sofa_path = detected
 
+    # ------------------------------------------------------------------
     def _resolve_scene_file(self, scene_file: str) -> Path:
         project_dir = self.project_state.directory_path
         if project_dir is None:

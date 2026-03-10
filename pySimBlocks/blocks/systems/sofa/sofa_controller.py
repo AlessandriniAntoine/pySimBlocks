@@ -115,7 +115,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         Apply inputs from pySimBlocks to SOFA components.
         Must be implemented by child classes.
         """
-        raise NotImplementedError("set_inputs() must be implemented by subclass.")
+        raise NotImplementedError("[pySimBlocks] ERROR: set_inputs() must be implemented by subclass.")
 
     # ------------------------------------------------------------------
     def get_outputs(self):
@@ -124,7 +124,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         MUST ALWAYS WORK AND RETURN CONSISTENT SHAPES.
         Must be implemented by child classes.
         """
-        raise NotImplementedError("get_outputs() must be implemented by subclass.")
+        raise NotImplementedError("[pySimBlocks] ERROR: get_outputs() must be implemented by subclass.")
 
     # --- Optionnal methods. ---
     def save(self):
@@ -156,9 +156,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             If the model is not built or if the block is not found.
         """
         if self.sim is None:
-            raise RuntimeError("Simulator not initialized. Cannot get block.")
+            raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized. Cannot get block.")
         if block_name not in self.sim.model.blocks:
-            raise RuntimeError(f"Block '{block_name}' not found in the model.")
+            raise RuntimeError(f"[pySimBlocks] ERROR: Block '{block_name}' not found in the model.")
         return self.sim.model.blocks[block_name]
 
     # ----------------------------------------------------------------------
@@ -224,7 +224,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         project_path = self.project_yaml
         if project_path is None:
-            raise RuntimeError("SOFA_MASTER=True requires project_yaml to be set.")
+            raise RuntimeError("[pySimBlocks] ERROR: SOFA_MASTER=True requires project_yaml to be set.")
 
         self.sim_cfg, model_dict, self.plot_cfg, _, params_dir = load_project_config(project_path)
         model_dict = self._adapt_model_for_sofa(model_dict)
@@ -241,10 +241,10 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         try:
             if self.SOFA_MASTER and self.project_yaml is None:
                 self._init_failed = True
-                raise RuntimeError("SOFA_MASTER=True requires project_yaml.")
+                raise RuntimeError("[pySimBlocks] ERROR: SOFA_MASTER=True requires project_yaml.")
             if self.dt is None:
                 self._init_failed = True
-                raise ValueError("SOFA_MASTER=True requires self.dt to be set to the SOFA time step.")
+                raise ValueError("[pySimBlocks] ERROR: SOFA_MASTER=True requires self.dt to be set to the SOFA time step.")
 
             self._build_model()
             self._detect_sofa_exchange_block()
@@ -258,6 +258,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             if abs(ratio - round(ratio)) > 1e-12:
                 self._init_failed = True
                 raise ValueError(
+                                "[pySimBlocks] ERROR: Sample time mismatch.\n"
                                 f"pySimBlocks sample time={self.sim_cfg.dt} "
                                 f"is not a multiple of Sofa sample time={self.dt}."
                             )
@@ -278,7 +279,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if sofa_inputs_keys != model_inputs_keys:
             self._init_failed = True
             raise RuntimeError(
-                f"Mismatch between SOFA controller inputs and model SOFA block inputs.\n"
+                "[pySimBlocks] ERROR: Mismatch between SOFA controller inputs and model SOFA block inputs.\n"
                 f"SOFA controller inputs: {sofa_inputs_keys}\n"
                 f"Model block inputs: {model_inputs_keys}\n"
                 f"Ensure that the controller in the SOFA block has the same input keys as the SofaExchangeIO block."
@@ -289,7 +290,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if sofa_outputs_keys != model_outputs_keys:
             self._init_failed = True
             raise RuntimeError(
-                f"Mismatch between SOFA controller outputs and model SOFA block outputs.\n"
+                "[pySimBlocks] ERROR: Mismatch between SOFA controller outputs and model SOFA block outputs.\n"
                 f"SOFA controller outputs: {sofa_outputs_keys}\n"
                 f"Model block outputs: {model_outputs_keys}\n"
                 f"Ensure that the controller in the SOFA block has the same output keys as the SofaExchangeIO block."
@@ -320,14 +321,14 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if len(candidates) == 0:
             self._init_failed = True
             raise RuntimeError(
-                "No SofaExchangeIO block found in the model. "
+                "[pySimBlocks] ERROR: No SofaExchangeIO block found in the model.\n"
                 "The controller must include exactly one SOFA exchange block."
             )
 
         if len(candidates) > 1:
             self._init_failed = True
             raise RuntimeError(
-                f"Multiple SofaExchangeIO blocks found ({len(candidates)}). "
+                "[pySimBlocks] ERROR: Multiple SofaExchangeIO blocks found ({len(candidates)}).\n"
                 "Only one SOFA IO block is allowed."
             )
 
@@ -360,7 +361,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             return
 
         if self.sim is None:
-            raise RuntimeError("Simulator not initialized.")
+            raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
 
         self._plot_node = self.root.addChild("PLOT")
         self._plot_data = {}
@@ -398,7 +399,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             return
 
         if self.sim is None:
-            raise RuntimeError("Simulator not initialized.")
+            raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
 
         data = self._sofa_block.slider_params
         data = data if data is not None else {}
