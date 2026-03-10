@@ -16,9 +16,9 @@ The main objectives of this tutorial are to:
 ### 1.2 System Description
 
 We build a simple closed-loop control system composed of three elements: 
-- a constant reference, 
-- a PI controller, 
-- a SOFA simulation.
+- a constant reference 
+- a PI controller
+- a SOFA simulation
 
 ![Block Diagram](./images/tutorial_3-block_diagram.png)
 
@@ -40,9 +40,10 @@ your environment so that:
 
 ### 2.1 Install SOFA
 
-First, install SOFA from the [website](https://www.sofa-framework.org/download/) either:
-- Using the precompiled binaries (recommended for most users)
-- Building from source (advanced users). Be sure to have SofaPython3 plugin.
+
+Install SOFA from the [website](https://www.sofa-framework.org/download/) either
+using the precompiled binaries (recommended) or building from source (advanced 
+users, requires the SofaPython3 plugin).
 
 After installation, identify your main SOFA directory:
 
@@ -52,20 +53,55 @@ After installation, identify your main SOFA directory:
 
 ### 2.2 Set Environment Variables
 
-To enable coupling, you need to set the following environment variables:
-- `SOFA_ROOT`: Path to your SOFA installation
+> **Note:** The SofaPython3 site-packages path depends on your installation.
+> Check inside your SOFA directory if the exact sub-path differs from the examples below.
+
+The following environment variables must be set to enable coupling:
+- `SOFA_ROOT`: points to the main SOFA directory
+- `PYTHONPATH`: includes the path to the SOFA Python bindings
+
+The setup process differs slightly between operating systems and SOFA
+installation methods.
+
+#### 2.2.1 Linux / MacOS
+
+Do the following in your terminal (or add to your shell profile for
+persistence):
 ```bash
 export SOFA_ROOT=/path/to/your/sofa
+
+# Binary release:
+export PYTHONPATH=$SOFA_ROOT/plugins/SofaPython3/lib/python3/site-packages:$PYTHONPATH
+
+# Built from source:
+# export PYTHONPATH=$SOFA_ROOT/lib/python3/site-packages:$PYTHONPATH
 ```
-- `PYTHONPATH`: Include the SOFA Python bindings site-packages.
-    - If you installed SOFA from binaries, this is typically:
-    ```bash
-    export PYTHONPATH=$SOFA_ROOT/plugins/SofaPython3/lib/python3/site-packages:$PYTHONPATH
-    ```
-    - If you built SOFA from source, it may be:
-    ```bash
-    export PYTHONPATH=$SOFA_ROOT/lib/python3/site-packages:$PYTHONPATH
-    ```
+
+> **Tip (Linux/MacOS):** To make these variables permanent, add the lines above
+> to your shell profile (e.g., `~/.bashrc`, `~/.zshrc`, or `~/.profile`), then
+> restart your terminal or run `source ~/.bashrc` (or the appropriate file) to
+> apply the changes.
+
+#### 2.2.2 Windows
+
+Set the environment variables in PowerShell (or add to your profile for
+persistence):
+
+```powershell
+$env:SOFA_ROOT = "C:\path\to\your\sofa"
+
+# Binary release:
+$env:PYTHONPATH = "$env:SOFA_ROOT\plugins\SofaPython3\lib\python3\site-packages;$env:PYTHONPATH"
+
+# Built from source:
+# $env:PYTHONPATH = "$env:SOFA_ROOT\lib\python3\site-packages;$env:PYTHONPATH"
+```
+
+> **Tip (Windows):** To make these variables permanent, you can either add the
+> lines above to your PowerShell profile (`$PROFILE`) — open it with
+> `notepad $PROFILE` — or set them via **System Properties → Advanced →
+> Environment Variables**.
+
 
 ### 2.3 Verify the Setup
 
@@ -78,9 +114,9 @@ import SofaRuntime
 This should work without errors. 
 
 Verify that `runSofa` can be launched from the command line:
-```bash
-$SOFA_ROOT/bin/runSofa
-```
+
+- **Linux / macOS:** `$SOFA_ROOT/bin/runSofa`
+- **Windows:** `$env:SOFA_ROOT\bin\runSofa.exe`
 
 Ensure `SofaPython3` (and other plugins used by the scene) are available.
 
@@ -97,7 +133,7 @@ To enable data exchange, a custom SOFA controller must be defined by subclassing
 
 Your subclass **must** define the following attributes (typically in `__init__`):
 
-- `self.project_yaml` — path to the pySimblocks project YAML file.
+- `self.project_yaml` — string path to the pySimblocks project YAML file.
 - `self.dt` — the simulation timestep (usually `root.dt.value`)
 - `self.inputs` — a dictionary mapping input signal names to their current values (`None` initially)
 - `self.outputs` — a dictionary mapping output signal names to their current values (`None` initially)
@@ -134,7 +170,7 @@ class FingerController(SofaPysimBlocksController):
         self.actuator = actuator
         self.tip_index = tip_index
         self.dt = root.dt.value
-        self.verbose = True
+        self.verbose = True # set to True to print debug info at each step
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }
@@ -211,7 +247,8 @@ At each step, the block sends the current control inputs to SOFA, triggers one
 simulation step, and retrieves the updated outputs. From the diagram's point of
 view, the SOFA plant behaves like any other discrete-time block.
 
-To run in this mode, simply run the diagram as usual from the GUI or command line.
+To run in this mode, simply run the diagram from the GUI or command line as in
+[Tutorial 2](./tutorial_2_gui.md).
 
 ![psb-master](./images/tutorial_3-run_psb_master.gif)
 
@@ -229,8 +266,8 @@ physics step is resolved.
   <img src="./images/tutorial_3-loop_sofa_master.png" width="50%">
 </p>
 
-A single controller instance manages the entire block diagram — there is one
-controller for the whole pySimBlocks model.
+A single controller instance, containing the pySimBlocks model, manages the 
+entire block diagram.
 
 To run in this mode, open the **SOFA** panel in the Toolbar and click
 **runSofa**. SOFA launches with its graphical interface, and the coupled
@@ -269,7 +306,10 @@ slider range:
 {'ref.value': [-10.0, 50.0], 'PID.Kp': [0.01, 3.0], 'PID.Ki': [0.01, 3.0]}
 ```
 
-In this example, three sliders are created: one to adjust the reference value `ref.value`, one to adjust the proportional gain `Kp` of the block named `pid`, and one for the integral gain `Ki`. All can be modified live from the SOFA GUI while the simulation runs.
+In this example, three sliders are created: one to adjust the reference value 
+`ref.value`, one to adjust the proportional gain `Kp` of the block named `PID`, 
+and one for the integral gain `Ki`. All can be modified live from the SOFA GUI 
+while the simulation runs.
 
 > **Tip:** The block name must match exactly the name given to the block in the
 > diagram. The parameter name must match the parameter key as defined in the
@@ -289,7 +329,7 @@ mode with the Compliance Robotics GUI.
 
 The GIF below shows the full workflow: 
 - the definition of the sliders in the `SofaPlant` block parameters,
-- the defintion of the plots in the pySimBlocks settings
+- the definition of the plots in the pySimBlocks settings
 - the SOFA simulation running with the Compliance Robotics GUI, 
 - live slider adjustment of the reference and PI gains, 
 -  the real-time plot of the fingertip position tracking the reference.
