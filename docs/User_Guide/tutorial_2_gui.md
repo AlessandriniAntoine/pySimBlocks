@@ -88,7 +88,8 @@ Modify the following parameters:
 | PID | Ki | 2. |
 | Sum | signs | +- |
 
-Renaming a block updates its label in the `Diagram View`. In [Tutorial 1](./tutorial_1_python.md), the blocks were named `ref`, `error`, `pid`, and `system`.
+Renaming a block updates its label in the `Diagram View`. In 
+[Tutorial 1](./tutorial_1_python.md), the blocks were named `ref`, `error`, `PID`, and `system`.
 
 All required parameters must be defined before running the simulation.
 
@@ -104,7 +105,7 @@ All required parameters must be defined before running the simulation.
 Next, configure the simulation settings:
 - Sample time: 0.01 s
 - Duration: 5 s
-- Signals to log: system y, pid u, and ref output
+- Signals to log: system y, PID u, and ref output
 
 Click the `Settings` button in the `Toolbar`. A dialog opens with multiple panels. One is for the simulation.
 
@@ -186,4 +187,4 @@ After modifying the model, save the project and export a new `run.py` file.
 Run it from the command line to verify that the exported script reproduces the same behavior.
 
 This tutorial demonstrates how to build and execute a model visually.  
-The next tutorials extend this approach to [SOFA integration](./tutorial_3_sofa.md) and real-time execution.
+The next tutorials extend this approach to [SOFA integration](./tutorial_3_sofa.md).

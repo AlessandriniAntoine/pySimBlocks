@@ -42,6 +42,35 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
     root = Sofa.Core.Node("root")
     root, controller = mod.createScene(root)
+
+    sofa_outputs_keys = set(controller.outputs.keys())
+    if not set(output_keys).issubset(sofa_outputs_keys):
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"\n[pySimBlocks] ERROR: Output key not found in controller outputs.\n"
+                f"Available keys: {sofa_outputs_keys}\n"
+                f"Provided keys: {set(output_keys)}\n"
+                f"Check the 'output_keys' parameter in your project.yaml."
+            )
+        })
+        conn.close()
+        return
+
+    sofa_inputs_keys = set(controller.inputs.keys())
+    if not set(input_keys).issubset(sofa_inputs_keys):
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"[pySimBlocks] ERROR: Input key not found in controller inputs.\n"
+                f"Available keys: {sofa_inputs_keys}\n"
+                f"Provided keys: {set(input_keys)}\n"
+                f"Check the 'input_keys' parameter in your project.yaml."
+            )
+        })
+        conn.close()
+        return
+
     controller.SOFA_MASTER = False
     Sofa.Simulation.initRoot(root)
 
@@ -54,26 +83,39 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
         Sofa.Simulation.animate(root, dt)
 
     # Send initial outputs
-    controller.get_outputs()
-    initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
-    conn.send(initial)
+    try:
+        controller.get_outputs()
+        initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
+        conn.send(initial)
+    except Exception as e:
+        conn.send({
+            "cmd": "error", 
+            "message": 
+                f"[pySimBlocks] ERROR: Failed to get initial outputs.\n{e}"})
+        conn.close()
+        return
 
     # 2. Main loop
     while True:
         msg = conn.recv()
 
         if msg["cmd"] == "step":
-            # apply inputs
-            for key, val in msg["inputs"].items():
-                controller.inputs[key] = val
+            try:
+                for key, val in msg["inputs"].items():
+                    controller.inputs[key] = val
 
-            controller.set_inputs()
-            Sofa.Simulation.animate(root, dt)
-            controller.get_outputs()
+                controller.set_inputs()
+                Sofa.Simulation.animate(root, dt)
+                controller.get_outputs()
 
-            outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
-                       for k in output_keys}
-            conn.send(outputs)
+                outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
+                           for k in output_keys}
+                conn.send(outputs)
+            except Exception as e:
+                conn.send({
+                    "cmd": "error", 
+                    "message": f"[pySimBlocks] ERROR during step execution.\n{e}"})
+                break
 
         elif msg["cmd"] == "stop":
             break
@@ -159,7 +201,7 @@ class SofaPlant(Block):
         if scene_file is None:
             raise ValueError("Missing 'scene_file' parameter")
 
-        path = Path(scene_file)
+        path = Path(scene_file).expanduser()
         if not path.is_absolute():
             path = (params_dir / path).resolve()
 
@@ -187,6 +229,9 @@ class SofaPlant(Block):
 
         # Receive initial outputs
         initial_outputs = self.conn.recv()
+
+        if isinstance(initial_outputs, dict) and initial_outputs.get("cmd") == "error":
+            raise RuntimeError(initial_outputs["message"])
 
         for k in self.output_keys:
             self.outputs[k] = initial_outputs[k]
@@ -222,6 +267,8 @@ class SofaPlant(Block):
 
         # Receive outputs
         outputs = self.conn.recv()
+        if isinstance(outputs, dict) and outputs.get("cmd") == "error":
+            raise RuntimeError(outputs["message"])
 
         for k in self.output_keys:
             self.next_state[k] = outputs[k]

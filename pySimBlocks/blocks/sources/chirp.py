@@ -28,8 +28,8 @@ class Chirp(BlockSource):
     Multi-dimensional chirp signal source (linear or logarithmic).
 
     mode:
-        "linear"      → linear frequency sweep
-        "log"         → logarithmic (exponential) sweep
+        "linear"      -> linear frequency sweep
+        "log"         -> logarithmic (exponential) sweep
     """
 
     VALID_MODES = {"linear", "log"}

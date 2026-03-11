@@ -104,7 +104,7 @@ class BlockItem(QGraphicsRectItem):
         self._layout_ports()
         for item in self.port_items:
             item.update_display_as()
-        self.view.on_block_moved(self)
+        self.view.on_block_ports_refreshed(self)
 
     # --------------------------------------------------------------
     def toggle_orientation(self):

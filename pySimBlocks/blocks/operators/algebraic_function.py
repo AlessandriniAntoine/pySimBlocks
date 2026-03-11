@@ -108,7 +108,7 @@ class AlgebraicFunction(Block):
             )
 
         # --- 2. Resolve file path (relative to project.yaml directory)
-        path = Path(file_path)
+        path = Path(file_path).expanduser()
         if not path.is_absolute():
             path = (params_dir / path).resolve()
 

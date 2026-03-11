@@ -112,9 +112,13 @@ class ProjectSettingsWidget(QWidget):
         try:
             relative_path = selected_path.relative_to(base_dir.resolve())
         except ValueError:
-            relative_path = Path(os.path.relpath(str(selected_path), str(base_dir.resolve())))
+            try:
+                relative_path = Path(os.path.relpath(str(selected_path), str(base_dir.resolve())))
+            except ValueError:
+                # Windows cross-drive case (e.g. C: -> D:): keep absolute path.
+                relative_path = selected_path
 
-        self.external_edit.setText(str(relative_path))
+        self.external_edit.setText(relative_path.as_posix())
 
     def browse_project_directory(self):
         current_dir = Path(self.dir_edit.text()).expanduser()
@@ -132,6 +136,9 @@ class ProjectSettingsWidget(QWidget):
         self.dir_edit.setText(str(Path(selected_dir).resolve()))
 
     def load_project(self):
+        main_window = self.settings_dialog.parent()
+        if not main_window.confirm_discard_or_save("loading a new project"):
+            return 
         self.apply()
         self.project_controller.load_project(ProjectLoaderYaml())
         ext = self.project_state.external

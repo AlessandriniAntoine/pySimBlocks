@@ -17,6 +17,7 @@ def createScene(rootNode):
     rootNode.addObject('RequiredPlugin', pluginName=[
                             "Sofa.Component.AnimationLoop",  # Needed to use components FreeMotionAnimationLoop
                             "Sofa.Component.Constraint.Lagrangian.Correction",  # Needed to use components GenericConstraintCorrection
+                            "Sofa.Component.LinearSolver.Iterative",
                             "Sofa.Component.Constraint.Lagrangian.Solver",  # Needed to use components GenericConstraintSolver
                             "Sofa.Component.Engine.Select",  # Needed to use components BoxROI
                             "Sofa.Component.IO.Mesh",  # Needed to use components MeshSTLLoader, MeshVTKLoader
@@ -38,7 +39,16 @@ def createScene(rootNode):
     rootNode.addObject('FreeMotionAnimationLoop')
     rootNode.addObject('DefaultVisualManagerLoop')
 
-    rootNode.addObject('GenericConstraintSolver', tolerance=1e-5, maxIterations=100)
+    try: # Compatible with SOFA <= 25.06
+        rootNode.addObject('GenericConstraintSolver', tolerance=1e-5, maxIterations=100)
+    except Exception as e: # Fallback for SOFA >= 25.12 
+        print("GenericConstraintSolver not available, falling back to CGLinearSolver")
+        try:
+            rootNode.addObject('CGLinearSolver', name='solver', iterations=500, tolerance=1e-10, threshold=1e-10)
+            rootNode.addObject('BlockGaussSeidelConstraintSolver', maxIterations=100, tolerance=1e-5)
+        except Exception as e: # Error in both versions
+            print("Error adding CGLinearSolver:", e)
+            raise e
 
     rootNode.gravity = [0, -9810, 0]
     rootNode.dt = 0.01

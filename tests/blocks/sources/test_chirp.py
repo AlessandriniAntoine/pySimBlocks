@@ -18,7 +18,7 @@ def test_chirp_scalar_at_start():
         phase=0.0,
     )
     c.initialize(0.0)
-    # tau = 0 → sin(0)=0
+    # tau = 0 -> sin(0)=0
     assert np.allclose(c.outputs["out"], [[0.5]])
 
 
@@ -68,7 +68,7 @@ def test_chirp_vector_parameters():
 
     c.output_update(0.0, 0.1)
 
-    # tau=0 → sin(0)=0
+    # tau=0 -> sin(0)=0
     assert np.allclose(c.outputs["out"], [[0.0], [10.0]])
 
 

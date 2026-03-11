@@ -11,13 +11,13 @@ class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
         super().__init__(root, name=name)
-        self.project_yaml = str((BASE_DIR / "../project.yaml").resolve())
+        self.project_yaml = str((BASE_DIR / '../project.yaml').resolve())
 
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
         self.dt = root.dt.value
-        self.verbose = True
+        self.verbose = False # Set to True to print debug information at each step
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }

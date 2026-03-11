@@ -91,7 +91,7 @@ class FunctionSource(BlockSource):
                 "FunctionSource adapter requires both 'file_path' and 'function_name'."
             )
 
-        path = Path(adapted["file_path"])
+        path = Path(adapted["file_path"]).expanduser()
         if not path.is_absolute() and params_dir is not None:
             path = (params_dir / path).resolve()
 
