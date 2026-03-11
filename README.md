@@ -102,7 +102,7 @@ shown in the image above of this README).
 
 To open the graphical editor, run:
 ```bash
-pysimblocks examples/quick_start/gui
+pysimblocks gui examples/quick_start/gui
 ```
 
 The quick-start GUI project is stored in a single
