@@ -24,7 +24,12 @@ from pathlib import Path
 
 
 def _run_gui(project_dir: str | None) -> None:
-    from pySimBlocks.gui.editor import run_app
+    try:
+        from pySimBlocks.gui.editor import run_app
+    except ImportError as e:
+        print(f"Error importing GUI modules: {e}")
+        print("Make sure PySide6 is installed to use the GUI editor.")
+        sys.exit(1)
 
     path = Path(project_dir).resolve() if project_dir else Path.cwd().resolve()
     run_app(path)
@@ -36,9 +41,13 @@ def _run_export(args: argparse.Namespace) -> None:
     output = Path(args.out) if args.out else None
 
     if args.sofa_controller:
-        from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
-
-        generate_sofa_controller(project_dir=project_dir, project_yaml=project_yaml)
+        try:
+            from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
+            generate_sofa_controller(project_dir=project_dir, project_yaml=project_yaml)
+        except Exception as e:
+            print(f"Error generating SOFA controller: {e}")
+            print("See SOFA integration documentation for troubleshooting.")
+            sys.exit(1)
     else:
         from pySimBlocks.project import generate_run_script
 
@@ -57,8 +66,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pysimblocks",
         description=(
-            "pySimBlocks command line interface.\n"
-            "Default behavior with no subcommand: launch the GUI editor."
+            "pySimBlocks command line interface."
         ),
     )
 
@@ -104,17 +112,6 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     args_list = list(sys.argv[1:] if argv is None else argv)
     parser = _build_parser()
-
-    if not args_list:
-        _run_gui(project_dir=None)
-        return
-
-    if args_list[0] not in {"gui", "export", "update", "-h", "--help"}:
-        if len(args_list) > 1:
-            parser.error(f"unrecognized arguments: {' '.join(args_list[1:])}")
-        _run_gui(project_dir=args_list[0])
-        return
-
     args = parser.parse_args(args_list)
     if args.command == "gui":
         _run_gui(project_dir=args.project_dir)
