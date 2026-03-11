@@ -11,7 +11,7 @@ using either:
 - YAML project configuration
 - Optional SOFA and hardware integration
 
-![pySimBlocks graphical editor](./docs/User_Guide/images/gui_example.png)
+![pySimBlocks graphical editor](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/User_Guide/images/gui_example.png)
 
 ## Features
 
@@ -90,7 +90,7 @@ plot_from_config(logs, plot_cfg)
 
 The resulting plot should look like this:
 
-![Noise filter simulation](./docs/User_Guide/images/quick_example.png)
+![Noise filtered](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/User_Guide/images/quick_example.png)
 
 See [examples/quick_start/filter.py](./examples/quick_start/filter.py)
 to run the example yourself.
