@@ -187,5 +187,4 @@ This simple example is the foundation for more advanced use cases,
 including:
 - [GUI modeling](./tutorial_2_gui.md), 
 - [SOFA integration](./tutorial_3_sofa.md), 
-- Hardware implementation.
 

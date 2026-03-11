@@ -187,4 +187,4 @@ After modifying the model, save the project and export a new `run.py` file.
 Run it from the command line to verify that the exported script reproduces the same behavior.
 
 This tutorial demonstrates how to build and execute a model visually.  
-The next tutorials extend this approach to [SOFA integration](./tutorial_3_sofa.md) and real-time execution.
+The next tutorials extend this approach to [SOFA integration](./tutorial_3_sofa.md).

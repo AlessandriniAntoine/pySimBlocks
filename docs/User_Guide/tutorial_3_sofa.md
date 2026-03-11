@@ -350,4 +350,3 @@ Experiment with the model to better understand the pySimBlocks–SOFA workflow:
 - If using the Compliance Robotics GUI, adjust the gains and reference live using the sliders while the simulation is running.
 
 This tutorial demonstrates how to couple pySimBlocks with SOFA for co-simulation.
-The next tutorial extends this approach to hardware-in-the-loop control.
