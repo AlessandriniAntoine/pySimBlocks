@@ -32,7 +32,7 @@ def main():
         start_time=0.5
     )
     sum = Sum(name="error", signs="+-")
-    pid = Pid(name="pid", controller="PI", Kp=Kp, Ki=Ki)
+    pid = Pid(name="PID", controller="PI", Kp=Kp, Ki=Ki)
     system = LinearStateSpace(name="system", A=A, B=B, C=C, x0=x0)
 
     # -------------------------------------------------------

@@ -88,7 +88,8 @@ Modify the following parameters:
 | PID | Ki | 2. |
 | Sum | signs | +- |
 
-Renaming a block updates its label in the `Diagram View`. In [Tutorial 1](./tutorial_1_python.md), the blocks were named `ref`, `error`, `pid`, and `system`.
+Renaming a block updates its label in the `Diagram View`. In 
+[Tutorial 1](./tutorial_1_python.md), the blocks were named `ref`, `error`, `PID`, and `system`.
 
 All required parameters must be defined before running the simulation.
 

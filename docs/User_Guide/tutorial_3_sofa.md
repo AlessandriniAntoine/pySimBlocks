@@ -25,8 +25,7 @@ We build a simple closed-loop control system composed of three elements:
 The SOFA simulation is a finger actuated by a tendon. 
 The control input is the tendon tension, and the output is the vertical position of the fingertip.
 The files for the SOFA scene can be found in the [tutorial_3_sofa
-folder](../../examples/tutorials/tutorial_3_sofa/). Two versions are provided:
-`finger/` for SOFA ≤ v26.06, and `finger_v25.12/` for SOFA v25.12 and later.
+folder](../../examples/tutorials/tutorial_3_sofa/finger/).
 
 ![SOFA Scene](./images/tutorial_3-sofa_scene.png) 
 
@@ -221,12 +220,10 @@ you configure — in this tutorial, one input (cable) and one output (measure).
 The dialog box exposes the following parameters:
 | Parameter | Description | Example |
 |---|---|---|
-| `scene_file` | Path to the SOFA scene file, relative to the project folder | `<scene_folder>/Finger.py` |
+| `scene_file` | Path to the SOFA scene file, relative to the project folder | `finger/Finger.py` |
 | `input_keys` | Names of the input signals sent to SOFA | `["cable"]` |
 | `output_keys` | Names of the output signals received from SOFA | `["measure"]` |
 | `sample_time` | Execution period of the block. (simulator one by default) | *(optional)* |
-
-> **Note:** Select the `<scene_folder>` that matches your SOFA version (see §1.2).
 
 > **Note:** The key names must match exactly the keys defined in self.inputs and
 > self.outputs in your SOFA controller. A mismatch will raise a runtime error.
