@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pySimBlocks"
-version = "0.1.2"
+version = "0.1.1"
 description = "A block-diagram simulation environment with PySide6 editor"
 authors = [
     {name = "Antoine Alessandrini", email = "antoine.alessandrini@univ-lille.fr"}
