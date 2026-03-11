@@ -2,8 +2,9 @@
 
 ## 1. Overview
 
-This tutorial builds on the closed-loop system introduced in [Tutorial 1](./tutorial_1_python.md) and [Tutorial 2](./tutorial_2_gui.md). We demonstrate how **pySimBlocks can be coupled with SOFA** 
-to control and interact with a physics-based simulation.
+This tutorial builds on the closed-loop system introduced in [Tutorial 1](./tutorial_1_python.md) 
+and [Tutorial 2](./tutorial_2_gui.md). We demonstrate how **pySimBlocks can be 
+coupled with SOFA** to control and interact with a physics-based simulation.
 
 ### 1.1 Goals
 
@@ -40,6 +41,7 @@ your environment so that:
 
 ### 2.1 Install SOFA
 
+> **Compatibility:** pySimBlocks has been tested with SOFA v24.06 and later.
 
 Install SOFA from the [website](https://www.sofa-framework.org/download/) either
 using the precompiled binaries (recommended) or building from source (advanced 
