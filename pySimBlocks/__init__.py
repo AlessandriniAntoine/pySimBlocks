@@ -18,6 +18,13 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("pySimBlocks")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 from pySimBlocks.core import Model, Simulator, SimulationConfig, PlotConfig
 
 __all__ = [
