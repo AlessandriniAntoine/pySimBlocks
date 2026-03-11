@@ -1,13 +1,17 @@
 # pySimBlocks
 
-A deterministic block-diagram simulation framework for discrete-time modeling, co-simulation and research prototyping in Python.
+A deterministic block-diagram simulation framework for discrete-time modeling, 
+co-simulation and research prototyping in Python.
 
-pySimBlocks allows you to build, configure, and execute discrete-time systems using either:
+pySimBlocks allows you to build, configure, and execute discrete-time systems 
+using either:
 
 - A pure Python API
 - A graphical editor (PySide6)
 - YAML project configuration
 - Optional SOFA and hardware integration
+
+![pySimBlocks graphical editor](./docs/User_Guide/images/gui_example.png)
 
 ## Features
 
@@ -36,74 +40,65 @@ cd pySimBlocks
 pip install .
 ```
 
-## First Steps
+## Getting Started
 
 ### Quick Example
 
-The following example models a damped harmonic oscillator:
+The following example models a simple first-order low-pass filter, defined by
+the difference equation:
 
-$$ \ddot{x} +0.5\dot{x} +2x = 0 $$
+$$ y[k] =  \alpha x[k] + (1-\alpha) y[k-1] $$
 
-The continuous-time equation is implemented using explicit forward Euler 
-discretization through discrete integrator blocks with a fixed time step.
-
-The system is assembled explicitly from discrete-time operators.
+It can be implemented in pySimBlocks using the following code:
 
 ```python
 from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
-from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
+from pySimBlocks.blocks.operators import Gain, Sum, Delay
+from pySimBlocks.blocks.sources import WhiteNoise
 from pySimBlocks.project.plot_from_config import plot_from_config
 
 # 1. Create the blocks
-v = DiscreteIntegrator("v", initial_state=5)
-x = DiscreteIntegrator("x", initial_state=2.)
-damping = Gain(name="damping", gain=0.5)
-stiffness = Gain(name="stiffness", gain=2)
-sum = Sum(name="sum", signs="--")
+noise = WhiteNoise(name="noise", std=1.0)
+delay = Delay(name="delay")
+filtered = Sum("filtered", signs="++")
+alpha_gain = Gain(name="alpha", gain=0.1)
+complement = Gain(name="complement", gain=0.9)
 
 # 2. Build the model
 model = Model("Example")
-for block in [v, x, damping, stiffness, sum]:
+for block in [noise, delay, filtered, alpha_gain, complement]:
     model.add_block(block)
 
-model.connect("v", "out", "x", "in")
-model.connect("v", "out", "damping", "in")
-model.connect("x", "out", "stiffness", "in")
-model.connect("damping", "out", "sum", "in1")
-model.connect("stiffness", "out", "sum", "in2")
-model.connect("sum", "out", "v", "in")
+model.connect("noise", "out", "alpha", "in")
+model.connect("delay", "out", "complement", "in")
+model.connect("alpha", "out", "filtered", "in1")
+model.connect("complement", "out", "filtered", "in2")
+model.connect("filtered", "out", "delay", "in")
 
-# 3. Create the simulator
+# 3. Simulate the model
 sim_cfg = SimulationConfig(dt=0.05, T=30.)
 sim = Simulator(model, sim_cfg)
+logs = sim.run(logging=["noise.outputs.out", "filtered.outputs.out"])
 
-# 4. Run the simulation
-logs = sim.run(logging=[
-        "x.outputs.out",
-        "v.outputs.out",
-    ]
-)
-
-# 5. Plot the results
+# 4. Plot the results
 plot_cfg = PlotConfig([
-    {"title": "Position and Velocity",
-     "signals": ["x.outputs.out", "v.outputs.out"],},
+    {"title": "Noisy signal vs Filtered",
+     "signals": ["noise.outputs.out", "filtered.outputs.out"],},
     ])
 plot_from_config(logs, plot_cfg)
 ```
 
-The simulated position and velocity exhibit the expected damped oscillatory behavior.
+The resulting plot should look like this:
 
-![Damped oscillator simulation](./docs/User_Guide/images/quick_example.png)
+![Noise filter simulation](./docs/User_Guide/images/quick_example.png)
 
-See [examples/quick_start/oscillator.py](./examples/quick_start/oscillator.py)
+See [examples/quick_start/filter.py](./examples/quick_start/filter.py)
 to run the example yourself.
 
 ### Graphical Editor
 
-The same model can be constructed visually using the graphical editor:
-
-![GUI Example](./docs/User_Guide/images/gui_example.png)
+The exact same model can be constructed visually using the graphical editor (as
+shown in the image above of this README).
 
 To open the graphical editor, run:
 ```bash
@@ -111,11 +106,14 @@ pysimblocks examples/quick_start/gui
 ```
 
 The quick-start GUI project is stored in a single
-`examples/quick_start/gui/project.yaml` file.
+[examples/quick_start/gui/project.yaml](./examples/quick_start/gui/project.yaml) file.
 
-### Tutorials
+### Learning Resources
 
-Three step-by-step tutorials are available detailled in the
+
+#### Tutorials
+
+Three step-by-step tutorials are available detailed in the
 [guide](./docs/User_Guide/getting_started.md):
 
   | | Tutorial | Description |
@@ -125,8 +123,7 @@ Three step-by-step tutorials are available detailled in the
   | 3 | [SOFA](./docs/User_Guide/tutorial_3_sofa.md) | Replace the plant with a SOFA physics simulation |
 
 
-
-### Examples
+#### Other Examples
 
 A collection of basic and advanced examples is available in the
 [examples](./examples) directory, including:
@@ -142,11 +139,7 @@ See [examples/README.md](./examples/README.md) for an overview.
 
 ### License
 
-pySimBlocks is LGPL.
-
-LGPL refers to the GNU Lesser General Public License as published by the Free Software
-Foundation; either version 3.0 of the License, or (at your option) any later 
-version.
+pySimBlocks is licensed under [LGPL-3.0-or-later](./LICENSE.md).
 
 ---
 © 2026 Université de Lille & INRIA – Licensed under LGPL-3.0-or-later

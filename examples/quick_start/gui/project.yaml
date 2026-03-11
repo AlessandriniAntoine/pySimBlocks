@@ -9,106 +9,97 @@ simulation:
   T: 30.0
   solver: fixed
   logging:
-  - v.outputs.out
-  - x.outputs.out
+  - noise.outputs.out
+  - filtered.outputs.out
   plots:
-  - title: Position and Velocity
+  - title: Noisy signal vs Filtered
     signals:
-    - v.outputs.out
-    - x.outputs.out
+    - noise.outputs.out
+    - filtered.outputs.out
 diagram:
   blocks:
-  - name: v
-    category: operators
-    type: discrete_integrator
+  - name: noise
+    category: sources
+    type: white_noise
     parameters:
-      initial_state: 5.0
-      method: euler forward
-  - name: x
+      std: 1.0
+  - name: alpha
     category: operators
-    type: discrete_integrator
+    type: gain
     parameters:
-      initial_state: 2.0
-      method: euler forward
-  - name: Sum
+      gain: 0.1
+      multiplication: Element wise (K * u)
+  - name: filtered
     category: operators
     type: sum
     parameters:
-      signs: --
-  - name: damping
+      signs: ++
+  - name: Delay
+    category: operators
+    type: delay
+    parameters:
+      num_delays: 1
+  - name: 1-alpha
     category: operators
     type: gain
     parameters:
-      gain: 0.5
-      multiplication: Element wise (K * u)
-  - name: stiffness
-    category: operators
-    type: gain
-    parameters:
-      gain: 2.0
+      gain: 0.9
       multiplication: Element wise (K * u)
   connections:
   - name: c1
     ports:
-    - Sum.out
-    - v.in
+    - filtered.out
+    - Delay.in
   - name: c2
     ports:
-    - v.out
-    - x.in
+    - noise.out
+    - alpha.in
   - name: c3
     ports:
-    - v.out
-    - damping.in
+    - 1-alpha.out
+    - filtered.in2
   - name: c4
     ports:
-    - x.out
-    - stiffness.in
+    - alpha.out
+    - filtered.in1
   - name: c5
     ports:
-    - damping.out
-    - Sum.in2
-  - name: c6
-    ports:
-    - stiffness.out
-    - Sum.in1
+    - Delay.out
+    - 1-alpha.in
 gui:
   layout:
     blocks:
-      v:
-        x: -570.0
-        y: -300.0
+      noise:
+        x: -1105.0
+        y: -385.0
+        orientation: normal
+        width: 150.0
+        height: 60.0
+      alpha:
+        x: -895.0
+        y: -385.0
         orientation: normal
         width: 120.0
         height: 60.0
-      x:
-        x: -370.0
-        y: -300.0
+      filtered:
+        x: -670.0
+        y: -375.0
         orientation: normal
         width: 120.0
         height: 60.0
-      Sum:
-        x: -740.0
-        y: -300.0
+      Delay:
+        x: -490.0
+        y: -365.0
         orientation: normal
         width: 120.0
         height: 60.0
-      damping:
-        x: -570.0
-        y: -210.0
-        orientation: flipped
-        width: 130.0
-        height: 65.0
-      stiffness:
-        x: -555.0
-        y: -410.0
-        orientation: flipped
-        width: 135.0
-        height: 65.0
+      1-alpha:
+        x: -895.0
+        y: -310.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
     connections:
-      c4:
-        route: [[-235.0, -270.0], [-225.0, -270.0], [-225.0, -322.5], [-225.0, -322.5],
-          [-225.0, -377.5], [-414.0, -377.5]]
-      c6:
-        route: [[-570.0, -377.5], [-755.0, -377.5], [-755.0, -322.5], [-755.0, -322.5],
-          [-755.0, -280.0], [-746.0, -280.0]]
+      c5:
+        route: [[-355.0, -335.0], [-347.0, -335.0], [-347.0, -215.0], [-909.0, -215.0],
+          [-909.0, -280.0], [-901.0, -280.0]]
