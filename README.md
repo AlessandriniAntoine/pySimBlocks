@@ -1,5 +1,11 @@
 # pySimBlocks
 
+[![PyPI version](https://img.shields.io/pypi/v/pySimBlocks.svg)](https://pypi.org/project/pySimBlocks/)
+[![Python](https://img.shields.io/pypi/pyversions/pySimBlocks.svg)](https://pypi.org/project/pySimBlocks/)
+[![License](https://img.shields.io/github/license/AlessandriniAntoine/pySimBlocks)](./LICENSE.md)
+
+---
+
 A deterministic block-diagram simulation framework for discrete-time modeling, 
 co-simulation and research prototyping in Python.
 
@@ -23,6 +29,13 @@ using either:
 - Extensible block architecture
 
 ## Installation
+
+### From PyPI
+
+Install the latest stable version from PyPI using pip:
+```
+pip install pySimBlocks
+```
 
 ### From GitHub
 
