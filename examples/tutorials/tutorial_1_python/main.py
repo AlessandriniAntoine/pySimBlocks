@@ -44,8 +44,8 @@ def main():
 
     model.connect("ref", "out", "error", "in1")
     model.connect("system", "y", "error", "in2")
-    model.connect("error", "out", "pid", "e")
-    model.connect("pid", "u", "system", "u")
+    model.connect("error", "out", "PID", "e")
+    model.connect("PID", "u", "system", "u")
 
     # -------------------------------------------------------
     # 3. Create the simulator
@@ -60,7 +60,7 @@ def main():
     # -------------------------------------------------------
     logs = sim.run(logging=[
             "ref.outputs.out",
-            "pid.outputs.u",
+            "PID.outputs.u",
             "system.outputs.y"
         ]
     )
@@ -69,7 +69,7 @@ def main():
     # 5. Extract logged data
     # -------------------------------------------------------
     t = sim.get_data("time")
-    u = sim.get_data("pid.outputs.u").squeeze()
+    u = sim.get_data("PID.outputs.u").squeeze()
     r = sim.get_data("ref.outputs.out").squeeze()
     y = sim.get_data("system.outputs.y").squeeze()
 

@@ -17,7 +17,7 @@ class FingerController(SofaPysimBlocksController):
         self.actuator = actuator
         self.tip_index = tip_index
         self.dt = root.dt.value
-        self.verbose = True # Set to True to print debug information at each step
+        self.verbose = False # Set to True to print debug information at each step
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }

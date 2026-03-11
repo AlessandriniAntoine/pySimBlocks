@@ -115,8 +115,16 @@ The quick-start GUI project is stored in a single
 
 ### Tutorials
 
-See the [Getting Started Guide](./docs/User_Guide/getting_started.md) for
-tutorials on building your first simulation with pySimBlocks.
+Three step-by-step tutorials are available detailled in the
+[guide](./docs/User_Guide/getting_started.md):
+
+  | | Tutorial | Description |
+  |---|---|---|
+  | 1 | [Python API](./docs/User_Guide/tutorial_1_python.md) | Build a closed-loop PI control system in pure Python |
+  | 2 | [GUI](./docs/User_Guide/tutorial_2_gui.md) | Build the same system visually with the graphical editor |
+  | 3 | [SOFA](./docs/User_Guide/tutorial_3_sofa.md) | Replace the plant with a SOFA physics simulation |
+
+
 
 ### Examples
 

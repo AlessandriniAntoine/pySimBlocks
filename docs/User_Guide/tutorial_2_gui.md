@@ -105,7 +105,7 @@ All required parameters must be defined before running the simulation.
 Next, configure the simulation settings:
 - Sample time: 0.01 s
 - Duration: 5 s
-- Signals to log: system y, pid u, and ref output
+- Signals to log: system y, PID u, and ref output
 
 Click the `Settings` button in the `Toolbar`. A dialog opens with multiple panels. One is for the simulation.
 
