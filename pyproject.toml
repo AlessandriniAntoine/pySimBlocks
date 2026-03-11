@@ -10,14 +10,14 @@ authors = [
     {name = "Antoine Alessandrini", email = "antoine.alessandrini@univ-lille.fr"}
 ]
 readme = "README.md"
-license = {file = "LICENSE.md"}
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSE.md"]
 requires-python = ">=3.10"
 keywords = ["simulation", "block-diagram", "control", "discrete-time", "pyside6"] 
 classifiers = [ 
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Education",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
