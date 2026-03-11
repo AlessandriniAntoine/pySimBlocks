@@ -102,7 +102,7 @@ shown in the image above of this README).
 
 To open the graphical editor, run:
 ```bash
-pysimblocks examples/quick_start/gui
+pysimblocks gui examples/quick_start/gui
 ```
 
 The quick-start GUI project is stored in a single
@@ -129,7 +129,7 @@ A collection of basic and advanced examples is available in the
 [examples](./examples) directory, including:
 
 - Control system demonstrations
-- SOFA-based simulations
+- SOFA-based simulations (tested with SOFA v24.06 and later.)
 - Hardware and real-time use cases
 - Comparisons with external tools
 

@@ -32,7 +32,7 @@ Create a new project folder and start the GUI:
 ```bash
 $ mkdir tutorial-gui
 $ cd tutorial-gui
-$ pysimblocks
+$ pysimblocks gui
 ```
 The main window opens, with the `Toolbar` at the top, the `Blocks List` on the left, and the `Diagram View` on the right.
 ![Gui](./images/tutorial_2-gui_main.png)
