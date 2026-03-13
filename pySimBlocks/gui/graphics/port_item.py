@@ -30,6 +30,14 @@ if TYPE_CHECKING:
 
 
 class PortItem(QGraphicsItem):
+    """Render and interact with a block port on the diagram.
+
+    Attributes:
+        instance: Port model represented by the item.
+        parent_block: Block item owning the port.
+        label: Text label displayed next to the port.
+    """
+
     MARGIN = 4
     R = 6   # radius input port
     L = 15  # length output port
@@ -37,6 +45,15 @@ class PortItem(QGraphicsItem):
     RECT = QRectF(-8, -8, 15, 15) # bounding rect for both port types
 
     def __init__(self, instance: 'PortInstance', parent_block: 'BlockItem'):
+        """Initialize a port item.
+
+        Args:
+            instance: Port model represented by the item.
+            parent_block: Block item owning the port.
+
+        Raises:
+            None.
+        """
         super().__init__(parent_block)
 
         self.instance = instance
@@ -52,21 +69,21 @@ class PortItem(QGraphicsItem):
         self.label.setFont(QFont("Sans Serif", 8))
 
     # --------------------------------------------------------------------------
-    # Properties
+    # Public Methods
     # --------------------------------------------------------------------------
+
     @property
     def is_input(self):
+        """Return whether this port is an input port."""
         return self.instance.direction == "input"
 
-    # --------------------------------------------------------------
     @property
     def is_on_left_side(self) -> bool:
+        """Return whether the port is currently placed on the left block side."""
         return self.pos().x() < (self.parent_block.rect().width() * 0.5)
 
-    # --------------------------------------------------------------------------
-    # Public methods
-    # --------------------------------------------------------------------------
     def update_label_position(self):
+        """Position the port label according to the current side."""
         label_rect = self.label.boundingRect()
 
         if self.is_on_left_side:
@@ -80,12 +97,16 @@ class PortItem(QGraphicsItem):
                 self.y() - label_rect.height() / 2,
             )
 
-    # --------------------------------------------------------------
     def update_display_as(self):
+        """Refresh the displayed port label text."""
         self.label.setPlainText(self.instance.display_as)
 
-    # --------------------------------------------------------------
     def connection_anchor(self) -> QPointF:
+        """Return the scene anchor point used to attach a connection.
+
+        Returns:
+            Scene coordinate used as the wire anchor for this port.
+        """
         if self.is_input:
             x = -self.R if self.is_on_left_side else self.R
             local = QPointF(x, 0)
@@ -94,18 +115,33 @@ class PortItem(QGraphicsItem):
             local = QPointF(x, 0)
         return self.mapToScene(local)
 
-    # --------------------------------------------------------------
     def is_compatible(self, other: 'PortItem'):
+        """Return whether this port can connect to another port.
+
+        Args:
+            other: Other port item to compare against.
+
+        Returns:
+            True if the ports have opposite directions.
+        """
         return self.instance.direction != other.instance.direction
 
-    # --------------------------------------------------------------------------
-    # Visuals
-    # --------------------------------------------------------------------------
     def boundingRect(self) -> QRectF:
+        """Return the fixed bounding rectangle of the port.
+
+        Returns:
+            Bounding rectangle used for painting and hit testing.
+        """
         return self.RECT
 
-    # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
+        """Paint the port as a circle or triangle depending on its direction.
+
+        Args:
+            painter: Painter used to render the item.
+            option: Style option describing the current paint state.
+            widget: Optional target widget.
+        """
         painter.setRenderHint(QPainter.Antialiasing)
 
         fill = self.t.port_in if self.is_input else self.t.port_out
@@ -124,8 +160,12 @@ class PortItem(QGraphicsItem):
             path.closeSubpath()
             painter.drawPath(path)
 
-    # --------------------------------------------------------------
     def shape(self):
+        """Return the hit-test shape of the port.
+
+        Returns:
+            Painter path matching the painted port shape.
+        """
         path = QPainterPath()
 
         if self.is_input:
@@ -139,15 +179,25 @@ class PortItem(QGraphicsItem):
 
         return path
 
-    # --------------------------------------------------------------------------
-    # Event handlers
-    # --------------------------------------------------------------------------
     def mousePressEvent(self, event):
+        """Start a connection drag from this port.
+
+        Args:
+            event: Qt mouse-press event.
+        """
         self.parent_block.view.create_connection_event(self)
         event.accept()
 
-    # --------------------------------------------------------------
     def itemChange(self, change, value):
+        """Update the label position when the port scene position changes.
+
+        Args:
+            change: Item change identifier.
+            value: Proposed new value for the change.
+
+        Returns:
+            Base implementation result.
+        """
         if change == QGraphicsItem.ItemScenePositionHasChanged:
             self.update_label_position()
         return super().itemChange(change, value)
