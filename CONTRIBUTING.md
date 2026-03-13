@@ -99,6 +99,14 @@ Follow standard Python conventions:
 | Input/output port names | `snake_case` | `"in"`, `"out"`, `"error"` |
 | State keys | `snake_case` | `"x"`, `"x_i"`, `"prev_e"` |
 
+### Type hints
+
+Type hints are required for all methods and functions.
+
+All source files must include `from __future__ import annotations` as the
+first import to ensure correct rendering of type aliases (e.g. `ArrayLike`)
+in the Sphinx documentation.
+
 ---
 
 ## Running tests
