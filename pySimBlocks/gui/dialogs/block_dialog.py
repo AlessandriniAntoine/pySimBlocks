@@ -36,10 +36,29 @@ if TYPE_CHECKING:
 
 
 class BlockDialog(QDialog):
+    """Edit or inspect the parameters of a block instance.
+
+    Attributes:
+        block: Block item being edited or inspected.
+        meta: Block metadata describing the dialog content.
+        instance: Block instance bound to the dialog.
+        readonly: Whether the dialog is read-only.
+        session: Metadata-defined dialog session object.
+    """
+
     def __init__(self,
                  block: 'BlockItem',
                  readonly: bool = False
     ):
+        """Initialize a block dialog.
+
+        Args:
+            block: Block item being edited or inspected.
+            readonly: If True, disable parameter edition.
+
+        Raises:
+            None.
+        """
         super().__init__()
         self.block = block
         self.meta = block.instance.meta
@@ -64,9 +83,14 @@ class BlockDialog(QDialog):
         self.build_buttons_layout(main_layout)
 
     # --------------------------------------------------------------------------
-    # Dialog Layout Methods
+    # Public Methods
     # --------------------------------------------------------------------------
     def build_meta_layout(self, layout: QVBoxLayout):
+        """Build the metadata-defined parameter form.
+
+        Args:
+            layout: Parent layout receiving the form.
+        """
         form = QFormLayout()
         self.meta.build_description(form)
         self.meta.build_pre_param(self.session, form, self.readonly)
@@ -76,6 +100,11 @@ class BlockDialog(QDialog):
         self.meta.refresh_form(self.session)
 
     def build_buttons_layout(self, layout: QVBoxLayout):
+        """Build the dialog action buttons.
+
+        Args:
+            layout: Parent layout receiving the button row.
+        """
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
 
@@ -99,24 +128,21 @@ class BlockDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
-
-    # --------------------------------------------------------------------------
-    # Button Methods
-    # --------------------------------------------------------------------------
     def apply(self):
+        """Apply current dialog values to the bound block."""
         if self.readonly:
             return
 
         params = self.meta.gather_params(self.session)
         self.block.view.update_block_param_event(self.block.instance, params)
 
-    # ------------------------------------------------------------
     def ok(self):
+        """Apply current values and close the dialog."""
         self.apply()
         self.accept()
 
-    # ------------------------------------------------------------
     def open_help(self):
+        """Open the block help dialog if documentation is available."""
         help_path = self.block.instance.meta.doc_path
 
         if help_path and help_path.exists():

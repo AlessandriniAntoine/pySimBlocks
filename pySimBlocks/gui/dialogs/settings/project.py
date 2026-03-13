@@ -30,8 +30,25 @@ from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 
 
 class ProjectSettingsWidget(QWidget):
+    """Edit project-level settings such as paths and external modules.
+
+    Attributes:
+        project_state: Project state edited by the widget.
+        project_controller: Controller applying the edited settings.
+        settings_dialog: Parent settings dialog coordinating tab refreshes.
+    """
 
     def __init__(self, project_state: ProjectState, project_controller: ProjectController, settings_dialg):
+        """Initialize the project settings widget.
+
+        Args:
+            project_state: Project state edited by the widget.
+            project_controller: Controller applying the edited settings.
+            settings_dialg: Parent settings dialog coordinating refreshes.
+
+        Raises:
+            None.
+        """
         super().__init__()
         self.project_state = project_state
         self.project_controller = project_controller
@@ -75,7 +92,16 @@ class ProjectSettingsWidget(QWidget):
 
 
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def apply(self) -> bool:
+        """Validate and apply the current project settings.
+
+        Returns:
+            True if the settings were applied successfully, otherwise False.
+        """
         path = Path(self.dir_edit.text())
         if not path.exists():
             QMessageBox.warning(
@@ -89,6 +115,7 @@ class ProjectSettingsWidget(QWidget):
         return True
 
     def browse_external_file(self):
+        """Select an external Python file relative to the project directory."""
         base_dir = Path(self.dir_edit.text()).expanduser()
         if not base_dir.is_dir():
             QMessageBox.warning(
@@ -121,6 +148,7 @@ class ProjectSettingsWidget(QWidget):
         self.external_edit.setText(relative_path.as_posix())
 
     def browse_project_directory(self):
+        """Select the project directory from the filesystem."""
         current_dir = Path(self.dir_edit.text()).expanduser()
         start_dir = current_dir if current_dir.is_dir() else Path.cwd()
 
@@ -136,6 +164,7 @@ class ProjectSettingsWidget(QWidget):
         self.dir_edit.setText(str(Path(selected_dir).resolve()))
 
     def load_project(self):
+        """Load the project from the selected directory after confirmation."""
         main_window = self.settings_dialog.parent()
         if not main_window.confirm_discard_or_save("loading a new project"):
             return 

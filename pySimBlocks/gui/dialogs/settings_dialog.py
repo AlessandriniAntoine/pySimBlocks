@@ -30,7 +30,26 @@ from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):
+    """Display project, simulation, and plot settings in a tabbed dialog.
+
+    Attributes:
+        tabs: Tab widget containing all settings pages.
+        project_tab: Project settings widget.
+        simulation_tab: Simulation settings widget.
+        plots_tab: Plot settings widget.
+    """
+
     def __init__(self, project_state: ProjectState, project_controller: ProjectController,  parent=None):
+        """Initialize the settings dialog.
+
+        Args:
+            project_state: Project state edited by the dialog.
+            project_controller: Controller applying the edited settings.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
@@ -67,21 +86,32 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(buttons)
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def ok(self):
+        """Apply settings and close the dialog."""
         self.apply()
         self.accept()
 
     def apply(self):
+        """Apply the currently edited settings to the project."""
         if not self.project_tab.apply():
             return
         self.simulation_tab.apply()
 
     def refresh_tabs_from_project(self):
+        """Refresh dependent tabs from the current project state."""
         self.simulation_tab.refresh_from_project()
         self.plots_tab.refresh_from_project()
 
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _on_tab_changed(self, index):
-        #save curr widget
+        """Refresh the newly selected tab when it supports project syncing."""
         widget = self.tabs.widget(index)
 
         if hasattr(widget, "refresh_from_project"):
