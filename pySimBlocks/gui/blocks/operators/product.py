@@ -27,8 +27,17 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class ProductMeta(BlockMeta):
+    """Describe the GUI metadata of the dynamic multi-input product block."""
 
     def __init__(self):
+        """Initialize product block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Product"
         self.category = "operators"
         self.type = "product"
@@ -84,12 +93,26 @@ class ProductMeta(BlockMeta):
             )
         ]
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def resolve_port_group(
         self,
         port_meta: PortMeta,
         direction: Literal['input', 'output'],
         instance: "BlockInstance"
     ) -> list["PortInstance"]:
+        """Resolve product input ports from the configured operations string.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         if direction == "input" and port_meta.name == "in":
             operations_str = instance.parameters.get("operations", "")

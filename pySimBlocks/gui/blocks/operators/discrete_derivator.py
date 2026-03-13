@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class DiscreteDerivatorMeta(BlockMeta):
+    """Describe the GUI metadata of the discrete-derivator block."""
 
     def __init__(self):
+        """Initialize discrete-derivator block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "DiscreteDerivator"
         self.category = "operators"
         self.type = "discrete_derivator"

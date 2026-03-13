@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class DelayMeta(BlockMeta):
+    """Describe the GUI metadata of the delay block."""
 
     def __init__(self):
+        """Initialize delay block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Delay"
         self.category = "operators"
         self.type = "delay"

@@ -24,7 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class StateFeedBackMeta(BlockMeta):
+    """Describe the GUI metadata of the state-feedback controller block."""
+
     def __init__(self):
+        """Initialize state-feedback block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "StateFeedback"
         self.category = "controllers"
         self.type = "state_feedback"

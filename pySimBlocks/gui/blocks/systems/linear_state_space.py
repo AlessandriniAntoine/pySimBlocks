@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class LinearStateSpaceMeta(BlockMeta):
+    """Describe the GUI metadata of the linear state-space block."""
 
     def __init__(self):
+        """Initialize linear-state-space block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "LinearStateSpace"
         self.category = "systems"
         self.type = "linear_state_space"

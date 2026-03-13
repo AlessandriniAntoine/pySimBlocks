@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class StepMeta(BlockMeta):
+    """Describe the GUI metadata of the step source block."""
 
     def __init__(self):
+        """Initialize step-source block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Step"
         self.category = "sources"
         self.type = "step"

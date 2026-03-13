@@ -25,8 +25,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 class SumMeta(BlockMeta):
+    """Describe the GUI metadata of the dynamic multi-input sum block."""
 
     def __init__(self):
+        """Initialize sum block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Sum"
         self.category = "operators"
         self.type = "sum"
@@ -66,12 +75,26 @@ class SumMeta(BlockMeta):
                 shape=["n", "m"]
             ),
         ]
-    
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def resolve_port_group(self, 
                            port_meta: PortMeta,
                            direction: Literal['input', 'output'], 
                            instance: "BlockInstance"
         ) -> list["PortInstance"]:
+        """Resolve sum input ports from the configured sign string.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         if direction == "input" and port_meta.name == "in":
             signs = instance.parameters.get("signs", "")
@@ -87,5 +110,5 @@ class SumMeta(BlockMeta):
                     )
                 )
             return ports
-        
+
         return super().resolve_port_group(port_meta, direction, instance)

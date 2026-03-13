@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class RateLimiterMeta(BlockMeta):
+    """Describe the GUI metadata of the rate-limiter block."""
 
     def __init__(self):
+        """Initialize rate-limiter block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "RateLimiter"
         self.category = "operators"
         self.type = "rate_limiter"

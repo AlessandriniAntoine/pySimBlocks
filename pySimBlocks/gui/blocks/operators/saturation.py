@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class SaturationMeta(BlockMeta):
+    """Describe the GUI metadata of the saturation block."""
 
     def __init__(self):
+        """Initialize saturation block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Saturation"
         self.category = "operators"
         self.type = "saturation"

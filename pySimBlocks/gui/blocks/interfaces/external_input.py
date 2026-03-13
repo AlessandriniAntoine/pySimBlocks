@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class ExternalInputMeta(BlockMeta):
+    """Describe the GUI metadata of the external-input interface block."""
 
     def __init__(self):
+        """Initialize external-input block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "ExternalInput"
         self.category = "interfaces"
         self.type = "external_input"

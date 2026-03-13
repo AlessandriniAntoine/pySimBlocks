@@ -30,12 +30,34 @@ if TYPE_CHECKING:
 
 
 class BlockDialogSession:
+    """Store transient dialog state while editing a block instance.
+
+    Attributes:
+        meta: Block metadata driving the dialog.
+        instance: Block instance being edited.
+        project_dir: Project directory used to resolve relative files.
+        local_params: Local parameter cache for the open dialog.
+        param_widgets: Widgets keyed by parameter name.
+        param_labels: Labels keyed by parameter name.
+        name_edit: Optional line edit used for the block name.
+    """
+
     def __init__(
         self,
         meta: "BlockMeta",
         instance: BlockInstance,
         project_dir: Path | None = None,
     ):
+        """Initialize a block dialog session.
+
+        Args:
+            meta: Block metadata driving the dialog.
+            instance: Block instance being edited.
+            project_dir: Project directory used to resolve relative files.
+
+        Raises:
+            None.
+        """
         self.meta = meta              
         self.instance = instance
         self.project_dir = project_dir

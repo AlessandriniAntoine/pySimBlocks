@@ -25,6 +25,17 @@ from typing import Any, List, Optional
 
 @dataclass(frozen=True)
 class ParameterMeta:
+    """Describe one configurable parameter of a GUI block.
+
+    Attributes:
+        name: Parameter name.
+        type: User-facing parameter type description.
+        required: Whether the parameter must be provided.
+        autofill: Whether a default value should be inserted automatically.
+        default: Default parameter value.
+        enum: Allowed values for enum-like parameters.
+        description: Optional help text displayed in the GUI.
+    """
     name: str
     type: str
     required: bool = False

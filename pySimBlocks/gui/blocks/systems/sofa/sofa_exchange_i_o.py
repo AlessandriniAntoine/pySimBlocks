@@ -33,8 +33,17 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class SofaExchangeIOMeta(BlockMeta):
+    """Describe the GUI metadata of the SOFA exchange I/O block."""
 
     def __init__(self):
+        """Initialize SOFA exchange I/O block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "SofaExchangeIO"
         self.category = "systems"
         self.type = "sofa_exchange_i_o"
@@ -91,7 +100,7 @@ class SofaExchangeIOMeta(BlockMeta):
         ]
 
     # --------------------------------------------------------------------------
-    # Port Resolution
+    # Public Methods
     # --------------------------------------------------------------------------
     def resolve_port_group(
         self,
@@ -99,6 +108,16 @@ class SofaExchangeIOMeta(BlockMeta):
         direction: Literal["input", "output"],
         instance: "BlockInstance"
     ) -> list["PortInstance"]:
+        """Resolve dynamic SOFA input and output ports from configured key lists.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         if direction == "input" and port_meta.name == "sofa_inputs":
             keys = instance.parameters.get("input_keys", [])
@@ -130,15 +149,19 @@ class SofaExchangeIOMeta(BlockMeta):
 
         return super().resolve_port_group(port_meta, direction, instance)
 
-    # --------------------------------------------------------------------------
-    # Dialog Methods
-    # --------------------------------------------------------------------------
     def build_param(
         self,
         session,
         form: QFormLayout,
         readonly: bool = False,
     ):
+        """Build the SOFA exchange I/O parameter editor.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         name_edit = QLineEdit(session.instance.name)
         name_edit.textChanged.connect(
             lambda val: self._on_param_changed(val, "name", session, readonly)
@@ -169,21 +192,34 @@ class SofaExchangeIOMeta(BlockMeta):
             session.param_widgets[pmeta.name] = widget
             session.param_labels[pmeta.name] = label
 
-    # ------------------------------------------------------
     def build_post_param(self, session, form: QFormLayout, readonly: bool = False):
+        """Build the post-parameter section with the open-file action.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         open_btn = QPushButton("Open file")
         open_btn.clicked.connect(lambda: self._open_file_from_session(session))
         form.addRow(QLabel(""), open_btn)
         session.open_file_btn = open_btn
         self._refresh_open_button_state(session)
 
-    # ------------------------------------------------------
     def refresh_form(self, session):
+        """Refresh widget visibility and the file-open button state.
+
+        Args:
+            session: Active dialog session.
+        """
         super().refresh_form(session)
         self._refresh_open_button_state(session)
 
-    # ------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
     def _resolve_file_path(self, session) -> Path | None:
+        """Resolve the configured SOFA scene path for the current session."""
         raw = session.local_params.get("scene_file")
         if not raw:
             return None
@@ -193,8 +229,8 @@ class SofaExchangeIOMeta(BlockMeta):
             path = (session.project_dir / path).resolve()
         return path
 
-    # ------------------------------------------------------
     def _refresh_open_button_state(self, session) -> None:
+        """Enable or disable the open-file button from the resolved path."""
         btn = getattr(session, "open_file_btn", None)
         if btn is None:
             return
@@ -207,8 +243,8 @@ class SofaExchangeIOMeta(BlockMeta):
         else:
             btn.setToolTip("Set a valid existing scene_file to open the file.")
 
-    # ------------------------------------------------------
     def _open_file_from_session(self, session) -> None:
+        """Open the configured scene file with the platform default app."""
         target = self._resolve_file_path(session)
         if target is None or not target.is_file():
             return

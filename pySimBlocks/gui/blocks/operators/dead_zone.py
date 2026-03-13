@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class DeadZoneMeta(BlockMeta):
+    """Describe the GUI metadata of the dead-zone block."""
 
     def __init__(self):
+        """Initialize dead-zone block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "DeadZone"
         self.category = "operators"
         self.type = "dead_zone"

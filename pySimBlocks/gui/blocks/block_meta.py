@@ -47,47 +47,21 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class BlockMeta(ABC):
+    """Define the GUI metadata contract for one block type.
 
-    """
-    Template for child class
+    Subclasses declare static block metadata, optional dialog customizations,
+    and dynamic port-resolution rules used by the GUI layer.
 
-from pySimBlocks.gui.blocks.block_meta import BlockMeta
-from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
-from pySimBlocks.gui.blocks.port_meta import PortMeta
-
-class MyBlockMeta(BlockMeta):
-
-    def __init__(self):
-        self.name = ""
-        self.category = ""
-        self.type = ""
-        self.summary = ""
-        self.description = (
-            ""
-        )
-
-        self.parameters = [
-            ParameterMeta(
-                name="",
-                type=""
-            ),
-        ]
-
-        self.inputs = [
-            PortMeta(
-                name="",
-                display_as=""
-                shape=...
-            ),
-        ]
-
-        self.outputs = [
-            PortMeta(
-                name="",
-                display_as=""
-                shape=...
-            ),
-        ]
+    Attributes:
+        name: User-facing block name.
+        category: GUI block category.
+        type: Stable block type identifier.
+        summary: Short summary displayed in the GUI.
+        description: Rich description displayed in the dialog.
+        doc_path: Optional documentation file path.
+        parameters: Declared block parameters.
+        inputs: Declared input port metadata.
+        outputs: Declared output port metadata.
     """
 
 
@@ -105,49 +79,78 @@ class MyBlockMeta(BlockMeta):
     outputs: Sequence[PortMeta] = ()
 
     # --------------------------------------------------------------------------
-    # Dialog session management
-    # -------------------------------------------------------------------------- 
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def create_dialog_session(
         self,
         instance: BlockInstance,
         project_dir: Path | None = None,
     ) -> BlockDialogSession:
+        """Create a dialog session for a block instance.
+
+        Args:
+            instance: Block instance being edited.
+            project_dir: Project directory used to resolve relative files.
+
+        Returns:
+            New dialog session object bound to the instance.
+        """
         return BlockDialogSession(self, instance, project_dir)
 
-    # --------------------------------------------------------------------------
-    # Parameter resolution
-    # --------------------------------------------------------------------------
     def is_parameter_active(self, 
                             param_name: str, 
                             instance_params: Dict[str, Any]) -> bool:
-        """
-        Default: all parameters are always active.
-        Children override if needed.
+        """Return whether a parameter should be visible for an instance.
+
+        Args:
+            param_name: Parameter name to test.
+            instance_params: Current instance parameter values.
+
+        Returns:
+            True when the parameter is active.
         """
         return True
 
-    # ------------------------------------------------------------
     def gather_params(self, session: BlockDialogSession) -> dict[str, Any]:
+        """Collect dialog parameters into a serialized parameter mapping.
+
+        Args:
+            session: Active dialog session.
+
+        Returns:
+            Parameter mapping gathered from the dialog state.
+        """
         # Keep full local state, including inactive params, so values are cached
         # across visibility toggles and dialog reopen.
         return session.local_params.copy()
 
-    # --------------------------------------------------------------------------
-    # Port resolution
-    # --------------------------------------------------------------------------
     def resolve_port_group(self, 
                            port_meta: PortMeta,
                            direction: Literal['input', 'output'], 
                            instance: "BlockInstance"
     ) -> list["PortInstance"]:
-        """
-        Default behavior: fixed port.
-        Children override for dynamic ports.
+        """Resolve one declared port group into concrete port instances.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete port instances for the given port group.
         """
         return [PortInstance(port_meta.name, port_meta.display_as, direction, instance)]
     
-    # ------------------------------------------------------------
     def build_ports(self, instance: "BlockInstance") -> list["PortInstance"]:
+        """Build all concrete ports for a block instance.
+
+        Args:
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Ordered list of resolved input and output ports.
+        """
         ports = []
 
         for pmeta in self.inputs:
@@ -158,12 +161,12 @@ class MyBlockMeta(BlockMeta):
 
         return ports
 
-
-    # --------------------------------------------------------------------------
-    # QT dialog display 
-    # --------------------------------------------------------------------------
     def build_description(self, form: QFormLayout):
-        """ Default description display. Children can override if needed. """
+        """Build the default block description section in the dialog.
+
+        Args:
+            form: Form layout receiving the description widgets.
+        """
         title = QLabel(f"<b>{self.name}</b>")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         form.addRow(title)
@@ -187,21 +190,30 @@ class MyBlockMeta(BlockMeta):
         frame_layout.addWidget(desc)
         form.addRow(frame)
 
-
-    # ------------------------------------------------------
     def build_pre_param(self, 
                         session: BlockDialogSession,
                         form: QFormLayout, 
                         readonly: bool = False):
-        """ Default: no pre-parameter widgets. Children override if needed. """
+        """Build widgets shown before the standard parameter rows.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         pass
 
-    # ------------------------------------------------------------
     def build_param(self, 
                     session: BlockDialogSession,
                     form: QFormLayout, 
                     readonly: bool = False):
-        """ Default: no parameter widgets. Children override if needed. """
+        """Build the standard parameter widgets for the dialog.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
 
 
         # --- Block name ---
@@ -229,16 +241,19 @@ class MyBlockMeta(BlockMeta):
             session.param_widgets[param_name] = widget
             session.param_labels[param_name] = label
 
-
-    # ------------------------------------------------------------
     def build_post_param(self, 
                          session: BlockDialogSession,
                          form: QFormLayout, 
                          readonly: bool = False):
-        """ Default: no post-parameter widgets. Children override if needed. """
+        """Build widgets shown after the standard parameter rows.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         pass
 
-    # ------------------------------------------------------------
     def build_file_param_row(
         self,
         session: BlockDialogSession,
@@ -247,6 +262,15 @@ class MyBlockMeta(BlockMeta):
         readonly: bool = False,
         file_filter: str = "Python files (*.py);;All files (*)",
     ) -> None:
+        """Build a parameter row with a file picker button.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            pmeta: Metadata of the file parameter.
+            readonly: Whether the dialog is read-only.
+            file_filter: File picker filter string.
+        """
         edit = self._create_edit_widget(session, pmeta, readonly)
         if readonly:
             self._set_readonly_style(edit)
@@ -272,11 +296,11 @@ class MyBlockMeta(BlockMeta):
         session.param_widgets[pmeta.name] = row_widget
         session.param_labels[pmeta.name] = label
 
-    # ------------------------------------------------------------
     def refresh_form(self, session: BlockDialogSession):
-        """
-        Refresh the parameter widgets visibility based on
-        BlockMeta.is_parameter_active and current local_params.
+        """Refresh widget visibility from the current local parameter state.
+
+        Args:
+            session: Active dialog session.
         """
 
         for param_name, widget in session.param_widgets.items():
@@ -289,13 +313,14 @@ class MyBlockMeta(BlockMeta):
 
 
     # --------------------------------------------------------------------------
-    # Private methods
+    # Private Methods
     # --------------------------------------------------------------------------
     def _create_param_row(self, 
                              session: BlockDialogSession,
                              pmeta: ParameterMeta, 
                              readonly: bool = False
                              ) -> tuple[QLabel, QWidget]:
+        """Create the label and widget for one parameter row."""
 
         # ENUM
         if pmeta.type == "enum":
@@ -310,12 +335,11 @@ class MyBlockMeta(BlockMeta):
 
         return label, widget
 
-
-    # ------------------------------------------------------------
     def _create_edit_widget(self,
                             session: BlockDialogSession,
                             pmeta: ParameterMeta,
                             readonly: bool = False) -> QLineEdit:
+        """Create a line edit widget for one parameter."""
         edit = QLineEdit()
         value = session.local_params.get(pmeta.name)
         if value is not None:
@@ -327,11 +351,11 @@ class MyBlockMeta(BlockMeta):
         )
         return edit
 
-    # ------------------------------------------------------------
     def _create_enum_widget(self,
                             session: BlockDialogSession,
                             pmeta: ParameterMeta,
                             readonly: bool = False) -> QComboBox:
+        """Create a combo box widget for one enum parameter."""
         combo = QComboBox()
         for v in pmeta.enum:
             combo.addItem(str(v), userData=v)
@@ -343,13 +367,13 @@ class MyBlockMeta(BlockMeta):
         )
         return combo
 
-    # ------------------------------------------------------------
     def _browse_and_set_relative_file(
         self,
         edit: QLineEdit,
         project_dir: Path | None,
         file_filter: str,
     ) -> None:
+        """Open a file picker and write back a relative path when possible."""
         if project_dir is None:
             return
 
@@ -378,8 +402,8 @@ class MyBlockMeta(BlockMeta):
 
         edit.setText(relative_path.as_posix())
 
-    # ------------------------------------------------------------
     def _on_param_changed( self, val: str, name: str, session: BlockDialogSession, readonly: bool,):
+        """Update local dialog state after a parameter widget changes."""
         if readonly:
             return
 
@@ -393,8 +417,8 @@ class MyBlockMeta(BlockMeta):
                 session.local_params[name] = text
         self.refresh_form(session)
 
-    # ------------------------------------------------------------
     def _set_readonly_style(self, widget: QWidget):
+        """Apply a read-only visual style to supported widgets."""
         if isinstance(widget, QLineEdit):
             widget.setReadOnly(True)
             widget.setStyleSheet("""

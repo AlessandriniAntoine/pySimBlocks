@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class PolytopicStateSpaceMeta(BlockMeta):
+    """Describe the GUI metadata of the polytopic state-space block."""
 
     def __init__(self):
+        """Initialize polytopic-state-space block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "PolytopicStateSpace"
         self.category = "systems"
         self.type = "polytopic_state_space"

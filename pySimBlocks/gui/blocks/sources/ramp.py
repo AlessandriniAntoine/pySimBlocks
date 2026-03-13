@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class RampMeta(BlockMeta):
+    """Describe the GUI metadata of the ramp source block."""
 
     def __init__(self):
+        """Initialize ramp-source block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Ramp"
         self.category = "sources"
         self.type = "ramp"

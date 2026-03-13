@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class DiscreteIntegratorMeta(BlockMeta):
+    """Describe the GUI metadata of the discrete-integrator block."""
 
     def __init__(self):
+        """Initialize discrete-integrator block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "DiscreteIntegrator"
         self.category = "operators"
         self.type = "discrete_integrator"
