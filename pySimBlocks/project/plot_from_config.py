@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -25,20 +27,11 @@ from pySimBlocks.core.config import PlotConfig
 
 
 def _stack_logged_signal(logs: dict, sig: str) -> np.ndarray:
-    """
-    Stack a logged signal over time, preserving its 2D shape.
-
-    Returns:
-        data: np.ndarray of shape (T, m, n)
-
-    Raises:
-        ValueError: if the signal is not a list of 2D arrays with consistent shape.
-    """
+    """Stack a logged signal over time into a (T, m, n) array."""
     samples = logs[sig]
     if not isinstance(samples, list) or len(samples) == 0:
         raise ValueError(f"Signal '{sig}' has no samples in logs.")
 
-    # Find first non-None sample to define shape
     first = None
     for s in samples:
         if s is not None:
@@ -68,7 +61,7 @@ def _stack_logged_signal(logs: dict, sig: str) -> np.ndarray:
             )
         stacked.append(a)
 
-    data = np.stack(stacked, axis=0)  # (T, m, n)
+    data = np.stack(stacked, axis=0)
     return data
 
 
@@ -76,29 +69,31 @@ def plot_from_config(
     logs: dict,
     plot_cfg: PlotConfig | None,
     show: bool = True,
-    block: bool = True
-):
-    """
-    Plot logged simulation signals according to a PlotConfig.
+    block: bool = True,
+) -> None:
+    """Plot logged simulation signals according to a :class:`PlotConfig`.
 
-    Supports 2D signals:
-      - scalar (1,1)
-      - column vectors (n,1)
-      - matrices (m,n) with n>1
+    Each signal component is plotted as a separate step curve. Labels follow
+    the convention: scalar signals use ``sig``; column vector elements use
+    ``sig[i]``; matrix elements use ``sig[r,c]``.
 
-    Plot semantics:
-      - each component is plotted as a separate curve
-      - labels:
-          scalar:      sig
-          vector:      sig[i]
-          matrix:      sig[r,c]
+    Args:
+        logs: Dictionary of logged signals as returned by
+            :meth:`~Simulator.run`. Must contain a ``'time'`` key.
+        plot_cfg: Plot configuration. If None, the function returns immediately
+            without producing any figures.
+        show: If True, call ``plt.show()`` after creating all figures.
+        block: Passed to ``plt.show()``; controls whether the call blocks.
+
+    Raises:
+        KeyError: If any signal requested by ``plot_cfg`` was not logged, or
+            if ``'time'`` is missing from ``logs``.
+        ValueError: If any logged signal is not a list of 2D arrays with a
+            consistent shape.
     """
     if plot_cfg is None:
         return
 
-    # ------------------------------------------------------------
-    # Global validation: all plotted signals must be logged
-    # ------------------------------------------------------------
     requested_signals = set()
     for plot in plot_cfg.plots:
         requested_signals.update(plot["signals"])
@@ -118,19 +113,11 @@ def plot_from_config(
     if "time" not in logs:
         raise KeyError("Logs must contain a 'time' entry.")
 
-    # ------------------------------------------------------------
-    # Time base
-    # Your simulator logs time as np.array([t_step]) each step,
-    # so flatten() is appropriate.
-    # ------------------------------------------------------------
     time = np.asarray(logs["time"]).flatten()
     T = len(time)
     if T == 0:
         return
 
-    # ------------------------------------------------------------
-    # Plotting
-    # ------------------------------------------------------------
     for plot in plot_cfg.plots:
         title = plot.get("title", "")
         signals = plot["signals"]
@@ -138,7 +125,7 @@ def plot_from_config(
         plt.figure()
 
         for sig in signals:
-            data = _stack_logged_signal(logs, sig)  # (T, m, n)
+            data = _stack_logged_signal(logs, sig)
 
             if data.shape[0] != T:
                 raise ValueError(
@@ -147,18 +134,15 @@ def plot_from_config(
 
             m, n = data.shape[1], data.shape[2]
 
-            # scalar
             if (m, n) == (1, 1):
                 plt.step(time, data[:, 0, 0], where="post", label=sig)
                 continue
 
-            # vector column (n,1) -> label sig[i]
             if n == 1:
                 for i in range(m):
                     plt.step(time, data[:, i, 0], where="post", label=f"{sig}[{i}]")
                 continue
 
-            # matrix (m,n) -> label sig[r,c]
             for r in range(m):
                 for c in range(n):
                     plt.step(time, data[:, r, c], where="post", label=f"{sig}[{r},{c}]")

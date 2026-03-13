@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 from pathlib import Path
 
 
@@ -38,15 +40,25 @@ if {enable_plots} and plot_cfg is not None:
     plot_from_config(logs, plot_cfg)
 """
 
+
 def generate_python_content(
     project_yaml_path: str,
     enable_plots: bool = True,
 ) -> str:
+    """Render the run script template for a given project YAML path.
+
+    Args:
+        project_yaml_path: Path string to the project YAML file, embedded
+            verbatim into the generated script.
+        enable_plots: Whether to include the plotting call in the script.
+
+    Returns:
+        The rendered run script as a string.
+    """
     return RUN_TEMPLATE.format(
         project_path=project_yaml_path,
         enable_plots=enable_plots,
     )
-
 
 
 def generate_run_script(
@@ -55,25 +67,23 @@ def generate_run_script(
     project_yaml: Path | None = None,
     output: Path | None = None,
 ) -> None:
+    """Generate a canonical ``run.py`` script for a pySimBlocks project.
+
+    Exactly one of ``project_dir`` or ``project_yaml`` must be provided.
+
+    Args:
+        project_dir: Path to a project folder containing ``project.yaml``.
+            The output script defaults to ``<project_dir>/run.py``.
+        project_yaml: Explicit path to a ``project.yaml`` file.
+        output: Output path for the generated script. Defaults to
+            ``<project_dir>/run.py`` in ``project_dir`` mode or ``run.py``
+            in the current directory in ``project_yaml`` mode.
+
+    Raises:
+        ValueError: If both ``project_dir`` and ``project_yaml`` are given,
+            or if neither is given.
+        FileNotFoundError: If the resolved project YAML file does not exist.
     """
-    Generate a canonical run.py script for a pySimBlocks project.
-
-    Exactly one of the following modes must be used:
-      - project_dir (project.yaml expected)
-      - project_yaml
-
-    Parameters
-    ----------
-    project_dir : Path, optional
-        Path to a project folder containing project.yaml.
-
-    project_yaml : Path, optional
-        Path to project.yaml (explicit unified mode).
-
-    output : Path, optional
-        Output run.py path (default: <project_dir>/run.py).
-    """
-
     has_project_yaml_mode = project_yaml is not None
 
     if project_dir and has_project_yaml_mode:
@@ -86,7 +96,6 @@ def generate_run_script(
             "You must specify one mode: project_dir or project_yaml."
         )
 
-    # Unified project_dir mode
     if project_dir:
         project_dir = Path(project_dir)
         project_yaml = project_dir / "project.yaml"
@@ -96,7 +105,6 @@ def generate_run_script(
 
         content = generate_python_content(project_yaml_path=project_yaml.name)
 
-    # Unified explicit project_yaml mode
     elif has_project_yaml_mode:
         project_yaml = Path(project_yaml)
         output = Path(output or "run.py")
