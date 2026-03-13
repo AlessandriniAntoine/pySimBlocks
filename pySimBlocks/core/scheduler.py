@@ -20,11 +20,33 @@
 
 from pySimBlocks.core.task import Task
 
+
 class Scheduler:
-    """A simple scheduler for managing tasks based on their start times."""
+    """Scheduler for dispatching tasks based on their sample times.
+
+    Attributes:
+        tasks: List of tasks sorted by ascending sample time.
+    """
+
     def __init__(self, tasks: list[Task]):
+        """Initialize the scheduler.
+
+        Args:
+            tasks: List of tasks to schedule.
+        """
         self.tasks = sorted(tasks, key=lambda t: t.sample_time)
 
-    def active_tasks(self, t):
-        """Return the list of tasks that should run at time t."""
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+
+    def active_tasks(self, t: float) -> list[Task]:
+        """Return all tasks due to run at time t.
+
+        Args:
+            t: Current simulation time in seconds.
+
+        Returns:
+            List of tasks whose should_run(t) returns True.
+        """
         return [task for task in self.tasks if task.should_run(t)]

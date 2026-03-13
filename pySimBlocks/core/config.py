@@ -27,11 +27,18 @@ from typing import Any, Dict, List
 # ---------------------------------------------------------------------
 @dataclass(frozen=True)
 class SimulationConfig:
-    """
-    Simulation execution configuration.
-
-    This object contains ONLY execution-related parameters.
-    It must not contain any model or block-specific information.
+    """Simulation execution configuration.
+ 
+    Contains only execution-related parameters. Must not hold any
+    model or block-specific information.
+ 
+    Attributes:
+        dt: Simulation time step in seconds.
+        T: Simulation end time in seconds.
+        t0: Simulation start time in seconds.
+        solver: Integration scheme, either ``"fixed"`` or ``"variable"``.
+        logging: List of signal names to log during simulation.
+        clock: Clock source, either ``"internal"`` or ``"external"``.
     """
 
     dt: float
@@ -39,11 +46,15 @@ class SimulationConfig:
     t0: float = 0.0
     solver: str = "fixed"
     logging: List[str] = field(default_factory=list)
-    clock: str = "internal" # "internal" or "external"
+    clock: str = "internal" 
 
     def validate(self) -> None:
-        """Verify that the configuration is valid.
-        (ie: dt > 0, T > t0, solver is known)
+        """Verify that the configuration is consistent.
+ 
+        Checks that dt > 0, T > t0, solver and clock are known values.
+ 
+        Raises:
+            ValueError: If any parameter is invalid or out of range.
         """
         if self.dt <= 0.0:
             raise ValueError("SimulationConfig.dt must be > 0")
@@ -66,18 +77,25 @@ class SimulationConfig:
 
 @dataclass
 class PlotConfig:
-    """
-    Plot configuration.
-
+    """Plot configuration.
+ 
     Describes how logged signals should be visualized.
-    This object contains NO plotting logic.
+    Contains no plotting logic.
+ 
+    Attributes:
+        plots: List of plot descriptors. Each descriptor is a dict that
+            must contain at least a ``"signals"`` key with a list of
+            signal names.
     """
 
     plots: List[Dict[str, Any]]
 
     def validate(self) -> None:
-        """Verify that the configuration is valid.
-        (ie: each plot has required fields)
+        """Verify that each plot descriptor has the required fields.
+ 
+        Raises:
+            ValueError: If a plot descriptor is missing ``"signals"`` or
+                if ``"signals"`` is not a list.
         """
         for i, plot in enumerate(self.plots):
             if "signals" not in plot:

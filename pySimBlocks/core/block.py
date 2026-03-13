@@ -26,127 +26,148 @@ import numpy as np
 
 
 class Block(ABC):
-    """
-    Base class for all discrete-time blocks (Simulink-like).
-
-    A block follows two-phase execution:
-
-    1) output_update(t, dt):
-           Computes outputs y[k] from:
-                - current state x[k]
-                - current inputs u[k]
-
-    2) state_update(t, dt):
-           Computes next state x[k+1] from:
-                - current state x[k]
-                - current inputs u[k]
+    """Base class for all discrete-time blocks (Simulink-like).
+ 
+    A block follows two-phase execution per timestep:
+    output_update computes y[k] from x[k] and u[k], then state_update
+    computes x[k+1] from x[k] and u[k].
+ 
+    Attributes:
+        name: Unique identifier for this block instance.
+        sample_time: Sampling period in seconds, or None to use the global dt.
+        inputs: Input port values, set by the simulator each step.
+        outputs: Output port values, written by output_update.
+        state: Committed state x[k].
+        next_state: Pending state x[k+1], written by state_update.
     """
 
     direct_feedthrough = True
+    """True if outputs depend directly on inputs."""
+
     is_source = False
+    """True if the block produces signals with no inputs."""
 
     def __init__(self, name: str, sample_time: float | None = None):
+        """Initialize a block.
+ 
+        Args:
+            name: Unique identifier for this block instance.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+ 
+        Raises:
+            ValueError: If sample_time is provided but not strictly positive.
+        """
         self.name = name
-
+ 
         if sample_time is not None and sample_time <= 0:
             raise ValueError(f"[{self.name}] sample_time must be > 0.")
         self.sample_time = sample_time
-
-        # Dict[str -> np.ndarray]
-        self.inputs = {}    # ports set by the simulator
-        self.outputs = {}   # ports produced at each step
-
-        # Internal states:
-        # state: x[k]       (committed state)
-        # next_state: x[k+1] (to commit at end of step)
-        self.state = {}
-        self.next_state = {}
-
+ 
+        self.inputs: Dict[str, np.ndarray] = {}
+        self.outputs: Dict[str, np.ndarray] = {}
+        self.state: Dict[str, np.ndarray] = {}
+        self.next_state: Dict[str, np.ndarray] = {}
+ 
         self._effective_sample_time = 0.
 
 
     # --------------------------------------------------------------------------
     # Class Methods
     # --------------------------------------------------------------------------
+ 
     @classmethod
     def adapt_params(cls,
                      params: Dict[str, Any],
                      params_dir: Path | None = None) -> Dict[str, Any]:
-        """
-        Adapt parameters from yaml format to class constructor format.
-        By default, does nothing.
+        """Adapt parameters from YAML format to constructor format.
+ 
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file, for resolving relative
+                paths. None if not applicable.
+ 
+        Returns:
+            Parameter dict ready to be passed to the block constructor.
         """
         return params
 
 
     # --------------------------------------------------------------------------
-    # Public methods
+    # Public Methods
     # --------------------------------------------------------------------------
+
     @property
     def has_state(self) -> bool:
-        """Specify if block is stateful."""
+        """True if the block carries internal state."""
         return bool(self.state) or bool(self.next_state)
 
-    # ------------------------------------------------------------------
     @abstractmethod
     def initialize(self, t0: float):
-        """
-        Initialize internal state x[0] and outputs y[0].
-        Must fill:
-            - self.state[...]        (initial state)
-            - self.outputs[...]      (initial outputs)
+        """Initialize state x[0] and outputs y[0].
+
+        Must populate self.state and self.outputs before the first step.
+
+        Args:
+            t0: Initial simulation time in seconds.
         """
 
-    # ------------------------------------------------------------------
     @abstractmethod
     def output_update(self, t: float, dt: float):
-        """
-        Compute outputs y[k] from x[k] and inputs u[k].
-        Called before state_update.
-        Must write to self.outputs[...].
+        """Compute outputs y[k] from x[k] and inputs u[k].
+
+        Called before state_update each timestep.
+        Must write to self.outputs.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
         """
 
-    # ------------------------------------------------------------------
     @abstractmethod
     def state_update(self, t: float, dt: float):
-        """
-        Compute next state x[k+1] from x[k] and inputs u[k].
-        Must write to self.next_state[...].
+        """Compute next state x[k+1] from x[k] and inputs u[k].
+
+        Must write to self.next_state.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
         """
 
-    # ------------------------------------------------------------------
     def commit_state(self):
-        """
-        Finalize the step by copying x[k+1] into x[k].
-        Called by the simulator after all blocks completed state_update().
+        """Copy x[k+1] into x[k] to finalize the timestep.
+
+        Called by the simulator after all blocks have completed state_update.
         """
         for key, value in self.next_state.items():
             self.state[key] = np.copy(value)
 
-    # ------------------------------------------------------------------
     def finalize(self):
-        """
-        Optional cleanup method called at the end of the simulation.
-        """
+        """Clean up resources at the end of the simulation."""
 
 
     # --------------------------------------------------------------------------
-    # Private methods
+    # Private Methods
     # --------------------------------------------------------------------------
+
     @staticmethod
     def _is_scalar_2d(arr: np.ndarray) -> bool:
+        """True if arr has shape (1, 1)."""
         return arr.shape == (1, 1)
 
-    # ------------------------------------------------------------------
     def _to_2d_array(self, param_name: str, value, *, dtype=float) -> np.ndarray:
-        """
-        Normalize into a 2D NumPy array.
+        """Normalize value to a 2D column-oriented array.
 
-        Rules:
-            - scalar -> (1,1)
-            - 1D -> (n,1) (column vector convention)
-            - 2D -> preserved as-is (m,n)
-            - ndim > 2 -> rejected
+        scalar -> (1,1), 1D (n,) -> (n,1), 2D -> preserved, ndim>2 -> error.
+
+        Args:
+            param_name: Name of the parameter, used in error messages.
+            value: Input value to normalize.
+            dtype: Target NumPy dtype.
+
+        Raises:
+            ValueError: If value has more than 2 dimensions.
         """
         arr = np.asarray(value, dtype=dtype)
 

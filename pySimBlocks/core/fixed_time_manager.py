@@ -18,20 +18,55 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-class FixedStepTimeManager:
-    """A time manager for fixed-step simulations.
-    Handle multiple sample times by ensuring they are multiples of the base time step.
-    """
-    def __init__(self, dt_base: float, sample_times: list[float]):
 
+class FixedStepTimeManager:
+    """Time manager for fixed-step simulations.
+
+    Handles multiple sample times by ensuring they are all integer multiples
+    of the base time step.
+
+    Attributes:
+        dt: Base time step in seconds.
+    """
+
+    def __init__(self, dt_base: float, sample_times: list[float]):
+        """Initialize the time manager.
+
+        Args:
+            dt_base: Base simulation time step in seconds.
+            sample_times: List of block sample times to validate.
+
+        Raises:
+            ValueError: If dt_base is not strictly positive, or if any
+                sample time is not an integer multiple of dt_base.
+        """
         if dt_base <= 0:
             raise ValueError("Base time step must be strictly positive.")
 
         self.dt = dt_base
         self._check_sample_times(sample_times)
 
-    def _check_sample_times(self, sample_times):
-        """Ensure all sample times are multiples of the base time step."""
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+
+    def next_dt(self, t: float) -> float:
+        """Return the next time step.
+
+        Args:
+            t: Current simulation time in seconds.
+
+        Returns:
+            The base time step dt (always fixed).
+        """
+        return self.dt
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
+
+    def _check_sample_times(self, sample_times: list[float]) -> None:
+        """Raise if any sample time is not an integer multiple of dt."""
         eps = 1e-12
         for st in sample_times:
             ratio = st / self.dt
@@ -40,7 +75,3 @@ class FixedStepTimeManager:
                     f"In fixed-step mode, sample_time={st} "
                     f"is not a multiple of base dt={self.dt}."
                 )
-
-    def next_dt(self, t):
-        """Get the next time step (always fixed)."""
-        return self.dt

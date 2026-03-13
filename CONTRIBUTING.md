@@ -37,7 +37,8 @@ Contributions are welcome in the following areas:
 
 ## Docstring format
 
-pySimBlocks uses **Google-style docstrings**. Every public class and method must have one.
+pySimBlocks uses **Google-style docstrings**. Every public class and method must
+have one.
 
 ### Class
 

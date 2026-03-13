@@ -18,9 +18,39 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from typing import List
+
+from pySimBlocks.core.block import Block
+
+
 class Task:
-    """A task represents a group of blocks that share the same sample time."""
-    def __init__(self, sample_time, blocks, global_output_order):
+    """A group of blocks sharing the same sample time.
+ 
+    Manages the scheduling and execution of output updates, state updates,
+    and state commits for all blocks in the group.
+ 
+    Attributes:
+        sample_time: Sampling period of this task in seconds.
+        next_activation: Simulation time of the next scheduled execution.
+        last_activation: Simulation time of the last execution, or None if
+            the task has never run.
+        output_blocks: Blocks ordered for output computation, filtered from
+            the global output order.
+        state_blocks: Subset of output_blocks that carry internal state.
+    """
+
+    def __init__(self,
+                 sample_time: float,
+                 blocks: List[Block],
+                 global_output_order: List[Block]):
+        """Initialize a task.
+ 
+        Args:
+            sample_time: Sampling period in seconds.
+            blocks: Set of blocks belonging to this task.
+            global_output_order: Global topological order of all blocks,
+                used to filter and preserve execution order within the task.
+        """
         self.sample_time = sample_time
         self.next_activation = 0.0
         self.last_activation = None
@@ -31,43 +61,45 @@ class Task:
         ]
         self.state_blocks = []
 
-    def update_state_blocks(self):
-        """Update the list of blocks with state within this task."""
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
+ 
+    def update_state_blocks(self) -> None:
+        """Refresh the list of stateful blocks from output_blocks."""
         self.state_blocks = [
             b for b in self.output_blocks
             if b.has_state
         ]
 
-    def should_run(self, t, eps=1e-12):
-        """Check if the task should run at time t."""
+    def should_run(self, t: float, eps: float = 1e-12) -> bool:
+        """Return True if the task is due to run at time t.
+ 
+        Args:
+            t: Current simulation time in seconds.
+            eps: Tolerance for floating-point time comparison.
+ 
+        Returns:
+            True if t >= next_activation (within eps).
+        """
         return t + eps >= self.next_activation
 
-    def get_dt(self, t):
-        """Get the time step for this task at time t."""
+    def get_dt(self, t: float) -> float:
+        """Return the elapsed time since the last activation.
+ 
+        Returns sample_time on the first call (before any activation).
+ 
+        Args:
+            t: Current simulation time in seconds.
+ 
+        Returns:
+            Elapsed time since last_activation, or sample_time if never run.
+        """
         if self.last_activation is None:
             return self.sample_time
         return t - self.last_activation
 
-    def advance(self):
-        """Advance the task's activation times."""
+    def advance(self) -> None:
+        """Advance activation timestamps by one sample period."""
         self.last_activation = self.next_activation
         self.next_activation += self.sample_time
-
-    def run_outputs(self, t: float, dt: float, propagate_cb):
-        for block in self.output_blocks:
-            block.output_update(t, dt)
-            propagate_cb(block)
-
-    def run_states(self, t: float, dt: float):
-        for block in self.state_blocks:
-            block.state_update(t, dt)
-
-    def commit_states(self):
-        for block in self.state_blocks:
-            block.commit_state()
-
-    def tick(self, t: float, dt: float, propagate_cb):
-        # Optionnel : si tu veux une API unique, mais attention :
-        # tu ne peux PAS commit ici si tu veux respecter le "all state_update before any commit"
-        self.run_outputs(t, dt, propagate_cb)
-        self.run_states(t, dt)
