@@ -27,20 +27,23 @@ from pySimBlocks.core.block_source import BlockSource
 
 
 class FileSource(BlockSource):
-    """
-    Source block that plays samples loaded from a file.
+    """Source block that plays samples loaded from a file.
 
-    Supported file types:
-        - npz: load an array from a key in a .npz archive (key mandatory)
-        - npy: load an array from a .npy file (no key)
-        - csv: load one numeric column by name (key=column name)
+    Supported file formats: ``.npz``, ``.npy``, and ``.csv``. Each simulation
+    step emits one row of the loaded data as a column vector. When the end of
+    the data is reached, the block either restarts from the first sample
+    (``repeat=True``) or outputs zeros.
 
-    Output policy:
-        - loaded data must be 1D or 2D
-        - each simulation step emits one row as a column vector
-        - when the end is reached:
-            * repeat=True  -> restart from first sample
-            * repeat=False -> output zeros
+    Alternatively, when ``use_time=True``, the output is selected by
+    looking up the closest past timestamp in a time column bundled with
+    the file, rather than advancing by index.
+
+    Attributes:
+        file_path: Resolved path to the data file as a string.
+        file_type: Inferred file extension (``"npz"``, ``"npy"``, or ``"csv"``).
+        key: Array key (NPZ) or column name (CSV) to load. None for NPY files.
+        repeat: If True, restart from the first sample after the last one.
+        use_time: If True, select samples by time lookup instead of index.
     """
 
     VALID_FILE_TYPES = {"npz", "npy", "csv"}
@@ -54,6 +57,27 @@ class FileSource(BlockSource):
         use_time: bool = False,
         sample_time: float | None = None,
     ):
+        """Initialize a FileSource block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            file_path: Path to the data file. Relative paths are resolved
+                against the project file directory via ``adapt_params``.
+            key: Array key for NPZ files or column name for CSV files.
+                Not used for NPY files.
+            repeat: If True, loop back to the first sample after the last one.
+            use_time: If True, select samples by nearest past timestamp
+                instead of advancing by step index. Requires a ``"time"``
+                key or column in the file.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If the file extension is unsupported, if ``use_time``
+                is combined with an NPY file or with ``repeat=True``, or if
+                the loaded data is invalid.
+            FileNotFoundError: If the file does not exist.
+        """
         super().__init__(name, sample_time)
 
         self.file_path = str(file_path)
@@ -78,17 +102,26 @@ class FileSource(BlockSource):
 
         self.outputs["out"] = np.zeros(self._output_shape, dtype=float)
 
+
     # --------------------------------------------------------------------------
-    # Class Methods
+    # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
     def adapt_params(
         cls,
         params: Dict[str, Any],
         params_dir: Path | None = None,
     ) -> Dict[str, Any]:
-        """
-        Resolve relative file_path against parameters directory when provided.
+        """Resolve a relative ``file_path`` against the project directory.
+
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file, for resolving relative
+                paths. None if not applicable.
+
+        Returns:
+            Parameter dict with ``file_path`` resolved to an absolute path.
         """
         adapted = dict(params)
         file_path = adapted.get("file_path")
@@ -104,32 +137,46 @@ class FileSource(BlockSource):
         adapted.pop("file_type", None)
         return adapted
 
+
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Set the output to the first sample (or time-matched sample) at t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         if self.use_time:
             self.outputs["out"] = self._current_output_at_time(t0)
         else:
             self._index = 0
             self.outputs["out"] = self._current_output()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Write the current sample to the output port and advance the index.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         if self.use_time:
             self.outputs["out"] = self._current_output_at_time(t)
         else:
             self.outputs["out"] = self._current_output()
             self._index += 1
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        pass
+        """No-op: FileSource carries no internal state."""
+
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _load_samples(self) -> np.ndarray:
+        """Load and validate the data array from the configured file."""
         path = Path(self.file_path)
         if not path.exists():
             raise FileNotFoundError(f"[{self.name}] File not found: {path}")
@@ -155,8 +202,8 @@ class FileSource(BlockSource):
 
         return arr.astype(float, copy=False)
 
-    # ------------------------------------------------------------------
     def _load_npz(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
+        """Load an array and optional time vector from an NPZ archive."""
         with np.load(path) as data:
             keys = list(data.files)
             if len(keys) == 0:
@@ -185,16 +232,16 @@ class FileSource(BlockSource):
                 self._validate_time(time, arr.shape[0])
             return arr, time
 
-    # ------------------------------------------------------------------
     def _load_npy(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
+        """Load an array from a NPY file."""
         if self.key not in (None, ""):
             raise ValueError(
                 f"[{self.name}] key is not used for NPY input."
             )
         return np.asarray(np.load(path), dtype=float), None
 
-    # ------------------------------------------------------------------
     def _load_csv(self, path: Path) -> tuple[np.ndarray, np.ndarray | None]:
+        """Load a column array and optional time vector from a CSV file."""
         if not self.key:
             raise ValueError(
                 f"[{self.name}] key is mandatory for CSV input and must be a column name."
@@ -229,8 +276,8 @@ class FileSource(BlockSource):
             self._validate_time(time, col.shape[0])
         return col, time
 
-    # ------------------------------------------------------------------
     def _to_bool(self, value: bool | str, name: str) -> bool:
+        """Parse a bool or bool-like string into a Python bool."""
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
@@ -241,8 +288,8 @@ class FileSource(BlockSource):
                 return False
         raise ValueError(f"[{self.name}] '{name}' must be a bool.")
 
-    # ------------------------------------------------------------------
     def _infer_file_type(self, file_path: str) -> str:
+        """Infer and validate the file type from the file extension."""
         ext = Path(file_path).suffix.lower().lstrip(".")
         if ext not in self.VALID_FILE_TYPES:
             raise ValueError(
@@ -251,8 +298,8 @@ class FileSource(BlockSource):
             )
         return ext
 
-    # ------------------------------------------------------------------
     def _current_output(self) -> np.ndarray:
+        """Return the sample at the current index, handling repeat and end-of-data."""
         n = self._samples.shape[0]
         if self._index < n:
             idx = self._index
@@ -264,8 +311,8 @@ class FileSource(BlockSource):
         row = self._samples[idx]
         return np.asarray(row, dtype=float).reshape(-1, 1)
 
-    # ------------------------------------------------------------------
     def _current_output_at_time(self, t: float) -> np.ndarray:
+        """Return the sample corresponding to the nearest past timestamp."""
         if self._time is None:
             raise RuntimeError(
                 f"[{self.name}] Internal error: use_time=True but time data is missing."
@@ -278,8 +325,8 @@ class FileSource(BlockSource):
         row = self._samples[idx]
         return np.asarray(row, dtype=float).reshape(-1, 1)
 
-    # ------------------------------------------------------------------
     def _validate_time(self, time: np.ndarray, n_samples: int) -> None:
+        """Validate that a time vector is 1D, strictly increasing, and matches n_samples."""
         if time.ndim != 1:
             raise ValueError(f"[{self.name}] time must be a 1D array.")
         if time.shape[0] != n_samples:

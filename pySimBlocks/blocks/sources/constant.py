@@ -18,37 +18,23 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
 class Constant(BlockSource):
-    """
-    Constant signal source block.
+    """Constant signal source block.
 
-    Summary:
-        Generates a constant output signal with a fixed value over time.
-        The output does not depend on time or any input signal.
+    Generates a constant output signal with a fixed value over time.
+    The output does not depend on time or any input signal.
 
-    Parameters (overview):
-        value : float or array-like
-            Constant output value. Can be scalar, vector, or matrix.
-        sample_time : float, optional
-            Block execution period.
-
-    I/O:
-        Inputs:
-            (none)
-        Outputs:
-            out : constant output signal.
-
-    Notes:
-        - The block has no internal state.
-        - The output value is held constant for the entire simulation.
-        - Scalar values are normalized to shape (1,1).
-        - 1D values are normalized to column vectors (n,1).
-        - 2D values are preserved as matrices (m,n).
+    Attributes:
+        value: Constant output value as a 2D array. Scalars are normalized
+            to shape (1,1), 1D arrays to column vectors (n,1), and 2D
+            arrays are preserved as-is.
     """
 
     def __init__(
@@ -57,9 +43,19 @@ class Constant(BlockSource):
         value: ArrayLike = 1.0,
         sample_time: float | None = None,
     ):
+        """Initialize a Constant block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            value: Constant output value. Can be scalar, vector, or matrix.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            TypeError: If value is not numeric or array-like.
+        """
         super().__init__(name, sample_time)
 
-        # Accept numeric scalars and array-like
         if not isinstance(value, (list, tuple, np.ndarray, float, int)):
             raise TypeError(
                 f"[{self.name}] Constant 'value' must be numeric or array-like."
@@ -74,9 +70,20 @@ class Constant(BlockSource):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Set the output to the constant value at t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.outputs["out"] = self.value.copy()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Write the constant value to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         self.outputs["out"] = self.value.copy()
