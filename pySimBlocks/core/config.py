@@ -31,21 +31,24 @@ class SimulationConfig:
  
     Contains only execution-related parameters. Must not hold any
     model or block-specific information.
- 
-    Attributes:
-        dt: Simulation time step in seconds.
-        T: Simulation end time in seconds.
-        t0: Simulation start time in seconds.
-        solver: Integration scheme, either ``"fixed"`` or ``"variable"``.
-        logging: List of signal names to log during simulation.
-        clock: Clock source, either ``"internal"`` or ``"external"``.
     """
-
+    
+    #: Simulation time step in seconds.
     dt: float
+    
+    #: Simulation end time in seconds.
     T: float
+    
+    #: Simulation start time in seconds.
     t0: float = 0.0
+    
+    #: Integration scheme, either ``"fixed"`` or ``"variable"``.
     solver: str = "fixed"
+    
+    #: Signals to log during simulation.
     logging: List[str] = field(default_factory=list)
+    
+    #: Clock source, either ``"internal"`` or ``"external"``.
     clock: str = "internal" 
 
     def validate(self) -> None:
