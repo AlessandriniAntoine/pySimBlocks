@@ -29,37 +29,22 @@ from pySimBlocks.core.block import Block
 
 
 class NonLinearStateSpace(Block):
-    """
-    User-defined algebraic function block.
+    """User-defined nonlinear state-space block.
 
-    Summary:
-        Stateless block defined by a user-provided Python function:
-            x+ = f(t, dt, x, u1, u2, ...)
-            y = g(t, dt, x)
+    Implements a nonlinear discrete-time system driven by two user-provided
+    callables:
 
-    Parameters:
-        state_function : callable
-            Function to compute next state.
-        output_function_name : callable
-            Function to compute outputs.
-        input_keys : list[str]
-            Names of input ports.
-        output_keys : list[str]
-            Names of output ports.
-        sample_time : float, optional
-            Block execution period.
+        x[k+1] = state_function(t, dt, x, u1, u2, ...)
 
-    I/O:
-        Inputs:
-            Defined dynamically by input_keys.
-        Outputs:
-            Defined dynamically by output_keys.
+        y[k]   = output_function(t, dt, x)
 
-    Notes:
-        - This block is stateless.
-        - Ports are fully declarative (V1).
-        - The function must return a dict with exactly output_keys.
-        - All inputs and outputs must be numpy arrays of shape (n,1).
+    Input and output port names are declared dynamically via ``input_keys``
+    and ``output_keys``. All inputs and outputs must be column vectors of
+    shape (n, 1).
+
+    Attributes:
+        input_keys: Names of the input ports.
+        output_keys: Names of the output ports.
     """
 
     direct_feedthrough = False
@@ -75,15 +60,33 @@ class NonLinearStateSpace(Block):
         x0: np.ndarray,
         sample_time: float | None = None,
     ):
+        """Initialize a NonLinearStateSpace block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            state_function: Callable with signature
+                ``f(t, dt, x, **inputs) -> np.ndarray`` returning the next
+                state as a (n, 1) array.
+            output_function: Callable with signature
+                ``g(t, dt, x) -> dict`` returning a dict mapping each key
+                in ``output_keys`` to a (n, 1) array.
+            input_keys: Names of the input ports.
+            output_keys: Names of the output ports.
+            x0: Initial state as a numpy array of shape (n, 1) or (n,).
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            TypeError: If x0 is not a numpy array.
+            ValueError: If x0 does not have shape (n, 1) or (n,).
+        """
         super().__init__(name=name, sample_time=sample_time)
 
-        # ---- parameters
         self._state_func = state_function
         self._output_func = output_function
         self.input_keys = list(input_keys)
         self.output_keys = list(output_keys)
 
-        # ---- initial state
         if not isinstance(x0, np.ndarray):
             raise TypeError(
                 f"{self.name}: x0 must be a numpy array"
@@ -97,18 +100,34 @@ class NonLinearStateSpace(Block):
         self.state["x"] = x0.copy()
         self.next_state["x"] = x0.copy()
 
+
     # --------------------------------------------------------------------------
-    # Class Methods
+    # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
     def adapt_params(cls,
                      params: Dict[str, Any],
                      params_dir: Path | None = None) -> Dict[str, Any]:
+        """Load state and output callables from ``file_path`` YAML keys.
+
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file, for resolving relative
+                paths. Must not be None.
+
+        Returns:
+            Parameter dict with ``state_function`` and ``output_function``
+            set to the loaded callables, and ``file_path``,
+            ``state_function_name``, ``output_function_name`` keys removed.
+
+        Raises:
+            ValueError: If ``params_dir`` is None or if required keys are
+                missing from ``params``.
+            FileNotFoundError: If the function file does not exist.
+            AttributeError: If a named function is not found in the module.
+            TypeError: If a resolved attribute is not callable.
         """
-        Adapt parameters from yaml format to class constructor format.
-        Adapt function file and name in a yaml format into callable.
-        """
-        # --- 1. Validate required fields
         if params_dir is None:
             raise ValueError("parameters_dir must be provided for AlgebraicFunction adapter.")
         try:
@@ -120,7 +139,6 @@ class NonLinearStateSpace(Block):
                 f"NonLinearStateSpace adapter missing parameter: {e}"
             )
 
-        # --- 2. Resolve file path (relative to project.yaml directory)
         path = Path(file_path).expanduser()
         if not path.is_absolute():
             path = (params_dir / path).resolve()
@@ -130,13 +148,11 @@ class NonLinearStateSpace(Block):
                 f"NonLinearStateSpace function file not found: {path}"
             )
 
-        # --- 3. Load module
         spec = importlib.util.spec_from_file_location(path.stem, path)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
 
-        # --- 4. Extract functions
         try:
             state_func: Callable = getattr(module, state_func_name)
         except AttributeError:
@@ -161,9 +177,7 @@ class NonLinearStateSpace(Block):
                 f"'{output_func_name}' in {path} is not callable"
             )
 
-        # --- 5. Build adapted parameter dict
         adapted = dict(params)
-
         adapted.pop("file_path", None)
         adapted.pop("state_function_name", None)
         adapted.pop("output_function_name", None)
@@ -174,44 +188,51 @@ class NonLinearStateSpace(Block):
 
 
     # --------------------------------------------------------------------------
-    # Public Methods
+    # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
-        """
-        Load the user function and validate its signature.
+
+    def initialize(self, t0: float) -> None:
+        """Validate function signatures and declare input/output ports.
+
+        Args:
+            t0: Initial simulation time in seconds.
         """
         self._validate_signature()
 
-        # ---- declare ports
         for k in self.input_keys:
             self.inputs[k] = None
 
         for k in self.output_keys:
             self.outputs[k] = None
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        """
-        Compute outputs from current inputs.
+    def output_update(self, t: float, dt: float) -> None:
+        """Call the output function and write results to the output ports.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
         """
         assert self._output_func is not None
 
-        # ---- call function
         x = self.state["x"]
         out = self._call_output_func(t, dt, x=x)
 
-        # ---- assign outputs
         for k in self.output_keys:
             self.outputs[k] = out[k]
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        """
-        Compute next state from current inputs.
+    def state_update(self, t: float, dt: float) -> None:
+        """Call the state function and store the next state.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            TypeError: If any input value is not a numpy array.
+            ValueError: If any input does not have shape (n, 1).
         """
         assert self._output_func is not None
 
-        # ---- collect inputs
         kwargs: Dict[str, np.ndarray] = {}
         for k in self.input_keys:
             u = self.inputs[k]
@@ -225,16 +246,17 @@ class NonLinearStateSpace(Block):
                 )
             kwargs[k] = u
 
-        # ---- call function
         x = self.state["x"]
         out = self._state_func(t, dt, x=x, **kwargs)
         self.next_state["x"] = out
 
 
     # --------------------------------------------------------------------------
-    # Private Methods
+    # Private methods
     # --------------------------------------------------------------------------
-    def _call_state_func(self, t, dt, x, **kwargs):
+
+    def _call_state_func(self, t, dt, x, **kwargs) -> np.ndarray:
+        """Invoke the state function and validate its (n,1) array output."""
         try:
             out = self._state_func(t, dt, x, **kwargs)
         except Exception as e:
@@ -248,8 +270,8 @@ class NonLinearStateSpace(Block):
 
         return out
 
-    # ------------------------------------------------------------------
-    def _call_output_func(self, t, dt, x):
+    def _call_output_func(self, t, dt, x) -> Dict[str, np.ndarray]:
+        """Invoke the output function and validate its dict output."""
         try:
             out = self._output_func(t, dt, x)
         except Exception as e:
@@ -272,11 +294,8 @@ class NonLinearStateSpace(Block):
 
         return out
 
-    # ------------------------------------------------------------------
-    def _validate_signature(self):
-        """
-        Validate function signature against input_keys.
-        """
+    def _validate_signature(self) -> None:
+        """Raise if state or output functions do not have the expected signature (t, dt, x, ...)."""
         assert self._state_func is not None
         assert self._output_func is not None
 
@@ -284,7 +303,6 @@ class NonLinearStateSpace(Block):
             sig = inspect.signature(f)
             params = list(sig.parameters.values())
 
-            # ---- minimum signature: (t, dt, ...)
             if len(params) < 3:
                 raise ValueError(
                     f"{self.name}: function must have at least arguments (t, dt, x)"
@@ -295,7 +313,6 @@ class NonLinearStateSpace(Block):
                     f"{self.name}: first arguments must be (t, dt, x)"
                 )
 
-            # ---- no *args / **kwargs / defaults
             for p in params:
                 if p.kind not in (
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,

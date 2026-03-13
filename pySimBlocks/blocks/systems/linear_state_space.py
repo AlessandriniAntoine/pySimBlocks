@@ -18,43 +18,29 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
 class LinearStateSpace(Block):
-    """
-    Discrete-time linear state-space system block.
+    """Discrete-time linear state-space system block.
 
-    Summary:
-        Implements a discrete-time linear state-space system without direct
-        feedthrough, defined by state and output equations.
+    Implements a strictly proper discrete-time linear system:
 
-    Parameters (overview):
-        A : array-like
-            State transition matrix.
-        B : array-like
-            Input matrix.
-        C : array-like
-            Output matrix.
-        x0 : array-like, optional
-            Initial state vector.
-        sample_time : float, optional
-            Block execution period.
+        x[k+1] = A x[k] + B u[k]
+         
+        y[k]   = C x[k]
 
-    I/O:
-        Inputs:
-            u : input vector.
-        Outputs:
-            y : output vector.
-            x : state vector.
+    The D matrix is intentionally not supported to avoid algebraic loops.
 
-    Notes:
-        - The system is strictly proper (no direct feedthrough).
-        - The block has internal state.
-        - Matrix D is intentionally not supported to avoid algebraic loops.
-        - The state is updated once per simulation step.
+    Attributes:
+        A: State transition matrix of shape (n, n).
+        B: Input matrix of shape (n, m).
+        C: Output matrix of shape (p, n).
     """
 
     direct_feedthrough = False
@@ -68,13 +54,28 @@ class LinearStateSpace(Block):
         x0: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a LinearStateSpace block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            A: State transition matrix, array-like of shape (n, n).
+            B: Input matrix, array-like of shape (n, m).
+            C: Output matrix, array-like of shape (p, n).
+            x0: Initial state vector, array-like of shape (n, 1) or (n,).
+                Defaults to zeros.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If any matrix is not 2D, if dimensions are
+                inconsistent, or if x0 does not match the state dimension.
+        """
         super().__init__(name, sample_time)
 
         self.A = np.asarray(A, dtype=float)
         self.B = np.asarray(B, dtype=float)
         self.C = np.asarray(C, dtype=float)
 
-        # --- basic matrix checks
         if self.A.ndim != 2:
             raise ValueError(f"[{self.name}] A must be 2D. Got shape {self.A.shape}.")
         if self.B.ndim != 2:
@@ -100,13 +101,11 @@ class LinearStateSpace(Block):
         self._m = self.B.shape[1]
         self._p = self.C.shape[0]
 
-        # --- initial state x0
         if x0 is None:
             x0_arr = np.zeros((n, 1), dtype=float)
         else:
             x0_arr = np.asarray(x0, dtype=float)
             if x0_arr.ndim == 0:
-                # scalar x0 is not acceptable for n>1
                 x0_arr = x0_arr.reshape(1, 1)
             elif x0_arr.ndim == 1:
                 x0_arr = x0_arr.reshape(-1, 1)
@@ -121,7 +120,6 @@ class LinearStateSpace(Block):
         self.state["x"] = x0_arr.copy()
         self.next_state["x"] = x0_arr.copy()
 
-        # ports
         self.inputs["u"] = None
         self.outputs["y"] = None
         self.outputs["x"] = None
@@ -130,20 +128,40 @@ class LinearStateSpace(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Compute initial outputs from the initial state.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         x = self.state["x"]
         self.outputs["y"] = self.C @ x
         self.outputs["x"] = x.copy()
         self.next_state["x"] = x.copy()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Compute y and x outputs from the committed state.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         x = self.state["x"]
         self.outputs["y"] = self.C @ x
         self.outputs["x"] = x.copy()
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
+        """Compute the next state x[k+1] = A x[k] + B u[k].
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``u`` is not connected.
+            ValueError: If input ``u`` has the wrong shape.
+        """
         u = self.inputs["u"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
@@ -157,7 +175,9 @@ class LinearStateSpace(Block):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_col_vec(self, name: str, value: ArrayLike, expected_rows: int) -> np.ndarray:
+        """Normalize value to a (n,1) column vector and validate its size."""
         arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:

@@ -18,60 +18,59 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, List
+
 from pySimBlocks.core.block import Block
 
 
 class SofaExchangeIO(Block):
+    """SOFA exchange interface block.
+
+    Acts as a data exchange boundary between a pySimBlocks model and an
+    external SOFA controller. Input and output ports are declared dynamically
+    from ``input_keys`` and ``output_keys``. The block is stateless and
+    performs no computation — outputs are produced by upstream blocks in the
+    pySimBlocks model through normal signal propagation.
+
+    Attributes:
+        input_keys: Names of the input ports fed by the SOFA controller.
+        output_keys: Names of the output ports consumed by the SOFA controller.
+        slider_params: Optional ImGui slider configuration, mapping
+            ``"BlockName.attr"`` to ``[min, max]`` bounds.
     """
-    SOFA exchange interface block.
-
-    Summary:
-        Provides an interface between a pySimBlocks model and an external
-        SOFA controller by exposing dynamic input and output ports.
-
-    Parameters (overview):
-        input_keys : list of str
-            Names of externally provided input signals.
-        output_keys : list of str
-            Names of output signals to be consumed by SOFA.
-        scene_file : str
-            Path to the SOFA scene file, used only for automatic generation.
-        sample_time : float, optional
-            Block execution period.
-
-    I/O:
-        Inputs:
-            Defined dynamically by input_keys.
-        Outputs:
-            Defined dynamically by output_keys.
-
-    Notes:
-        - This block does not run a SOFA simulation.
-        - It acts only as a data exchange interface.
-        - The block is stateless.
-        - Outputs are produced by the pySimBlocks controller logic.
-    """
-
 
     direct_feedthrough = False
     is_source = False
 
-    def __init__(self,
-            name: str,
-            input_keys: list[str],
-            output_keys: list[str],
-            slider_params: Dict[str, List[float]] | None = None,
-            sample_time: float | None = None
-        ):
+    def __init__(
+        self,
+        name: str,
+        input_keys: list[str],
+        output_keys: list[str],
+        slider_params: Dict[str, List[float]] | None = None,
+        sample_time: float | None = None,
+    ):
+        """Initialize a SofaExchangeIO block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            input_keys: Names of the input ports.
+            output_keys: Names of the output ports.
+            slider_params: Optional ImGui slider configuration mapping
+                ``"BlockName.attr"`` to ``[min, max]`` bounds. None to
+                disable sliders.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+        """
         super().__init__(name, sample_time)
 
         self.input_keys = input_keys
         self.output_keys = output_keys
         self.slider_params = slider_params
 
-        # Declare dynamic ports
         for k in input_keys:
             self.inputs[k] = None
         for k in output_keys:
@@ -79,15 +78,23 @@ class SofaExchangeIO(Block):
 
 
     # --------------------------------------------------------------------------
-    # Class Methods
+    # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
-    def adapt_params(cls,
-                     params: Dict[str, Any],
-                     params_dir: Path | None = None) -> Dict[str, Any]:
-        """
-        Adapt parameters from yaml format to class constructor format.
-        Adapt function file and name in a yaml format into callable.
+    def adapt_params(
+        cls,
+        params: Dict[str, Any],
+        params_dir: Path | None = None,
+    ) -> Dict[str, Any]:
+        """Strip the ``scene_file`` key which is not used by this block.
+
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file. Not used here.
+
+        Returns:
+            Parameter dict with ``scene_file`` removed.
         """
         adapted = dict(params)
         adapted.pop("scene_file", None)
@@ -95,26 +102,25 @@ class SofaExchangeIO(Block):
 
 
     # --------------------------------------------------------------------------
-    # Public Methods
+    # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
-        pass
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def initialize(self, t0: float) -> None:
+        """No-op: ports are already declared in __init__."""
+
+    def output_update(self, t: float, dt: float) -> None:
+        """Verify that all inputs are present; outputs are set by upstream blocks.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If any expected input port is None.
         """
-        Outputs are produced by upstream blocks (controller).
-        This block itself does nothing but check validity.
-        """
-        # Ensure inputs exist
         for k in self.input_keys:
             if self.inputs[k] is None:
                 raise RuntimeError(f"[{self.name}] Missing input '{k}' at time {t}.")
 
-        # Outputs are set by other blocks (controller chain) through normal propagation.
-        pass
-
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        # Stateless block: no internal state
-        pass
+    def state_update(self, t: float, dt: float) -> None:
+        """No-op: SofaExchangeIO carries no internal state."""

@@ -18,14 +18,19 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
+from multiprocessing import Pipe, Process
 from pathlib import Path
-from multiprocessing import Process, Pipe
-import numpy as np
 from typing import Any, Dict, List
+
+import numpy as np
+
 from pySimBlocks.core.block import Block
 
 
 def sofa_worker(conn, scene_file, input_keys, output_keys):
+    """Worker function executed in a subprocess to run the SOFA simulation."""
     import os
     import sys
     import Sofa
@@ -35,7 +40,6 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
     if scene_dir not in sys.path:
         sys.path.insert(0, scene_dir)
 
-    # 1. Import scene
     spec = importlib.util.spec_from_file_location("scene", scene_file)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -82,20 +86,18 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
             break
         Sofa.Simulation.animate(root, dt)
 
-    # Send initial outputs
     try:
         controller.get_outputs()
-        initial = {k: np.asarray(controller.outputs[k]).reshape(-1,1) for k in output_keys}
+        initial = {k: np.asarray(controller.outputs[k]).reshape(-1, 1) for k in output_keys}
         conn.send(initial)
     except Exception as e:
         conn.send({
-            "cmd": "error", 
-            "message": 
-                f"[pySimBlocks] ERROR: Failed to get initial outputs.\n{e}"})
+            "cmd": "error",
+            "message": f"[pySimBlocks] ERROR: Failed to get initial outputs.\n{e}"
+        })
         conn.close()
         return
 
-    # 2. Main loop
     while True:
         msg = conn.recv()
 
@@ -108,13 +110,14 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
                 Sofa.Simulation.animate(root, dt)
                 controller.get_outputs()
 
-                outputs = {k: np.asarray(controller.outputs[k]).reshape(-1,1)
+                outputs = {k: np.asarray(controller.outputs[k]).reshape(-1, 1)
                            for k in output_keys}
                 conn.send(outputs)
             except Exception as e:
                 conn.send({
-                    "cmd": "error", 
-                    "message": f"[pySimBlocks] ERROR during step execution.\n{e}"})
+                    "cmd": "error",
+                    "message": f"[pySimBlocks] ERROR during step execution.\n{e}"
+                })
                 break
 
         elif msg["cmd"] == "stop":
@@ -124,46 +127,47 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
 
 class SofaPlant(Block):
-    """
-    SOFA-based dynamic plant block.
+    """SOFA-based dynamic plant block.
 
-    Summary:
-        Executes a SOFA simulation as a dynamic system driven by pySimBlocks.
-        At each control step, inputs are sent to SOFA, the scene advances,
-        and updated outputs are returned.
+    Executes a SOFA simulation as a dynamic system driven by pySimBlocks.
+    SOFA runs in a separate subprocess. At each control step, inputs are sent
+    to the worker process, the SOFA scene advances by one step, and updated
+    outputs are returned.
 
-    Parameters (overview):
-        scene_file : str
-            Path to the SOFA scene file.
-        input_keys : list[str]
-            Names of input signals exchanged with SOFA.
-        output_keys : list[str]
-            Names of output signals produced by SOFA.
-        sample_time : float, optional
-            Block execution period.
-
-    I/O:
-        Inputs:
-            Defined dynamically by input_keys.
-        Outputs:
-            Defined dynamically by output_keys.
-
-    Notes:
-        - This block runs SOFA in a separate worker process.
-        - The block has internal state and no direct feedthrough.
+    Attributes:
+        scene_file: Resolved path to the SOFA scene file.
+        input_keys: Names of input ports sent to SOFA at each step.
+        output_keys: Names of output ports received from SOFA at each step.
+        slider_params: Optional ImGui slider configuration, mapping
+            ``"BlockName.attr"`` to ``[min, max]`` bounds.
     """
 
     direct_feedthrough = False
     need_first = True
 
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         scene_file: str,
         input_keys: list[str],
         output_keys: list[str],
         slider_params: Dict[str, List[float]] | None = None,
-        sample_time: float | None = None
+        sample_time: float | None = None,
     ):
+        """Initialize a SofaPlant block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            scene_file: Path to the SOFA scene file. Relative paths are
+                resolved against the project file directory via
+                ``adapt_params``.
+            input_keys: Names of input ports to send to SOFA.
+            output_keys: Names of output ports to receive from SOFA.
+            slider_params: Optional ImGui slider configuration. None to
+                disable sliders.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+        """
         super().__init__(name, sample_time)
 
         self.scene_file = scene_file
@@ -184,15 +188,28 @@ class SofaPlant(Block):
 
 
     # --------------------------------------------------------------------------
-    # Class Methods
+    # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
-    def adapt_params(cls,
-                     params: Dict[str, Any],
-                     params_dir: Path | None = None) -> Dict[str, Any]:
-        """
-        Adapt parameters from yaml format to class constructor format.
-        Adapt function file and name in a yaml format into callable.
+    def adapt_params(
+        cls,
+        params: Dict[str, Any],
+        params_dir: Path | None = None,
+    ) -> Dict[str, Any]:
+        """Resolve a relative ``scene_file`` path against the project directory.
+
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file, for resolving relative
+                paths. Must not be None.
+
+        Returns:
+            Parameter dict with ``scene_file`` resolved to an absolute path.
+
+        Raises:
+            ValueError: If ``params_dir`` is None or ``scene_file`` is
+                missing from ``params``.
         """
         if params_dir is None:
             raise ValueError("params_dir must be provided for SofaPlant adaptation")
@@ -212,22 +229,27 @@ class SofaPlant(Block):
 
 
     # --------------------------------------------------------------------------
-    # Public Methods
+    # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
 
-        # Start worker
+    def initialize(self, t0: float) -> None:
+        """Start the SOFA worker process and receive initial outputs.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            RuntimeError: If the SOFA worker reports an error during startup.
+        """
         parent_conn, child_conn = Pipe()
         self.conn = parent_conn
 
         self.process = Process(
             target=sofa_worker,
-            args=(child_conn, self.scene_file,
-                  self.input_keys, self.output_keys)
+            args=(child_conn, self.scene_file, self.input_keys, self.output_keys)
         )
         self.process.start()
 
-        # Receive initial outputs
         initial_outputs = self.conn.recv()
 
         if isinstance(initial_outputs, dict) and initial_outputs.get("cmd") == "error":
@@ -238,22 +260,27 @@ class SofaPlant(Block):
             self.state[k] = initial_outputs[k]
             self.next_state[k] = initial_outputs[k]
 
+    def output_update(self, t: float, dt: float) -> None:
+        """Forward the committed state outputs to the output ports.
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        """
-        Outputs were already updated during the previous state_update().
-        This block retrieves outputs from an external SOFA worker process,
-        so no computation is required here.
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
         """
         for key in self.output_keys:
             self.outputs[key] = self.state[key]
 
+    def state_update(self, t: float, dt: float) -> None:
+        """Send inputs to SOFA, advance one step, and store the new outputs.
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
 
-        # Send inputs
+        Raises:
+            RuntimeError: If any input is missing or the SOFA worker reports
+                an error.
+        """
         msg = {"cmd": "step", "inputs": {}}
         for k in self.input_keys:
             val = self.inputs[k]
@@ -265,7 +292,6 @@ class SofaPlant(Block):
 
         self.conn.send(msg)
 
-        # Receive outputs
         outputs = self.conn.recv()
         if isinstance(outputs, dict) and outputs.get("cmd") == "error":
             raise RuntimeError(outputs["message"])
@@ -273,18 +299,16 @@ class SofaPlant(Block):
         for k in self.output_keys:
             self.next_state[k] = outputs[k]
 
-
-    # ------------------------------------------------------------------
-    def finalize(self):
-        """Ensure worker process is shutdown cleanly."""
+    def finalize(self) -> None:
+        """Shut down the SOFA worker process cleanly."""
         if self.conn:
             try:
                 self.conn.send({"cmd": "stop"})
-            except:
+            except Exception:
                 pass
             try:
                 self.conn.close()
-            except:
+            except Exception:
                 pass
 
         if self.process:
@@ -294,13 +318,15 @@ class SofaPlant(Block):
 
 
     # --------------------------------------------------------------------------
-    # Destructor
+    # Private methods
     # --------------------------------------------------------------------------
-    def __del__(self):
+
+    def __del__(self) -> None:
+        """Attempt to stop the worker process on garbage collection."""
         if self.conn:
             try:
                 self.conn.send({"cmd": "stop"})
-            except:
+            except Exception:
                 pass
         if self.process:
             self.process.join(timeout=0.5)
