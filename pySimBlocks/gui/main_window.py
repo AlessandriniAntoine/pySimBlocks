@@ -18,8 +18,10 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
@@ -40,7 +42,30 @@ from pySimBlocks.tools.blocks_registry import load_block_registry
 
 
 class MainWindow(QMainWindow):
+    """Main application window for the pySimBlocks GUI editor.
+
+    Assembles the block library panel, diagram canvas, and toolbar. Manages
+    project load/save/run operations and tracks unsaved changes.
+
+    Attributes:
+        loader: Service used to load a project from YAML.
+        saver: Service used to save a project to YAML.
+        runner: Service used to launch a simulation.
+        block_registry: Registry mapping category → block type → BlockMeta.
+        project_state: Shared mutable state of the currently open project.
+        view: The diagram canvas widget.
+        project_controller: Controller coordinating model and view mutations.
+        blocks: Block-library side panel widget.
+        toolbar: Toolbar widget with run/save actions.
+    """
+
     def __init__(self, project_path: Path):
+        """Initialize the MainWindow and open the project at ``project_path``.
+
+        Args:
+            project_path: Path to the project directory. If a ``project.yaml``
+                file is found inside it, the project is loaded automatically.
+        """
         super().__init__()
 
         self.loader = ProjectLoaderYaml()
@@ -81,72 +106,116 @@ class MainWindow(QMainWindow):
         self.quit_action.triggered.connect(self.close)
         self.addAction(self.quit_action)
 
-        # Ensure keyboard shortcuts (e.g. Space) work immediately on startup.
         QTimer.singleShot(0, self.view.setFocus)
 
-    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
     # Registry
-    # --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+
     def get_categories(self) -> List[str]:
+        """Return the sorted list of block categories from the registry.
+
+        Returns:
+            Sorted list of category name strings.
+        """
         return sorted(self.block_registry.keys())
 
-    # ------------------------------------------------------------------
     def get_blocks(self, category: str) -> List[str]:
+        """Return the sorted list of block type names within a category.
+
+        Args:
+            category: Category name to look up.
+
+        Returns:
+            Sorted list of block type name strings.
+        """
         return sorted(self.block_registry.get(category, {}).keys())
 
-    # ------------------------------------------------------------------
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
+        """Return the :class:`BlockMeta` for a given category and block type.
+
+        Args:
+            category: Category name of the block.
+            block_type: Type name of the block within the category.
+
+        Returns:
+            The :class:`BlockMeta` descriptor for the requested block.
+        """
         return self.block_registry[category][block_type]
 
-    # --------------------------------------------------------------------------
-    # Auto Load
-    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Auto load
+    # --------------------------------------------------------------------------
+
     def auto_load_detection(self, project_path: Path) -> bool:
+        """Return True if a recognisable project file is found in ``project_path``.
+
+        Args:
+            project_path: Directory to search for a project file.
+
+        Returns:
+            True if ``project.yaml`` exists in the directory, False otherwise.
+        """
         project_yaml = self._auto_detect_yaml(project_path, ["project.yaml"])
         return project_yaml is not None
 
-    # ------------------------------------------------------------------
     def _auto_detect_yaml(self, project_path: Path, names: list[str]) -> str | None:
+        """Return the path of the first matching file in the project directory."""
         for name in names:
             path = project_path / name
             if path.is_file():
                 return str(path)
         return None
 
-    # --------------------------------------------------------------------------
-    # Project Management
-    # --------------------------------------------------------------------------
-    def _on_save(self):
-        if not self.project_controller.is_dirty:
-            return
-        self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
-        self.project_controller.clear_dirty()
 
-    # ------------------------------------------------------------------
-    def update_window_title(self):
+    # --------------------------------------------------------------------------
+    # Project management
+    # --------------------------------------------------------------------------
+
+    def update_window_title(self) -> None:
+        """Refresh the window title to reflect the project name and dirty state."""
         path = self.project_state.directory_path
         project_name = path.name if path else "Untitled"
         star = "*" if self.project_controller.is_dirty else ""
         self.setWindowTitle(f"{project_name}{star} – pySimBlocks")
 
-    # ------------------------------------------------------------------
-    def on_project_loaded(self, project_path: Path):
+    def on_project_loaded(self, project_path: Path) -> None:
+        """Refresh the window title after a project has been loaded.
+
+        Args:
+            project_path: Path to the newly loaded project directory.
+        """
         self.update_window_title()
 
-    # ------------------------------------------------------------------
-    def cleanup(self):
+    def cleanup(self) -> None:
+        """Remove any runtime-generated project YAML files on exit."""
         cleanup_runtime_project_yaml(self.project_state.directory_path)
 
-    # ------------------------------------------------------------------
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
+        """Intercept the close event to prompt the user about unsaved changes.
+
+        Args:
+            event: Qt close event.
+        """
         if self.confirm_discard_or_save("closing"):
             self.cleanup()
             event.accept()
         else:
             event.ignore()
 
-    # ------------------------------------------------------------------
     def confirm_discard_or_save(self, action_name: str) -> bool:
+        """Show an unsaved-changes dialog if the project is dirty.
+
+        Args:
+            action_name: Human-readable name of the triggering action (e.g.
+                ``'closing'``), displayed in the dialog message.
+
+        Returns:
+            True if the action should proceed (user saved or discarded
+            changes), False if the user cancelled.
+        """
         if not self.project_controller.is_dirty:
             return True
 
@@ -160,3 +229,10 @@ class MainWindow(QMainWindow):
             return True
         else:
             return False
+
+    def _on_save(self) -> None:
+        """Save the project if there are unsaved changes."""
+        if not self.project_controller.is_dirty:
+            return
+        self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
+        self.project_controller.clear_dirty()

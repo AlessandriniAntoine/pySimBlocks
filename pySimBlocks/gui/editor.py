@@ -18,16 +18,21 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import sys
 import os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from pySimBlocks.gui.main_window import MainWindow
 
-# ============================================================
-# Entry point
-# ============================================================
-def main():
+
+def main() -> None:
+    """Entry point for the pySimBlocks GUI editor.
+
+    Reads an optional project directory from the command-line arguments,
+    defaulting to the current working directory, then launches the application.
+    """
     if len(sys.argv) > 1:
         project_dir = os.path.abspath(sys.argv[1])
     else:
@@ -36,7 +41,13 @@ def main():
     run_app(project_path)
 
 
-def run_app(project_path: Path):
+def run_app(project_path: Path) -> None:
+    """Create and start the Qt application with a :class:`MainWindow`.
+
+    Args:
+        project_path: Resolved path to the project directory to open on
+            startup.
+    """
     app = QApplication(sys.argv)
     window = MainWindow(project_path)
     app.aboutToQuit.connect(window.cleanup)
