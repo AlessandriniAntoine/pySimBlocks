@@ -29,6 +29,7 @@ class Ramp(BlockSource):
     """Multi-dimensional ramp signal source block.
 
     Generates a ramp signal element-wise on a 2D output array:
+
         y(t) = offset + slope * max(0, t - start_time)
 
     Parameters may be scalars, vectors, or matrices. Only scalar-to-shape

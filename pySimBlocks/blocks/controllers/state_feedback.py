@@ -18,7 +18,11 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
@@ -26,6 +30,7 @@ class StateFeedback(Block):
     """Discrete-time state-feedback controller block.
 
     Implements a static discrete-time state-feedback control law:
+
         u = G @ r - K @ x
 
     Both inputs must be column vectors. No implicit flattening is performed.
@@ -37,7 +42,7 @@ class StateFeedback(Block):
 
     direct_feedthrough = True
 
-    def __init__(self, name: str, K, G, sample_time: float | None = None):
+    def __init__(self, name: str, K: ArrayLike, G: ArrayLike, sample_time: float | None = None):
         """Initialize a StateFeedback block.
 
         Args:

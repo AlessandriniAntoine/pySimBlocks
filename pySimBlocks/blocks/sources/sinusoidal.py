@@ -29,6 +29,7 @@ class Sinusoidal(BlockSource):
     """Multi-dimensional sinusoidal signal source block.
 
     Generates sinusoidal signals element-wise on a 2D output array:
+
         y(t) = amplitude * sin(2*pi*frequency*t + phase) + offset
 
     Parameters may be scalars, vectors, or matrices. Only scalar-to-shape

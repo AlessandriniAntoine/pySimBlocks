@@ -32,6 +32,7 @@ class FunctionSource(BlockSource):
     """User-defined source block driven by a callable.
 
     Computes outputs at each step by calling a user-provided function:
+
         y = f(t, dt)
 
     The function must accept exactly ``(t, dt)`` as positional arguments

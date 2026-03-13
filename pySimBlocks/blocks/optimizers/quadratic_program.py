@@ -25,59 +25,32 @@ from pySimBlocks.core.block import Block
 
 
 class QuadraticProgram(Block):
-    """
-    General time-varying quadratic program solver.
+    """General time-varying quadratic program solver block.
 
-    Summary:
-        Solves at each time step the quadratic program:
+    Solves at each time step the quadratic program:
 
-            minimize    1/2 x^T P x + q^T x
-            subject to  G x <= h
-                        A x = b
-                        lb <= x <= ub
+        minimize    1/2 x^T P x + q^T x
 
-        All problem data are provided as inputs and may vary with time.
-        Constraints may be omitted by providing None.
+        subject to G x <= h, A x = b, lb <= x <= ub
 
-    Parameters:
-        name: str
-            Block name.
-        solver: str
-            QP solver name (default: "clarabel").
+    All problem data are provided as input ports and may vary with time.
+    Inequality and equality constraints may be omitted by leaving their
+    input ports unconnected (None).
 
-    I/O:
-        Inputs:
-            P: array (n,n)
-                Quadratic cost matrix.
-            q: array (n,) or (n,1)
-                Linear cost vector.
-            G: array (m,n) or None
-                Inequality constraint matrix.
-            h: array (m,) or (m,1) or None
-                Inequality constraint vector.
-            A: array (p,n) or None
-                Equality constraint matrix.
-            b: array (p,) or (p,1) or None
-                Equality constraint vector.
-            lb: array (n,) or (n,1) or None
-                Lower bound on x. (No scalar broadcast.)
-            ub: array (n,) or (n,1) or None
-                Upper bound on x. (No scalar broadcast.)
-
-        Outputs:
-            x: array (n,1)
-                Optimal solution (or zeros on failure).
-            status: array (1,1)
-                Solver status:
-                    0 = optimal
-                    1 = infeasible / no solution
-                    2 = solver error
-                    3 = input error
-            cost: array (1,1)
-                Optimal cost value (NaN on failure).
+    Attributes:
+        solver: Name of the QP solver used to solve the problem.
     """
 
     def __init__(self, name: str, solver: str = "clarabel"):
+        """Initialize a QuadraticProgram block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            solver: QP solver name. Must be available in ``qpsolvers``.
+
+        Raises:
+            ValueError: If the requested solver is not available.
+        """
         super().__init__(name)
 
         self._size: int | None = None
@@ -112,14 +85,27 @@ class QuadraticProgram(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
+
+    def initialize(self, t0: float) -> None:
+        """Set outputs to default failure values before the first solve.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.outputs["x"] = np.zeros((1, 1))
         self.outputs["status"] = np.array([[2]])
         self.outputs["cost"] = np.array([[np.nan]])
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
-        # --- fetch raw
+    def output_update(self, t: float, dt: float) -> None:
+        """Fetch inputs, build the QP, solve it, and write outputs.
+
+        Output ``status`` encodes the result: 0 = optimal, 1 = infeasible,
+        2 = solver error, 3 = input error. ``cost`` is NaN on failure.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         P_raw = self.inputs.get("P", None)
         q_raw = self.inputs.get("q", None)
         G_raw = self.inputs.get("G", None)
@@ -129,7 +115,6 @@ class QuadraticProgram(Block):
         lb_raw = self.inputs.get("lb", None)
         ub_raw = self.inputs.get("ub", None)
 
-        # --- normalize types/shapes (numpy)
         try:
             P = self._as_matrix(P_raw) if P_raw is not None else None
             q = self._as_vector(q_raw) if q_raw is not None else None
@@ -150,10 +135,8 @@ class QuadraticProgram(Block):
             self._set_failure(status=3)
             return
 
-        # Ensure output placeholder x matches resolved size (even before solving)
         self._ensure_output_x_size()
 
-        # --- build & solve
         try:
             problem = Problem(P, q, G, h, A, b, lb, ub)
             sol = solve_problem(problem, solver=self.solver)
@@ -168,7 +151,6 @@ class QuadraticProgram(Block):
                     f"[{self.name}] Solver returned x with shape {x.shape}, expected ({self._size},1)."
                 )
 
-            # cost = 1/2 x^T P x + q^T x
             cost = 0.5 * float(x.T @ P @ x) + float(q.reshape(1, -1) @ x)
 
             self.outputs["x"] = x
@@ -178,48 +160,38 @@ class QuadraticProgram(Block):
         except Exception:
             self._set_failure(status=2)
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        pass
+    def state_update(self, t: float, dt: float) -> None:
+        """No-op: QuadraticProgram carries no internal state."""
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     @staticmethod
-    def _check_needed_input(P, q, G, h, A, b):
+    def _check_needed_input(P, q, G, h, A, b) -> None:
+        """Raise if P or q are missing, or if constraint pairs are incomplete."""
         if P is None:
             raise ValueError("Missing required QP input 'P'.")
         if q is None:
             raise ValueError("Missing required QP input 'q'.")
 
-        # paired constraints
         if (G is None) != (h is None):
             raise ValueError("Inequality constraints G and h must both be provided or both be None.")
         if (A is None) != (b is None):
             raise ValueError("Equality constraints A and b must both be provided or both be None.")
 
-    # ------------------------------------------------------------------
     @staticmethod
     def _as_matrix(value) -> np.ndarray:
+        """Convert value to a 2D float array; raise if not 2D."""
         arr = np.asarray(value, dtype=float)
         if arr.ndim != 2:
             raise ValueError(f"Matrix input must be 2D. Got shape {arr.shape}.")
         return arr
 
-    # ------------------------------------------------------------------
     @staticmethod
     def _as_vector(value) -> np.ndarray:
-        """
-        Convert input to a strict 1D vector (n,).
-        Accepts:
-            - (n,) -> ok
-            - (n,1) -> flatten
-        Rejects:
-            - scalar
-            - (1,1)
-            - any other shape
-        """
+        """Convert value to a strict 1D float array, accepting (n,) or (n,1)."""
         arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 1:
@@ -232,12 +204,8 @@ class QuadraticProgram(Block):
             f"Vector input must be shape (n,) or (n,1). Got shape {arr.shape}."
         )
 
-    # ------------------------------------------------------------------
     def _ensure_output_x_size(self) -> None:
-        """
-        Keep outputs['x'] consistent with resolved size if known.
-        This prevents dimension-propagation issues when the solver fails.
-        """
+        """Keep output ``x`` consistent with the resolved problem size."""
         size = self._size if self._size is not None else 1
 
         x = self.outputs.get("x", None)
@@ -249,18 +217,31 @@ class QuadraticProgram(Block):
         if x_arr.shape != (size, 1):
             self.outputs["x"] = np.zeros((size, 1))
 
-    # ------------------------------------------------------------------
-    def _set_failure(self, status: int):
+    def _set_failure(self, status: int) -> None:
+        """Write a failure status and NaN cost to the outputs."""
         self.outputs["status"] = np.array([[status]])
         self.outputs["cost"] = np.array([[np.nan]])
         self._ensure_output_x_size()
 
-    # ------------------------------------------------------------------
-    def _check_size_compatibility(self, P, q, G, h, A, b, lb, ub):
-        # P defines the size n
+    def _check_size_compatibility(self, P, q, G, h, A, b, lb, ub) -> None:
+        """Validate that all inputs are dimensionally consistent with P.
+
+        Args:
+            P: Quadratic cost matrix (n, n).
+            q: Linear cost vector (n,).
+            G: Inequality constraint matrix (m, n), or None.
+            h: Inequality constraint vector (m,), or None.
+            A: Equality constraint matrix (p, n), or None.
+            b: Equality constraint vector (p,), or None.
+            lb: Lower bound vector (n,), or None.
+            ub: Upper bound vector (n,), or None.
+
+        Raises:
+            ValueError: If any dimension is inconsistent, or if the problem
+                size changes across time steps.
+        """
         n = P.shape[0]
 
-        # Freeze size once known
         if self._size is None:
             self._size = n
         elif self._size != n:
@@ -269,17 +250,14 @@ class QuadraticProgram(Block):
                 f"Previous size: {self._size}, current size: {n}."
             )
 
-        # P must be square
         if P.ndim != 2 or P.shape[1] != n:
             raise ValueError(f"[{self.name}] Input 'P' must be square, got shape {P.shape}.")
 
-        # q must be (n,)
         if q.ndim != 1 or q.shape[0] != n:
             raise ValueError(
                 f"[{self.name}] Input 'q' has shape {q.shape}. Must be (n,) with n={n}."
             )
 
-        # Inequality constraints
         if G is not None:
             if h is None:
                 raise ValueError(f"[{self.name}] Inequality constraints require both G and h.")
@@ -296,7 +274,6 @@ class QuadraticProgram(Block):
             if h is not None:
                 raise ValueError(f"[{self.name}] Inequality constraints G and h must both be provided or both be None.")
 
-        # Equality constraints
         if A is not None:
             if b is None:
                 raise ValueError(f"[{self.name}] Equality constraints require both A and b.")
@@ -313,7 +290,6 @@ class QuadraticProgram(Block):
             if b is not None:
                 raise ValueError(f"[{self.name}] Equality constraints A and b must both be provided or both be None.")
 
-        # Bounds (no scalar broadcast)
         if lb is not None:
             if lb.ndim != 1 or lb.shape[0] != n:
                 raise ValueError(

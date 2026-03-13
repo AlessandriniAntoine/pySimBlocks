@@ -29,7 +29,9 @@ class WhiteNoise(BlockSource):
     """Multi-dimensional Gaussian white noise source block.
 
     Generates independent Gaussian noise samples at each simulation step,
-    element-wise on a 2D output array: ``y = mean + std * N(0,1)``.
+    element-wise on a 2D output array: 
+
+        y = mean + std * N(0,1).
 
     Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
     broadcasting is allowed; all non-scalar parameters must share the same
