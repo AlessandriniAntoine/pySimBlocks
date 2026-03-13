@@ -36,7 +36,22 @@ from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
 
 class SofaDialog(QDialog):
+    """Configure and launch SOFA integration actions from the GUI.
+
+    Attributes:
+        sofa_service: Service handling SOFA detection, export, and execution.
+    """
+
     def __init__(self, sofa_service: SofaService, parent=None):
+        """Initialize the SOFA dialog.
+
+        Args:
+            sofa_service: Service handling SOFA integration.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
         self.setWindowTitle("Edit block")
         self.setMinimumWidth(300)
@@ -61,9 +76,16 @@ class SofaDialog(QDialog):
         buttons_layout.addWidget(apply_btn)
         main_layout.addLayout(buttons_layout)
 
-    # ------------------------------------------------------------
-    # Form
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def build_form(self, layout):
+        """Build the SOFA configuration form.
+
+        Args:
+            layout: Parent layout receiving the form.
+        """
         form = QFormLayout()
 
         # --- Block name ---
@@ -93,9 +115,12 @@ class SofaDialog(QDialog):
 
         layout.addLayout(form)
 
-    # ------------------------------------------------------------
-    # Buttons
     def apply(self):
+        """Validate and apply the SOFA executable path.
+
+        Returns:
+            True if the SOFA path is valid, otherwise False.
+        """
         sofa_path = self.run_edit.text()
         if not Path(sofa_path).exists():
             QMessageBox.warning(
@@ -108,11 +133,13 @@ class SofaDialog(QDialog):
         return True
 
     def ok(self):
+        """Apply the current values and close the dialog."""
         if not self.apply():
             return
         self.accept()
 
     def run(self):
+        """Run the current SOFA scene through the configured service."""
         if not self.apply():
             return
         if not self._update_scene_file():
@@ -145,6 +172,7 @@ class SofaDialog(QDialog):
             dialog.exec()
 
     def export(self):
+        """Export the SOFA controller for the current project."""
         if not self.apply():
             return
         if not self._update_scene_file():
@@ -152,12 +180,16 @@ class SofaDialog(QDialog):
         window = self.parent()
         self.sofa_service.export_controller(window, window.saver)
 
-    # ------------------------------------------------------------
-    # internal methods
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _on_gui_changed(self, value):
+        """Update the selected SOFA GUI backend."""
         self.sofa_service.gui = value
 
     def _update_scene_file(self):
+        """Validate and cache the scene file through the SOFA service."""
         ok, msg, details = self.sofa_service.get_scene_file()
         if not ok:
             QMessageBox.warning(
@@ -171,7 +203,23 @@ class SofaDialog(QDialog):
 
 
 class LogDialog(QDialog):
+    """Display execution logs in a read-only dialog.
+
+    Attributes:
+        text: Read-only text area showing the log content.
+    """
+
     def __init__(self, title: str, content: str, parent=None):
+        """Initialize the log dialog.
+
+        Args:
+            title: Dialog title.
+            content: Log text to display.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
         self.resize(800, 500)
