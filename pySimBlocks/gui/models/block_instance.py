@@ -34,16 +34,29 @@ if TYPE_CHECKING:
 
 
 class BlockInstance:
-    """
-    GUI-side mutable instance of a block.
+    """Represent a mutable GUI-side instance of a block.
 
-    - References an immutable BlockMeta
-    - Stores instance-level data (name, parameters)
-    - Used by BlockItem and BlockDialog
+    Attributes:
+        uid: Unique identifier for this instance.
+        meta: Immutable block metadata definition.
+        name: Editable block instance name.
+        parameters: Current parameter values for the instance.
+        ports: Resolved input and output ports for the instance.
     """
+
+
+    # --- Class methods ---
 
     @classmethod
     def copy(cls, block: Self) -> Self:
+        """Create a shallow copy of a block instance.
+
+        Args:
+            block: Block instance to copy.
+
+        Returns:
+            Copied block instance with duplicated parameters.
+        """
         cpy = BlockInstance(block.meta)
         cpy.name = block.name
         cpy.parameters = block.parameters.copy()
@@ -51,35 +64,41 @@ class BlockInstance:
 
 
     def __init__(self, meta: 'BlockMeta'):
+        """Initialize a block instance from metadata.
+
+        Args:
+            meta: Block metadata definition.
+
+        Raises:
+            None.
+        """
         self.uid: str = uuid.uuid4().hex
         self.meta = meta
         self.name: str = meta.name
         self.parameters: Dict[str, Any] = self._init_parameters()
         self.ports: List[PortInstance] = []
 
-    def _init_parameters(self) -> dict[str, Any]:
-        """
-        Initialize instance parameters from metadata.
-        """
-        params = {}
 
-        for p in self.meta.parameters:
-            params[p.name] = p.default if p.autofill else None
-
-        return params
+    # --- Public methods ---
 
     def update_params(self, params: dict[str, Any]):
+        """Update existing parameter values from a mapping.
+
+        Args:
+            params: Parameter values keyed by parameter name.
+        """
         for k, v in params.items():
             if k in self.parameters:
                 self.parameters[k] = v
 
     def resolve_ports(self) -> None:
+        """Rebuild ports while preserving existing instances when possible."""
 
         new_ports = self.meta.build_ports(self)
 
         if not self.ports:
             self.ports = new_ports
-            return 
+            return
 
         old_inputs = [p for p in self.ports if p.direction == "input"]
         old_outputs = [p for p in self.ports if p.direction == "output"]
@@ -107,8 +126,25 @@ class BlockInstance:
         self.ports = updated_ports
 
     def active_parameters(self) -> dict[str, Any]:
+        """Return only the parameters active under the current configuration.
+
+        Returns:
+            Active parameters keyed by parameter name.
+        """
         return  {
             k: v
             for k, v in self.parameters.items()
             if self.meta.is_parameter_active(k, self.parameters)
         }
+
+
+    # --- Private methods ---
+
+    def _init_parameters(self) -> dict[str, Any]:
+        """Initialize parameter values from metadata defaults."""
+        params = {}
+
+        for p in self.meta.parameters:
+            params[p.name] = p.default if p.autofill else None
+
+        return params
