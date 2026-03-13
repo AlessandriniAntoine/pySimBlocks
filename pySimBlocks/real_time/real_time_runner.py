@@ -25,18 +25,16 @@ from pySimBlocks.core.simulator import Simulator
 
 
 class RealTimeRunner:
-    """
-    Generic real-time runner for pySimBlocks.
+    """Run a simulator step loop against a real-time clock.
 
-    Responsibilities:
-      - Provide an external clock (dt measured or provided).
-      - Push external inputs into ExternalInput blocks.
-      - Call Simulator.step(dt_override=...).
-      - Pull outputs from ExternalOutput blocks.
+    The runner measures or accepts an external timestep, forwards input values
+    to model blocks, advances the simulator, and collects output values.
 
-    Notes:
-      - No threading, no I/O drivers here. The application owns that.
-      - Designed to be embedded in user-specific real-time apps.
+    Attributes:
+        sim: Simulator instance driven by the runner.
+        input_blocks: Model blocks updated from external inputs at each tick.
+        output_blocks: Model blocks read to produce external outputs.
+        target_dt: Optional target period used for pacing.
     """
 
     def __init__(
@@ -48,22 +46,18 @@ class RealTimeRunner:
         target_dt: Optional[float] = None,
         time_source: str = "perf_counter",  # "perf_counter" | "time"
     ):
-        """
-        Parameters
-        ----------
-        sim:
-            Initialized Simulator instance (model already compiled).
-        input_blocks:
-            Mapping external input name -> block name in model
-            Example: {"camera": "Camera", "ref": "Reference"}
-        output_blocks:
-            Mapping external output name -> block name in model
-            Example: {"motor": "Motor"}
-        target_dt:
-            If provided, runner will pace the loop to approximately this period
-            (best effort). If None, no pacing.
-        time_source:
-            Timer function selection.
+        """Initialize the real-time runner.
+
+        Args:
+            sim: Initialized simulator instance with a compiled model.
+            input_blocks: Names of model blocks that receive external inputs.
+            output_blocks: Names of model blocks that expose external outputs.
+            target_dt: Target loop period in seconds for optional pacing.
+            time_source: Clock source name, either ``"perf_counter"`` or
+                ``"time"``.
+
+        Raises:
+            ValueError: If ``time_source`` is not supported.
         """
         self.sim = sim
         self.input_blocks = {block_name: sim.model.get_block_by_name(block_name) for block_name in input_blocks}
@@ -79,7 +73,15 @@ class RealTimeRunner:
 
         self._t_prev: Optional[float] = None
 
+
+    # --- Public methods ---
+
     def initialize(self, t0: float = 0.0) -> None:
+        """Initialize the simulator and synchronize the runner clock.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.sim.initialize(t0)
         self._t_prev = self._now()
 
@@ -90,23 +92,21 @@ class RealTimeRunner:
         dt: Optional[float] = None,
         pace: bool = False,
     ) -> Dict[str, np.ndarray]:
-        """
-        Execute one real-time tick.
+        """Execute one real-time simulation tick.
 
-        Parameters
-        ----------
-        inputs:
-            External inputs keyed by input_blocks mapping key.
-            Example: {"camera": markers_pos, "ref": ref_value}
-        dt:
-            Optional explicit dt_override. If None, dt is measured from wall clock.
-        pace:
-            If True and target_dt is set, sleep to approximate target period.
+        Args:
+            inputs: External input values keyed by block name.
+            dt: Explicit timestep override in seconds. If omitted, the runner
+                measures elapsed wall-clock time.
+            pace: If True, sleep after the step to approximate ``target_dt``.
 
-        Returns
-        -------
-        outputs:
-            Dict mapping output key -> np.ndarray (n,1)
+        Returns:
+            Output values keyed by block name as column vectors.
+
+        Raises:
+            KeyError: If a required input block value is missing.
+            RuntimeError: If an output block does not provide an ``"out"``
+                value.
         """
         if self._t_prev is None:
             self._t_prev = self._now()
