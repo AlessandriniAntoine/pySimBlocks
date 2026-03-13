@@ -30,7 +30,22 @@ from pySimBlocks.project.generate_run_script import generate_python_content
 
 
 class SimulationRunner:
+    """Run a project simulation from the GUI service layer."""
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def run(self, project_state: ProjectState):
+        """Execute a simulation for the current project state.
+
+        Args:
+            project_state: Project state to simulate.
+
+        Returns:
+            Tuple containing logs, a success flag, and a status message.
+        """
         project_dir = project_state.directory_path
         if project_dir is None:
             return (

@@ -27,6 +27,14 @@ from pySimBlocks.gui.models.project_state import ProjectState
 
 
 def load_yaml_file(path: str) -> dict:
+    """Load a YAML file and return its top-level mapping.
+
+    Args:
+        path: Path to the YAML file.
+
+    Returns:
+        Parsed YAML mapping, or an empty dict for an empty file.
+    """
     with open(path, "r") as f:
         return yaml.safe_load(f) or {}
 
@@ -37,10 +45,12 @@ class FlowStyleList(list):
 
 
 class ProjectYamlDumper(yaml.SafeDumper):
+    """Custom YAML dumper for pySimBlocks project files."""
     pass
 
 
 def _repr_flow_list(dumper, data):
+    """Represent a list using YAML flow style."""
     return dumper.represent_sequence(
         "tag:yaml.org,2002:seq",
         data,
@@ -54,6 +64,7 @@ class FlowMatrix(list):
 
 
 def _is_matrix(obj):
+    """Return whether an object is a rectangular list-of-lists matrix."""
     if not isinstance(obj, list):
         return False
     if not obj:
@@ -65,6 +76,7 @@ def _is_matrix(obj):
 
 
 def _wrap_flow_matrices(obj):
+    """Wrap nested matrices so they are emitted using YAML flow style."""
     if _is_matrix(obj):
         return FlowMatrix([_wrap_flow_matrices(row) for row in obj])
 
@@ -86,6 +98,19 @@ def dump_project_yaml(
     block_items: dict[str, BlockItem] | None = None,
     raw: dict | None = None,
 ) -> str:
+    """Serialize project data into the pySimBlocks YAML format.
+
+    Args:
+        project_state: Project state to serialize when ``raw`` is not provided.
+        block_items: Optional GUI block items used to persist layout data.
+        raw: Prebuilt raw project mapping to serialize directly.
+
+    Returns:
+        YAML string representation of the project.
+
+    Raises:
+        ValueError: If neither ``project_state`` nor ``raw`` is provided.
+    """
     if raw is None:
         if project_state is None:
             raise ValueError("project_state or raw must be set")
@@ -104,6 +129,16 @@ def save_yaml(
     block_items: dict[str, BlockItem] | None = None,
     runtime: bool = False,
 ) -> None:
+    """Write project YAML data to disk.
+
+    Args:
+        project_state: Project state to serialize.
+        block_items: Optional GUI block items used to persist layout data.
+        runtime: If True, write the runtime YAML file instead of ``project.yaml``.
+
+    Raises:
+        ValueError: If the project directory is not defined.
+    """
     directory = project_state.directory_path
     if directory is None:
         raise ValueError("project_state.directory_path must be set")
@@ -115,10 +150,23 @@ def save_yaml(
 
 
 def runtime_project_yaml_path(project_dir: Path) -> Path:
+    """Return the runtime project YAML path for a project directory.
+
+    Args:
+        project_dir: Project directory path.
+
+    Returns:
+        Path to the runtime YAML file.
+    """
     return project_dir / ".project.runtime.yaml"
 
 
 def cleanup_runtime_project_yaml(project_dir: Path | None) -> None:
+    """Delete the runtime project YAML file if it exists.
+
+    Args:
+        project_dir: Project directory path, if available.
+    """
     if project_dir is None:
         return
 
@@ -128,6 +176,7 @@ def cleanup_runtime_project_yaml(project_dir: Path | None) -> None:
 
 
 def _build_simulation_section(project_state: ProjectState) -> dict:
+    """Build the simulation section for a project YAML document."""
     simulation = project_state.simulation.__dict__.copy()
     if simulation.get("clock") == "internal":
         simulation.pop("clock", None)
@@ -141,6 +190,7 @@ def _build_simulation_section(project_state: ProjectState) -> dict:
 
 
 def _build_blocks_section(project_state: ProjectState) -> list[dict]:
+    """Build the block list section for a project YAML document."""
     blocks = []
     for b in project_state.blocks:
         params = {
@@ -159,6 +209,7 @@ def _build_blocks_section(project_state: ProjectState) -> list[dict]:
 
 
 def _build_connections_section(project_state: ProjectState) -> tuple[list[dict], dict[tuple[str, str], str]]:
+    """Build connection entries and their generated connection names."""
     connections = []
     conn_name_map: dict[tuple[str, str], str] = {}
 
@@ -181,6 +232,7 @@ def _build_layout_section(
     block_items: dict[str, BlockItem],
     conn_name_map: dict[tuple[str, str], str],
 ) -> dict:
+    """Build the GUI layout section for a project YAML document."""
     data: dict = {"blocks": {}}
     manual_connections = {}
     seen = set()
@@ -230,6 +282,15 @@ def build_project_yaml(
     project_state: ProjectState,
     block_items: dict[str, BlockItem] | None = None,
 ) -> dict:
+    """Build the full raw project mapping before YAML serialization.
+
+    Args:
+        project_state: Project state to serialize.
+        block_items: Optional GUI block items used to persist layout data.
+
+    Returns:
+        Raw project mapping ready for YAML serialization.
+    """
     block_items = block_items if block_items is not None else {}
     project_name = (
         project_state.directory_path.name
