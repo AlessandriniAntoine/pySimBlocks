@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,40 +27,24 @@ from pySimBlocks.core.block import Block
 
 
 class Saturation(Block):
-    """
-    Discrete-time saturation operator.
+    """Discrete-time saturation operator.
 
-    Summary:
-        Applies element-wise saturation to the input signal by enforcing
-        lower and upper bounds.
+    Applies element-wise saturation to the input signal:
 
-    Parameters:
-        u_min : scalar or array-like, optional
-            Lower saturation bound.
-            Accepted: scalar -> (1,1), 1D -> (m,1), 2D -> (m,n).
-            Broadcasting rules are limited and explicit (see Notes).
-        u_max : scalar or array-like, optional
-            Upper saturation bound.
-        sample_time : float, optional
-            Block execution period.
+        y = clip(u, u_min, u_max)
 
-    Inputs:
-        in : array (m,n)
-            Input signal (must be 2D).
+    Bounds are resolved component-wise on the first call using explicit
+    broadcasting rules: scalar (1,1) broadcasts to (m,n); vector (m,1)
+    broadcasts across columns; matrix (m,n) must match exactly. Once the
+    input shape is resolved it must remain constant.
 
-    Outputs:
-        out : array (m,n)
-            Saturated output signal.
-
-    Notes:
-        - Stateless block.
-        - Direct feedthrough.
-        - Input must be 2D. No implicit reshape/flatten.
-        - Broadcasting rules for bounds (to match input shape (m,n)):
-            * scalar (1,1) broadcasts to (m,n)
-            * vector (m,1) broadcasts across columns to (m,n)
-            * matrix (m,n) must match exactly
-        - Any other shape mismatch raises ValueError.
+    Attributes:
+        u_min_raw: Raw lower bound before broadcasting.
+        u_max_raw: Raw upper bound before broadcasting.
+        u_min: Broadcasted lower bound matched to the input shape, or None
+            before the first resolution.
+        u_max: Broadcasted upper bound matched to the input shape, or None
+            before the first resolution.
     """
 
     direct_feedthrough = True
@@ -70,6 +56,17 @@ class Saturation(Block):
         u_max: ArrayLike = np.inf,
         sample_time: float | None = None,
     ):
+        """Initialize a Saturation block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            u_min: Lower saturation bound. Accepted shapes: scalar, 1D vector,
+                or 2D matrix.
+            u_max: Upper saturation bound. Accepted shapes: scalar, 1D vector,
+                or 2D matrix.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+        """
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
@@ -78,7 +75,6 @@ class Saturation(Block):
         self.u_min_raw = self._to_2d_array("u_min", u_min)
         self.u_max_raw = self._to_2d_array("u_max", u_max)
 
-        # These will become "resolved" (broadcasted) once we know input shape
         self.u_min = None
         self.u_max = None
         self._resolved_shape: tuple[int, int] | None = None
@@ -87,7 +83,18 @@ class Saturation(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Resolve bounds from the initial input and compute the initial output.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None at initialization.
+            ValueError: If input is not 2D, bounds have incompatible shapes,
+                or ``u_min > u_max`` for any component.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
@@ -101,8 +108,18 @@ class Saturation(Block):
         self._resolve_bounds_for_input(u)
         self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Saturate the input and write the result to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None.
+            ValueError: If input is not 2D or its shape changed after
+                initialization.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
@@ -116,20 +133,22 @@ class Saturation(Block):
         self._resolve_bounds_for_input(u)
         self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: Saturation is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _resolve_bounds_for_input(self, u: np.ndarray) -> None:
-        """
-        Resolve (broadcast) u_min/u_max to match the current input shape.
-        Resolution is done once (first time input is available). After that,
-        input shape is expected to remain constant.
-        """
+        """Broadcast and validate bounds against the input shape on first call."""
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
@@ -145,7 +164,6 @@ class Saturation(Block):
                 raise ValueError(f"[{self.name}] u_min must be <= u_max for all components.")
             return
 
-        # Already resolved => enforce constant input shape
         if u.shape != self._resolved_shape:
             raise ValueError(
                 f"[{self.name}] Input 'in' shape changed after bounds were resolved: "
@@ -153,22 +171,17 @@ class Saturation(Block):
             )
 
     def _broadcast_bound(self, b: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
-        """
-        Broadcast bound b to target_shape using explicit rules.
-        """
+        """Broadcast a bound array to the target input shape."""
         m, n = target_shape
 
-        # scalar -> full matrix
         if self._is_scalar_2d(b):
             return np.full(target_shape, float(b[0, 0]), dtype=float)
 
-        # vector (m,1) -> broadcast across columns
         if b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m:
             if n == 1:
                 return b.astype(float, copy=False)
             return np.repeat(b.astype(float, copy=False), n, axis=1)
 
-        # matrix -> must match exactly
         if b.shape == target_shape:
             return b.astype(float, copy=False)
 

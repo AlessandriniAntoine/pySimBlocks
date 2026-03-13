@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,40 +27,27 @@ from pySimBlocks.core.block import Block
 
 
 class DeadZone(Block):
-    """
-    Discrete-time dead zone operator.
+    """Discrete-time dead-zone operator.
 
-    Summary:
-        Suppresses the input signal within a specified interval around zero
-        and shifts the signal outside this interval.
+    Suppresses the input within a specified interval and shifts the signal
+    outside it:
 
-    Parameters:
-        lower_bound : scalar or array-like
-            Lower bound of the dead zone (must be <= 0 component-wise).
-        upper_bound : scalar or array-like
-            Upper bound of the dead zone (must be >= 0 component-wise).
-        sample_time : float, optional
-            Block execution period.
+        y = 0                    if lower_bound <= u <= upper_bound
 
-    Inputs:
-        in : array (m,n)
-            Input signal (must be 2D).
+        y = u - upper_bound      if u > upper_bound
 
-    Outputs:
-        out : array (m,n)
-            Output signal after dead-zone transformation.
+        y = u - lower_bound      if u < lower_bound
 
-    Notes:
-        - Stateless block.
-        - Direct feedthrough.
-        - Bounds are applied component-wise.
-        - Broadcasting rules (to match input shape (m,n)):
-            * scalar (1,1) broadcasts to (m,n)
-            * vector (m,1) broadcasts across columns to (m,n)
-            * matrix (m,n) must match exactly
-        - The dead zone must include zero component-wise:
-            lower_bound <= 0 <= upper_bound.
-        - Once resolved, input shape must remain constant.
+    Bounds are applied component-wise and resolved on the first call. Once the
+    input shape is resolved it must remain constant.
+
+    Attributes:
+        lower_raw: Raw lower bound array before broadcasting.
+        upper_raw: Raw upper bound array before broadcasting.
+        lower_bound: Broadcasted lower bound matched to the input shape, or
+            None before the first resolution.
+        upper_bound: Broadcasted upper bound matched to the input shape, or
+            None before the first resolution.
     """
 
     direct_feedthrough = True
@@ -70,6 +59,22 @@ class DeadZone(Block):
         upper_bound: ArrayLike = 0.0,
         sample_time: float | None = None,
     ):
+        """Initialize a DeadZone block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            lower_bound: Lower bound of the dead zone. Must be <= 0
+                component-wise. Accepted shapes: scalar, 1D vector, or 2D
+                matrix.
+            upper_bound: Upper bound of the dead zone. Must be >= 0
+                component-wise. Accepted shapes: scalar, 1D vector, or 2D
+                matrix.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            ValueError: If bounds cannot be converted to a 2D array.
+        """
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
@@ -84,9 +89,19 @@ class DeadZone(Block):
 
 
     # --------------------------------------------------------------------------
-    # Private methods
+    # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Resolve bounds from the initial input and compute the initial output.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None at initialization.
+            ValueError: If input is not 2D or bounds have incompatible shapes.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
@@ -100,8 +115,18 @@ class DeadZone(Block):
         self._resolve_for_input(u)
         self.outputs["out"] = self._apply_dead_zone(u)
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Apply the dead zone to the input and write the result to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None.
+            ValueError: If input is not 2D or its shape changed after
+                initialization.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
@@ -115,28 +140,32 @@ class DeadZone(Block):
         self._resolve_for_input(u)
         self.outputs["out"] = self._apply_dead_zone(u)
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: DeadZone is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _broadcast_bound(self, b: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
+        """Broadcast a bound array to the target input shape."""
         m, n = target_shape
 
-        # scalar -> full matrix
         if self._is_scalar_2d(b):
             return np.full(target_shape, float(b[0, 0]), dtype=float)
 
-        # vector (m,1) -> broadcast across columns
         if b.ndim == 2 and b.shape[1] == 1 and b.shape[0] == m:
             if n == 1:
                 return b.astype(float, copy=False)
             return np.repeat(b.astype(float, copy=False), n, axis=1)
 
-        # matrix -> must match exactly
         if b.shape == target_shape:
             return b.astype(float, copy=False)
 
@@ -145,8 +174,8 @@ class DeadZone(Block):
             f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
         )
 
-    # ------------------------------------------------------------------
     def _resolve_for_input(self, u: np.ndarray) -> None:
+        """Broadcast and validate bounds against the input shape on first call."""
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
@@ -157,7 +186,6 @@ class DeadZone(Block):
             self.lower_bound = self._broadcast_bound(self.lower_raw, u.shape, "lower_bound")
             self.upper_bound = self._broadcast_bound(self.upper_raw, u.shape, "upper_bound")
 
-            # Component-wise validity checks (after broadcasting)
             if np.any(self.lower_bound > self.upper_bound):
                 raise ValueError(f"[{self.name}] lower_bound must be <= upper_bound (component-wise).")
             if np.any(self.lower_bound > 0):
@@ -173,8 +201,8 @@ class DeadZone(Block):
                 f"expected {self._resolved_shape}, got {u.shape}."
             )
 
-    # ------------------------------------------------------------------
     def _apply_dead_zone(self, u: np.ndarray) -> np.ndarray:
+        """Compute the dead-zone output for a validated input array."""
         y = np.zeros_like(u)
 
         above = u > self.upper_bound

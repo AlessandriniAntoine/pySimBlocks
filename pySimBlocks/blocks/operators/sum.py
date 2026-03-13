@@ -18,42 +18,23 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 
 from pySimBlocks.core.block import Block
 
 
 class Sum(Block):
-    """
-    Multi-input summation block.
+    """Multi-input signed summation block.
 
-    Summary:
-        Computes an element-wise sum/subtraction of multiple input signals.
+    Computes an element-wise signed sum of multiple 2D input signals. All
+    non-scalar inputs must share the same shape; scalar (1,1) inputs are
+    broadcast to that shape.
 
-    Parameters:
-        signs : str
-            Sequence of '+' and '-' defining the sign of each input (e.g. '++-', '+-').
-            If None, defaults to '++' (two inputs).
-        sample_time : float, optional
-            Block execution period.
-
-    Inputs:
-        in1, in2, ..., inN : array (m,n)
-            Input signals (must be 2D).
-            Scalar (1,1) inputs can be broadcast to the common target shape.
-
-    Outputs:
-        out : array (m,n)
-            Element-wise signed sum.
-
-    Notes:
-        - Direct feedthrough.
-        - Stateless.
-        - Shape policy:
-            * all inputs must be 2D
-            * all non-scalar inputs must share exactly the same shape
-            * scalar (1,1) inputs can be broadcast to that shape
-            * no other broadcasting is allowed
+    Attributes:
+        signs: List of +1.0 or -1.0 coefficients, one per input port.
+        num_inputs: Number of input ports.
     """
 
     direct_feedthrough = True
@@ -64,6 +45,21 @@ class Sum(Block):
         signs: str | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a Sum block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            signs: Sequence of ``'+'`` and ``'-'`` defining the sign of each
+                input (e.g. ``'++-'``, ``'+-'``). Defaults to ``'++'`` (two
+                positive inputs).
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            TypeError: If ``signs`` is not a string.
+            ValueError: If ``signs`` is empty or contains characters other than
+                ``'+'`` and ``'-'``.
+        """
         super().__init__(name, sample_time)
 
         if signs is None:
@@ -90,10 +86,12 @@ class Sum(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
-        """
-        If all inputs are already available, compute output.
-        Otherwise output stays None until first output_update().
+        """Compute the initial output if all inputs are available.
+
+        Args:
+            t0: Initial simulation time in seconds.
         """
         if any(self.inputs[f"in{i+1}"] is None for i in range(self.num_inputs)):
             self.outputs["out"] = None
@@ -101,9 +99,18 @@ class Sum(Block):
 
         self.outputs["out"] = self._compute_output()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        # Validate presence + 2D constraint
+        """Compute the signed element-wise sum and write it to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If any input port is not connected.
+            ValueError: If any input is not 2D or non-scalar inputs have
+                inconsistent shapes.
+        """
         arrays = []
         for i in range(self.num_inputs):
             key = f"in{i+1}"
@@ -120,23 +127,22 @@ class Sum(Block):
 
         self.outputs["out"] = self._compute_output(prevalidated_arrays=arrays)
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: Sum is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
-    def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
-        """
-        Determine target shape among inputs.
 
-        - Scalars (1,1) are broadcastable
-        - Any non-scalar fixes the target shape
-        - If multiple non-scalars exist, they must all match exactly
-        - If all scalars => target is (1,1)
-        """
+    def _resolve_common_shape(self, arrays: list[np.ndarray]) -> tuple[int, int]:
+        """Determine the target shape from the set of input arrays."""
         non_scalar_shapes = {a.shape for a in arrays if not self._is_scalar_2d(a)}
 
         if len(non_scalar_shapes) == 0:
@@ -150,12 +156,8 @@ class Sum(Block):
             f"{[a.shape for a in arrays]}. All non-scalar inputs must have the same shape."
         )
 
-    # ------------------------------------------------------------------
     def _broadcast_scalar_only(self, arr: np.ndarray, target_shape: tuple[int, int], input_name: str) -> np.ndarray:
-        """
-        Broadcast only scalar (1,1) to target_shape.
-        Non-scalar must match target_shape exactly.
-        """
+        """Broadcast scalar (1,1) to target shape; reject non-scalar shape mismatches."""
         if self._is_scalar_2d(arr):
             if target_shape == (1, 1):
                 return arr.astype(float, copy=False)
@@ -168,11 +170,8 @@ class Sum(Block):
             )
         return arr.astype(float, copy=False)
 
-    # ------------------------------------------------------------------
     def _compute_output(self, prevalidated_arrays: list[np.ndarray] | None = None) -> np.ndarray:
-        """
-        Compute signed element-wise sum with strict scalar-only broadcast.
-        """
+        """Compute the signed element-wise sum with scalar-only broadcasting."""
         if prevalidated_arrays is None:
             arrays = [np.asarray(self.inputs[f"in{i+1}"], dtype=float) for i in range(self.num_inputs)]
         else:

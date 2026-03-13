@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import re
 import unicodedata
 
@@ -28,30 +30,15 @@ from pySimBlocks.core.block import Block
 
 
 class Gain(Block):
-    """
-    Static gain block.
+    """Static gain block.
 
-    Summary:
-        Applies a gain to the input signal according to the selected multiplication mode.
+    Applies a gain to the input signal according to one of three multiplication
+    modes: element-wise, left matrix product (K @ u), or right matrix product
+    (u @ K).
 
-    Parameters:
-        gain: scalar, vector (m,), or matrix (m,n)
-            Gain coefficient(s).
-        multiplication: str
-            One of:
-              - "Element wise (K * u)"
-              - "Matrix (K @ u)"
-              - "Matrix (u @ K)"
-        sample_time: float, optional
-            Block execution period.
-
-    Inputs:
-        in: array (r,c)
-            Input signal (must be 2D).
-
-    Outputs:
-        out: array
-            Output signal (2D), depending on multiplication mode.
+    Attributes:
+        gain: Gain coefficient(s) — scalar float, 1D vector, or 2D matrix.
+        multiplication: Active multiplication mode string.
     """
 
     direct_feedthrough = True
@@ -68,11 +55,28 @@ class Gain(Block):
         multiplication: str = MULT_ELEMENTWISE,
         sample_time: float | None = None,
     ):
+        """Initialize a Gain block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            gain: Gain coefficient(s). May be a scalar, a 1D vector, or a 2D
+                matrix. The accepted shape depends on the chosen multiplication
+                mode.
+            multiplication: Multiplication mode string. Accepted values include
+                ``'Element wise (K * u)'``, ``'Matrix (K @ u)'``, and
+                ``'Matrix (u @ K)'`` as well as common aliases.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            TypeError: If ``multiplication`` is not a string.
+            ValueError: If ``multiplication`` is not a recognized mode, or if
+                ``gain`` is not scalar, 1D, or 2D.
+        """
         super().__init__(name, sample_time)
 
         self.multiplication = self._parse_multiplication(multiplication)
 
-        # Normalize gain
         if np.isscalar(gain):
             self.gain = float(gain)
             self._gain_kind = "scalar"
@@ -89,35 +93,34 @@ class Gain(Block):
         self.inputs["in"] = None
         self.outputs["out"] = None
 
+
     # --------------------------------------------------------------------------
     # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
     def _parse_multiplication(cls, multiplication: str) -> str:
+        """Normalize and validate a multiplication mode string."""
         if not isinstance(multiplication, str):
             raise TypeError(f"[{cls.__name__}] 'multiplication' must be a str.")
 
         m = cls._normalize_user_string(multiplication)
 
-        # --- Element-wise
         if m in {
             "elementwise(k*u)", "elementwise", "elem", "k*u", "*", "k×u", "kxu"
         }:
             return cls.MULT_ELEMENTWISE
 
-        # --- Left: K @ u
         if m in {
             "matrix(k@u)", "k@u", "left", "matleft", "@left"
         }:
             return cls.MULT_LEFT
 
-        # --- Right: u @ K
         if m in {
             "matrix(u@k)", "u@k", "right", "matright", "@right"
         }:
             return cls.MULT_RIGHT
 
-        # fallback pattern-based (tolère "matrix(...)" etc.)
         if "k@u" in m:
             return cls.MULT_LEFT
         if "u@k" in m:
@@ -128,10 +131,17 @@ class Gain(Block):
             f"Examples: '{cls.MULT_ELEMENTWISE}', '{cls.MULT_RIGHT}', '{cls.MULT_LEFT}'."
         )
 
+
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Compute the initial output from the initial input if available.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         u = self.inputs["in"]
         if u is None:
             self.outputs["out"] = None
@@ -145,31 +155,48 @@ class Gain(Block):
 
         self.outputs["out"] = self._compute(u)
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Apply the gain to the input and write the result to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is not connected.
+            ValueError: If the input is not 2D or dimensions are incompatible
+                with the gain and multiplication mode.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
         self.outputs["out"] = self._compute(u)
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: Gain is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     @staticmethod
     def _normalize_user_string(s: str) -> str:
+        """Normalize a user-provided string to lowercase ASCII with no spaces."""
         s = unicodedata.normalize("NFKC", s)
         s = s.strip().lower()
         s = s.replace("\u00A0", " ")
         s = re.sub(r"\s+", "", s, flags=re.UNICODE)
         return s
 
-    # ------------------------------------------------------------------
     def _resolve_initialize(self, u) -> np.ndarray:
+        """Broadcast a scalar placeholder input to the gain shape at initialization."""
         u = u.flatten()
         if self.multiplication != self.MULT_ELEMENTWISE:
             u = np.full((self.gain.shape[1], 1), u[0], dtype=float)
@@ -180,8 +207,8 @@ class Gain(Block):
                 u = np.full(self.gain.shape, u[0], dtype=float)
         return u
 
-    # ------------------------------------------------------------------
     def _compute(self, u) -> np.ndarray:
+        """Validate input and dispatch to the active multiplication method."""
         u = np.asarray(u, dtype=float)
         if u.ndim != 2:
             raise ValueError(
@@ -197,24 +224,15 @@ class Gain(Block):
         if self.multiplication == self.MULT_RIGHT:
             return self._right_multiply(u)
 
-        # Should be impossible due to validation in __init__
         raise RuntimeError(f"[{self.name}] Unhandled multiplication mode: {self.multiplication}")
 
-    # ------------------------------------------------------------------
     def _elementwise(self, u: np.ndarray) -> np.ndarray:
-        """
-        Element-wise multiplication: K * u
-
-        Rules:
-            - scalar K: y = K * u
-            - vector K (m,): y = K[:,None] * u, requires u.shape[0] == m
-            - matrix K (m,n): y = K * u, requires u.shape == (m,n)
-        """
+        """Apply element-wise multiplication K * u."""
         if self._gain_kind == "scalar":
             return self.gain * u
 
         if self._gain_kind == "vector":
-            g = self.gain  # shape (m,)
+            g = self.gain
             if g.shape[0] != 1 and u.shape[0] != g.shape[0]:
                 raise ValueError(
                     f"[{self.name}] Element-wise mode requires u.shape[0] == len(gain). "
@@ -222,7 +240,6 @@ class Gain(Block):
                 )
             return g.reshape(-1, 1) * u
 
-        # matrix gain
         g = self.gain
         if not self._is_scalar_2d(g) and u.shape != g.shape:
             raise ValueError(
@@ -231,16 +248,8 @@ class Gain(Block):
             )
         return g * u
 
-    # ------------------------------------------------------------------
     def _left_multiply(self, u: np.ndarray) -> np.ndarray:
-        """
-        Matrix multiplication: K @ u
-
-        Rules:
-            - K must be 2D matrix (p,m)
-            - u must be 2D (m,ncols)
-            - output is (p,ncols)
-        """
+        """Apply left matrix multiplication K @ u."""
         if self._gain_kind != "matrix":
             raise ValueError(
                 f"[{self.name}] Multiplication mode '{self.MULT_LEFT}' requires a 2D matrix gain. "
@@ -256,17 +265,8 @@ class Gain(Block):
             )
         return K @ u
 
-    # ------------------------------------------------------------------
     def _right_multiply(self, u: np.ndarray) -> np.ndarray:
-        """
-        Matrix multiplication: u @ K
-
-        Rules:
-            - K must be 2D matrix (m,q)
-            - u must be 2D (nrows,m)
-            - output is (nrows,q)
-        """
-
+        """Apply right matrix multiplication u @ K."""
         if self._gain_kind != "matrix":
             raise ValueError(
                 f"[{self.name}] Multiplication mode '{self.MULT_RIGHT}' requires a 2D matrix gain. "
@@ -276,7 +276,6 @@ class Gain(Block):
         K = self.gain
         m, q = K.shape
 
-        # --- Special case: u is a vector (n,1)
         if u.shape[1] == 1:
             if u.shape[0] != m:
                 raise ValueError(
@@ -285,7 +284,6 @@ class Gain(Block):
                 )
             return (u.T @ K).T
 
-        # --- General case: u is a matrix (nrows,m)
         if u.shape[1] != m:
             raise ValueError(
                 f"[{self.name}] Right matrix product requires u.shape[1] == gain.shape[0]. "

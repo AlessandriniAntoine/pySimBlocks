@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,34 +27,31 @@ from pySimBlocks.core.block import Block
 
 
 class Demux(Block):
-    """
-    Vector split block (inverse of Mux).
+    """Vector split block (inverse of Mux).
 
-    Summary:
-        Splits one input column vector into multiple output segments.
+    Splits one input column vector of length n into p output segments. Segment
+    sizes are distributed as evenly as possible: let q = n // p and m = n % p,
+    then the first m outputs have size q+1 and the remaining p-m outputs have
+    size q.
 
-    Parameters:
-        num_outputs : int
-            Number of scalar outputs to produce.
-        sample_time : float, optional
-            Block execution period.
-
-    Inputs:
-        in : vector (n,1)
-            Input must be a column vector.
-
-    Outputs:
-        out1, out2, ..., outP : array (k,1)
-            Output segment sizes follow:
-              - q = n // p
-              - m = n % p
-              - first m outputs have size (q+1,1)
-              - remaining (p-m) outputs have size (q,1)
+    Attributes:
+        num_outputs: Number of output segments to produce.
     """
 
     direct_feedthrough = True
 
     def __init__(self, name: str, num_outputs: int = 2, sample_time: float | None = None):
+        """Initialize a Demux block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            num_outputs: Number of output segments. Must be >= 1.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            ValueError: If ``num_outputs`` is not a positive integer.
+        """
         super().__init__(name, sample_time)
 
         if not isinstance(num_outputs, int) or num_outputs < 1:
@@ -67,7 +66,13 @@ class Demux(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Compute initial outputs, or set zero placeholders if input is unavailable.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         if self.inputs["in"] is None:
             for i in range(self.num_outputs):
                 self.outputs[f"out{i+1}"] = np.zeros((1, 1), dtype=float)
@@ -75,19 +80,36 @@ class Demux(Block):
 
         self._compute_outputs()
 
-    # ---------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Split the input vector and write the segments to the output ports.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is not connected.
+            ValueError: If input is not a column vector or has fewer elements
+                than ``num_outputs``.
+        """
         self._compute_outputs()
 
-    # ---------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: Demux is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_vector(self, value: ArrayLike) -> np.ndarray:
+        """Validate and return the input as a (n,1) column vector."""
         arr = np.asarray(value, dtype=float)
 
         if arr.ndim != 2 or arr.shape[1] != 1:
@@ -97,8 +119,8 @@ class Demux(Block):
             )
         return arr
 
-    # ---------------------------------------------------------
     def _compute_outputs(self) -> None:
+        """Split the input vector into output segments."""
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
