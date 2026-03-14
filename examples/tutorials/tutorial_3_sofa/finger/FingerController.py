@@ -33,5 +33,4 @@ class FingerController(SofaPysimBlocksController):
         val = self.inputs["cable"]
         if val is None:
             raise ValueError("Input 'cable' is not set")
-        val = [val.item()]
-        self.actuator.value = val
+        self.actuator.value = [val.item()]

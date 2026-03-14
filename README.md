@@ -17,7 +17,7 @@ using either:
 - YAML project configuration
 - Optional SOFA and hardware integration
 
-![pySimBlocks graphical editor](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/User_Guide/images/gui_example.png)
+![pySimBlocks graphical editor](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/source/images/user_guide/gui_example.png)
 
 ## Features
 
@@ -103,7 +103,7 @@ plot_from_config(logs, plot_cfg)
 
 The resulting plot should look like this:
 
-![Noise filtered](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/User_Guide/images/quick_example.png)
+![Noise filtered](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/source/images/user_guide/quick_example.png)
 
 See [examples/quick_start/filter.py](./examples/quick_start/filter.py)
 to run the example yourself.
@@ -127,13 +127,13 @@ The quick-start GUI project is stored in a single
 #### Tutorials
 
 Three step-by-step tutorials are available detailed in the
-[guide](./docs/User_Guide/getting_started.md):
+[guide](./docs/source/user_guide/tutorials.md):
 
   | | Tutorial | Description |
   |---|---|---|
-  | 1 | [Python API](./docs/User_Guide/tutorial_1_python.md) | Build a closed-loop PI control system in pure Python |
-  | 2 | [GUI](./docs/User_Guide/tutorial_2_gui.md) | Build the same system visually with the graphical editor |
-  | 3 | [SOFA](./docs/User_Guide/tutorial_3_sofa.md) | Replace the plant with a SOFA physics simulation |
+  | 1 | [Python API](./docs/source/user_guide/tutorials/tutorial_1_python.md) | Build a closed-loop PI control system in pure Python |
+  | 2 | [GUI](./docs/source/user_guide/tutorials/tutorial_2_gui.md) | Build the same system visually with the graphical editor |
+  | 3 | [SOFA](./docs/source/user_guide/tutorials/tutorial_3_sofa.md) | Replace the plant with a SOFA physics simulation |
 
 
 #### Other Examples
