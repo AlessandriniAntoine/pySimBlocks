@@ -84,13 +84,10 @@ class PlotConfig:
  
     Describes how logged signals should be visualized.
     Contains no plotting logic.
- 
-    Attributes:
-        plots: List of plot descriptors. Each descriptor is a dict that
-            must contain at least a ``"signals"`` key with a list of
-            signal names.
     """
 
+    #: List of plot descriptors. Each descriptor is a dict with at least a
+    #: ``"signals"`` field, which is a list of signal names to plot together
     plots: List[Dict[str, Any]]
 
     def validate(self) -> None:

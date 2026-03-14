@@ -29,10 +29,6 @@ class BlockSource(Block):
     Provides normalization utilities for source parameters to produce 2D
     signals, strict scalar-only broadcasting to a common 2D shape, and no
     state update by default.
- 
-    Attributes:
-        direct_feedthrough: Always False for sources.
-        is_source: Always True for sources.
     """
 
     direct_feedthrough = False

@@ -59,33 +59,30 @@ def _separate_bg(block: QColor, scene: QColor, delta: float = 35.0) -> QColor:
 
 @dataclass(frozen=True)
 class Theme:
-    """Store the GUI color palette used by the graphics layer.
-
-    Attributes:
-        scene_bg: Scene background color.
-        block_bg: Default block background color.
-        block_bg_selected: Selected block background color.
-        block_border: Default block border color.
-        block_border_selected: Selected block border color.
-        text: Default text color.
-        text_selected: Selected text color.
-        wire: Connection wire color.
-        port_in: Input port color.
-        port_out: Output port color.
-    """
+    """Store the GUI color palette used by the graphics layer."""
+    #: Scene background color.
     scene_bg: QColor
 
+    #: Default block background color.
     block_bg: QColor
+    #: Selected block background color.
     block_bg_selected: QColor
+    #: Default block border color.
     block_border: QColor
+    #: Selected block border color.
     block_border_selected: QColor
 
+    #: Default text color.
     text: QColor
+    #: Selected text color.
     text_selected: QColor
 
+    #: Connection wire color.
     wire: QColor
 
+    #: Input port color.
     port_in: QColor
+    #: Output port color.
     port_out: QColor
 
 

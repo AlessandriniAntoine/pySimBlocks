@@ -51,31 +51,29 @@ class BlockMeta(ABC):
 
     Subclasses declare static block metadata, optional dialog customizations,
     and dynamic port-resolution rules used by the GUI layer.
-
-    Attributes:
-        name: User-facing block name.
-        category: GUI block category.
-        type: Stable block type identifier.
-        summary: Short summary displayed in the GUI.
-        description: Rich description displayed in the dialog.
-        doc_path: Optional documentation file path.
-        parameters: Declared block parameters.
-        inputs: Declared input port metadata.
-        outputs: Declared output port metadata.
     """
 
 
     # ----------- Mandatory class attributes (must be overridden) -----------
+    #: User-facing block name.
     name: str
+    #: GUI block category.
     category: str
+    #: Stable block type identifier.
     type: str
+    #: Short summary displayed in the GUI.
     summary: str
+    #: Rich description displayed in the dialog.
     description: str
 
     # ----------- Optional declarations -----------
+    #: Optional documentation file path, relative to the project directory.
     doc_path: Path | None = None
+    #: Declared block parameters.
     parameters: Sequence[ParameterMeta] = ()
+    #: Declared input port metadata.
     inputs: Sequence[PortMeta] = ()
+    #: Declared output port metadata.
     outputs: Sequence[PortMeta] = ()
 
     # --------------------------------------------------------------------------

@@ -47,8 +47,6 @@ class ProjectController(QObject):
     updates.
 
     Attributes:
-        dirty_changed: Signal emitted with the new dirty flag value whenever
-            the unsaved-changes state changes.
         project_state: Shared mutable state of the open project.
         view: The diagram canvas widget.
         resolve_block_meta: Callable returning :class:`BlockMeta` for a given
@@ -56,6 +54,7 @@ class ProjectController(QObject):
         is_dirty: True if there are unsaved changes.
     """
 
+    #: Signal emitted with the new dirty flag value whenever the unsaved-changes state changes.
     dirty_changed: Signal = Signal(bool)
 
     def __init__(
