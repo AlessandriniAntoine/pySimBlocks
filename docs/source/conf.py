@@ -45,6 +45,7 @@ copyright = "2026, Universite de Lille & INRIA"
 release = "0.1.1"
 
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -53,6 +54,14 @@ extensions = [
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+myst_enable_extensions = [
+    "dollarmath",
+    "colon_fence",
+]
 
 autosummary_generate = True
 autosummary_imported_members = False
@@ -66,6 +75,9 @@ autodoc_default_options = {
 
 autodoc_member_order = "bysource"
 autodoc_mock_imports = []
+autodoc_type_aliases = {
+    "ArrayLike": "ArrayLike",
+}
 
 html_theme = "furo"
 html_title = "pySimBlocks Documentation"

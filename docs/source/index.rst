@@ -11,4 +11,5 @@ and can be integrated later without changing this API layout.
    :maxdepth: 2
    :caption: Contents
 
+   user_guide/index
    api/index
