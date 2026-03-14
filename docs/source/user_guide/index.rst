@@ -7,8 +7,9 @@ It currently starts with installation and a short quick start, then continues
 with a progressive tutorial path.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+   :includehidden:
 
    installation
    quick_start
-   tutorials
+   tutorials/index

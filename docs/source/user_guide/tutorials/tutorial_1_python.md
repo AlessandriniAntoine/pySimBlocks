@@ -20,7 +20,7 @@ We build a simple closed-loop control system composed of three elements:
 - A PI controller
 - A first-order discrete-time linear plant
 
-![Block diagram](../images/user_guide/tutorial_1-block_diagram.png)
+![Block diagram](../../images/user_guide/tutorial_1-block_diagram.png)
 
 The plant is a discrete-time first-order linear system defined by:
 
@@ -48,12 +48,21 @@ $$
 
 This integral action removes steady-state error for a step reference.
 
+## Example Files
+
+The full example lives in `examples/tutorials/tutorial_1_python/`.
+The main file is:
+
+- [`main.py`](../../../../examples/tutorials/tutorial_1_python/main.py)
+
+If you are reading the published documentation, you can download the example
+file directly:
+
+{download}`Download main.py <../../../../examples/tutorials/tutorial_1_python/main.py>`
+
 ## Complete Example
 
-The full example is available in
-[`examples/tutorials/tutorial_1_python/main.py`](../../../examples/tutorials/tutorial_1_python/main.py).
-
-```{literalinclude} ../../../examples/tutorials/tutorial_1_python/main.py
+```{literalinclude} ../../../../examples/tutorials/tutorial_1_python/main.py
 :language: python
 :caption: examples/tutorials/tutorial_1_python/main.py
 ```

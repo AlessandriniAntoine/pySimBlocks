@@ -19,3 +19,8 @@ div.related {
 div.related a {
   color: #ffffff;
 }
+
+.auto-nav.user-guide-page .caption,
+.auto-nav.user-guide-page > ul > li:first-child {
+  display: none;
+}

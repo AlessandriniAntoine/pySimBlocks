@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 import types
+import zipfile
+from pathlib import Path
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
@@ -85,7 +87,27 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
 
+def generate_tutorial_archives(app):
+    source_dir = Path(__file__).resolve().parent
+    tutorials_root = Path(ROOT) / "examples" / "tutorials"
+    archive_dir = source_dir / "_static" / "downloads"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    tutorial_dir = tutorials_root / "tutorial_3_sofa"
+    archive_path = archive_dir / "tutorial_3_sofa.zip"
+
+    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for file_path in sorted(tutorial_dir.rglob("*")):
+            if not file_path.is_file():
+                continue
+            if "__pycache__" in file_path.parts or file_path.suffix == ".pyc":
+                continue
+            archive_name = Path("tutorial_3_sofa") / file_path.relative_to(tutorial_dir)
+            archive.write(file_path, archive_name.as_posix())
+
+
 def setup(app):
     from api_generator import generate_api
 
     app.connect("builder-inited", generate_api)
+    app.connect("builder-inited", generate_tutorial_archives)
