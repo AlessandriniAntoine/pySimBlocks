@@ -12,4 +12,5 @@ with a progressive tutorial path.
 
    installation
    quick_start
+   cli
    tutorials/index
