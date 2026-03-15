@@ -133,18 +133,6 @@ Then open the plot dialog to either:
 Under the hood, the GUI generates the same `Model` structure used in
 [Tutorial 1](./tutorial_1_python.md). The execution engine is the same.
 
-## Example Files
-
-The full example lives in `examples/tutorials/tutorial_2_gui/`.
-The main file is:
-
-- [`project.yaml`](../../../../examples/tutorials/tutorial_2_gui/project.yaml)
-
-If you are reading the published documentation, you can download the example
-file directly:
-
-{download}`Download project.yaml <../../../../examples/tutorials/tutorial_2_gui/project.yaml>`
-
 ## Save and Export Project Files
 
 ### Save the Project
@@ -171,6 +159,21 @@ the simulation from the command line:
 ```bash
 python run.py
 ```
+
+## Reference Project
+
+If you want to compare your result with a completed version, the full reference
+project lives in `examples/tutorials/tutorial_2_gui/`.
+The main file is:
+
+- [`project.yaml`](../../../../examples/tutorials/tutorial_2_gui/project.yaml)
+- [`run.py`](../../../../examples/tutorials/tutorial_2_gui/run.py)
+
+If you are reading the published documentation, you can download the completed
+project file directly:
+
+{download}`Download project.yaml <../../../../examples/tutorials/tutorial_2_gui/project.yaml>`
+{download}`Download run.py <../../../../examples/tutorials/tutorial_2_gui/run.py>`
 
 ## Comparison with the Python Version
 

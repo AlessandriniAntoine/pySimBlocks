@@ -12,6 +12,18 @@ This tutorial introduces the core concepts of `pySimBlocks`:
 By the end of this tutorial, you will be able to build and simulate your own
 block-based model in Python.
 
+## Example Files
+
+The full example lives in `examples/tutorials/tutorial_1_python/`.
+The main file is:
+
+- [`main.py`](../../../../examples/tutorials/tutorial_1_python/main.py)
+
+If you are reading the published documentation, you can download the example
+file directly:
+
+{download}`Download main.py <../../../../examples/tutorials/tutorial_1_python/main.py>`
+
 ## System Description
 
 We build a simple closed-loop control system composed of three elements:
@@ -47,18 +59,6 @@ x_i[k+1] = x_i[k] + K_i\, e[k]\, dt
 $$
 
 This integral action removes steady-state error for a step reference.
-
-## Example Files
-
-The full example lives in `examples/tutorials/tutorial_1_python/`.
-The main file is:
-
-- [`main.py`](../../../../examples/tutorials/tutorial_1_python/main.py)
-
-If you are reading the published documentation, you can download the example
-file directly:
-
-{download}`Download main.py <../../../../examples/tutorials/tutorial_1_python/main.py>`
 
 ## Complete Example
 

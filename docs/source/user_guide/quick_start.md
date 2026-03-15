@@ -21,8 +21,6 @@ The resulting plot should look like this:
 
 ![Noise filtered](../images/user_guide/quick_example.png)
 
-{download}`Download filter.py <../../../examples/quick_start/filter.py>`
-
 ## Graphical editor
 
 The same model can also be created visually with the graphical editor.
@@ -35,4 +33,9 @@ To open the graphical editor with the quick-start project:
 pysimblocks gui examples/quick_start/gui
 ```
 
-{download}`Download project.yaml <../../../examples/quick_start/gui/project.yaml>`
+## Downloads
+
+You can download the quick-start example files here:
+
+- {download}`filter.py <../../../examples/quick_start/filter.py>`
+- {download}`project.yaml <../../../examples/quick_start/gui/project.yaml>`

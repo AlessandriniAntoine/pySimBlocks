@@ -16,6 +16,21 @@ The objective is to:
 By the end of this tutorial, you will be able to connect a `pySimBlocks`
 control loop to a SOFA simulation.
 
+## Required Files
+
+The full example lives in `examples/tutorials/tutorial_3_sofa/`.
+The main files are:
+
+- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py): the SOFA scene file
+- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py): Completed SOFA controller
+- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml): Completed GUI project file.
+
+If you are reading the published documentation, you can download the complete
+working example as an archive. It includes the GUI project, the SOFA scene, the
+controller, and the additional files required by the scene:
+
+{download}`Download tutorial_3_sofa.zip <../../_static/downloads/tutorial_3_sofa.zip>`
+
 ## System Description
 
 We build the same closed-loop structure as in the previous tutorials:
@@ -30,20 +45,6 @@ The control input is the cable actuation, and the measured output is the
 vertical fingertip position.
 
 ![SOFA scene](../../images/user_guide/tutorial_3-sofa_scene.png)
-
-## Example Files
-
-The full example lives in `examples/tutorials/tutorial_3_sofa/`.
-The main files are:
-
-- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml)
-- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py)
-- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py)
-
-If you are reading the published documentation, you can download the complete
-example folder as an archive:
-
-{download}`Download tutorial_3_sofa.zip <../../_static/downloads/tutorial_3_sofa.zip>`
 
 ## Prerequisites
 
