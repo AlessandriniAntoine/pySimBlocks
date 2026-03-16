@@ -22,14 +22,15 @@ cd pySimBlocks
 pip install .
 ```
 
-## Documentation build
-
-To build the documentation locally from the `docs` directory:
+To also build the documentation locally:
 
 ```bash
 pip install pySimBlocks[docs]
+cd docs
 make html
 ```
+
+The HTML output will be in `docs/_build/html/`.
 
 ## Optional dependencies
 

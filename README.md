@@ -3,55 +3,31 @@
 [![PyPI version](https://img.shields.io/pypi/v/pySimBlocks.svg)](https://pypi.org/project/pySimBlocks/)
 [![Python](https://img.shields.io/pypi/pyversions/pySimBlocks.svg)](https://pypi.org/project/pySimBlocks/)
 [![License](https://img.shields.io/github/license/AlessandriniAntoine/pySimBlocks)](./LICENSE.md)
+[![Documentation](https://readthedocs.org/projects/pysimblocks/badge/?version=latest)](https://pysimblocks.readthedocs.io)
 
 ---
 
 A deterministic block-diagram simulation framework for discrete-time modeling, 
 co-simulation and research prototyping in Python.
 
-pySimBlocks allows you to build, configure, and execute discrete-time systems 
+pySimBlocks allows you to build, configure, and execute discrete-time systems
 using either:
 
 - A pure Python API
 - A graphical editor (PySide6)
-- YAML project configuration
+- YAML project configuration with exportable Python runner (`run.py`)
 - Optional SOFA and hardware integration
 
 ![pySimBlocks graphical editor](https://raw.githubusercontent.com/AlessandriniAntoine/pySimBlocks/main/docs/source/images/user_guide/gui_example.png)
 
-## Features
-
-- Block-based modeling (Simulink-like)
-- Deterministic discrete-time simulation engine
-- PySide6 graphical editor
-- YAML-based project serialization
-- Exportable Python runner (`run.py`)
-- Extensible block architecture
-
 ## Installation
 
-### From PyPI
-
-Install the latest stable version from PyPI using pip:
-```
+```bash
 pip install pySimBlocks
 ```
 
-### From GitHub
-
-Install directly from GitHub using pip:
-```
-pip install git+https://github.com/AlessandriniAntoine/pySimBlocks
-```
-
-### Locally
-
-Clone the repository and install locally:
-```
-git clone https://github.com/AlessandriniAntoine/pySimBlocks.git
-cd pySimBlocks
-pip install .
-```
+Full documentation — user guide, tutorials, and API reference — is available on
+[**Read the Docs**](https://pysimblocks.readthedocs.io).
 
 ## Getting Started
 
@@ -126,14 +102,14 @@ The quick-start GUI project is stored in a single
 
 #### Tutorials
 
-Three step-by-step tutorials are available detailed in the
-[guide](./docs/source/user_guide/tutorials.md):
+Three step-by-step tutorials are available in the
+[documentation](https://pysimblocks.readthedocs.io/en/latest/user_guide/tutorials/index.html):
 
   | | Tutorial | Description |
   |---|---|---|
-  | 1 | [Python API](./docs/source/user_guide/tutorials/tutorial_1_python.md) | Build a closed-loop PI control system in pure Python |
-  | 2 | [GUI](./docs/source/user_guide/tutorials/tutorial_2_gui.md) | Build the same system visually with the graphical editor |
-  | 3 | [SOFA](./docs/source/user_guide/tutorials/tutorial_3_sofa.md) | Replace the plant with a SOFA physics simulation |
+  | 1 | [Python API](https://pysimblocks.readthedocs.io/en/latest/user_guide/tutorials/tutorial_1_python.html) | Build a closed-loop PI control system in pure Python |
+  | 2 | [GUI](https://pysimblocks.readthedocs.io/en/latest/user_guide/tutorials/tutorial_2_gui.html) | Build the same system visually with the graphical editor |
+  | 3 | [SOFA](https://pysimblocks.readthedocs.io/en/latest/user_guide/tutorials/tutorial_3_sofa.html) | Replace the plant with a SOFA physics simulation |
 
 
 #### Other Examples
