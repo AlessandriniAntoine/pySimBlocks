@@ -1,5 +1,9 @@
 .temp/
 
+# CLAUDE
+.claudeignore
+CLAUDE.md
+
 # docs 
 docs/_build/
 docs/source/api/
