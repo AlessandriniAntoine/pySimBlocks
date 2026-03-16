@@ -14,7 +14,7 @@ workflows. You can build models directly in Python or assemble them visually in
 the graphical editor, then run the same discrete-time simulation engine in both
 cases.
 
-.. image:: images/user_guide/gui_example.png
+.. image:: images/user_guide/tutorial_2-setting.gif
    :alt: pySimBlocks graphical editor
    :align: center
    :width: 85%
