@@ -147,7 +147,6 @@ def _module_page(module: str) -> str:
     content = _title(title)
     content += f".. automodule:: {module}\n"
     content += "   :members:\n"
-    content += "   :undoc-members:\n"
     content += "   :show-inheritance:\n"
     content += "   :member-order: bysource\n"
     content += "\n"
