@@ -26,8 +26,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class PIDMeta(BlockMeta):
+    """Describe the GUI metadata of the discrete PID controller block."""
 
     def __init__(self):
+        """Initialize PID block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "PID"
         self.category = "controllers"
         self.type = "pid"
@@ -104,7 +113,20 @@ class PIDMeta(BlockMeta):
             )
         ]
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def is_parameter_active(self, param_name: str, instance_params: Dict[str, Any]) -> bool:
+        """Return whether a PID parameter is active for the selected controller mode.
+
+        Args:
+            param_name: Parameter name to test.
+            instance_params: Current instance parameter values.
+
+        Returns:
+            True if the parameter should be shown.
+        """
 
         if param_name == "Kp":
             return instance_params["controller"] in ["P", "PI", "PD", "PID"]

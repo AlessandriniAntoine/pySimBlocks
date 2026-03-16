@@ -37,7 +37,23 @@ from pySimBlocks.project.plot_from_config import plot_from_config
 
 
 class PlotDialog(QDialog):
+    """Preview logged signals and launch configured plot windows.
+
+    Attributes:
+        project_state: Project state providing logs and plot definitions.
+        selected_signals: Signals currently selected for preview.
+    """
+
     def __init__(self, project_state: ProjectState, parent=None):
+        """Initialize the plot dialog.
+
+        Args:
+            project_state: Project state providing logs and plot definitions.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
         self.setWindowTitle("Plot signals")
         self.resize(900, 500)
@@ -48,10 +64,11 @@ class PlotDialog(QDialog):
         self._build_ui()
         self._populate_signals()
 
-    # ------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
     def _build_ui(self):
+        """Build the plot dialog user interface."""
         main_layout = QHBoxLayout(self)
 
         # ---------- Left panel ----------
@@ -78,10 +95,8 @@ class PlotDialog(QDialog):
 
         main_layout.addWidget(self.canvas, 1)
 
-    # ------------------------------------------------------------
-    # Populate signals
-    # ------------------------------------------------------------
     def _populate_signals(self):
+        """Populate the signal list from the available logged signals."""
         self.signal_list.clear()
 
         for sig in sorted(self.project_state.logs.keys()):
@@ -93,10 +108,8 @@ class PlotDialog(QDialog):
             item.setCheckState(Qt.Unchecked)
             self.signal_list.addItem(item)
 
-    # ------------------------------------------------------------
-    # Interactive plot
-    # ------------------------------------------------------------
     def _on_signal_toggled(self, item: QListWidgetItem):
+        """Update the selected signal set when a checkbox changes."""
         sig = item.text()
 
         if item.checkState() == Qt.Checked:
@@ -108,14 +121,17 @@ class PlotDialog(QDialog):
 
 
     def _stack_logged_signal_2d(self, sig: str) -> np.ndarray:
-        """
-        Stack a logged signal over time, preserving its 2D shape.
+        """Stack a logged signal over time while preserving its 2D shape.
+
+        Args:
+            sig: Signal name to stack from the logs.
 
         Returns:
-            data: np.ndarray of shape (T, m, n)
+            Array of shape ``(T, m, n)`` containing the stacked samples.
 
         Raises:
-            ValueError if samples are not 2D arrays of consistent shape.
+            ValueError: If the signal is missing, contains ``None``, or its
+                samples are not consistent 2D arrays.
         """
         samples = self.project_state.logs.get(sig, None)
         if not isinstance(samples, list) or len(samples) == 0:
@@ -155,6 +171,7 @@ class PlotDialog(QDialog):
 
 
     def _update_preview_plot(self):
+        """Redraw the embedded preview plot from the selected signals."""
         self.figure.clear()
         ax = self.figure.add_subplot(111)
 
@@ -210,10 +227,8 @@ class PlotDialog(QDialog):
 
         self.canvas.draw()
 
-    # ------------------------------------------------------------
-    # Plot defined plots (matplotlib windows)
-    # ------------------------------------------------------------
     def _plot_defined_plots(self):
+        """Open standalone matplotlib windows for the configured plots."""
         if not self.project_state.plots:
             QMessageBox.information(
                 self,

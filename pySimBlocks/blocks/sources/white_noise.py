@@ -18,45 +18,29 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
 class WhiteNoise(BlockSource):
-    """
-    Multi-dimensional Gaussian white noise source block (Option B).
+    """Multi-dimensional Gaussian white noise source block.
 
-    Summary:
-        Generates independent Gaussian noise samples at each simulation step,
-        element-wise on a 2D output array:
-            y = mean + std * N(0,1)
+    Generates independent Gaussian noise samples at each simulation step,
+    element-wise on a 2D output array: 
 
-        Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
-        broadcasting is allowed; all non-scalar parameters must share the same
-        shape.
+        y = mean + std * N(0,1).
 
-    Parameters (overview):
-        mean : float or array-like, optional
-            Mean value of the noise.
-        std : float or array-like, optional
-            Standard deviation of the noise (must be >= 0 element-wise).
-        seed : int, optional
-            Random seed for reproducibility.
-        sample_time : float, optional
-            Block execution period.
+    Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
+    broadcasting is allowed; all non-scalar parameters must share the same
+    shape.
 
-    Outputs:
-        out : noise output signal (2D ndarray)
-
-    Notes:
-        - Stateless (but uses an internal RNG).
-        - Normalization:
-            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n)
-        - Broadcasting:
-            Only (1,1) scalars are broadcast to the common shape.
-            No NumPy broadcasting beyond that.
-        - No implicit flattening is performed.
+    Attributes:
+        mean: Mean value of the noise, as a 2D array.
+        std: Standard deviation of the noise, as a 2D array.
+        rng: NumPy random generator instance used to draw samples.
     """
 
     def __init__(
@@ -67,6 +51,21 @@ class WhiteNoise(BlockSource):
         seed: int | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a WhiteNoise block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            mean: Mean value of the noise. Can be scalar, vector, or matrix.
+            std: Standard deviation of the noise. Can be scalar, vector,
+                or matrix. Must be >= 0 element-wise.
+            seed: Random seed for reproducibility. None for a random seed.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If std is negative for any element, or if non-scalar
+                parameters have incompatible shapes.
+        """
         super().__init__(name, sample_time)
 
         M = self._to_2d_array("mean", mean, dtype=float)
@@ -80,7 +79,6 @@ class WhiteNoise(BlockSource):
         self.mean = self._broadcast_scalar_only("mean", M, target_shape)
         self.std = self._broadcast_scalar_only("std", S, target_shape)
 
-        # Validate std >= 0 element-wise
         if np.any(self.std < 0.0):
             raise ValueError(f"[{self.name}] std must be >= 0 (element-wise).")
 
@@ -92,16 +90,29 @@ class WhiteNoise(BlockSource):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Draw an initial noise sample and set the output.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.outputs["out"] = self._draw()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Draw a new noise sample and write it to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         self.outputs["out"] = self._draw()
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _draw(self) -> np.ndarray:
+        """Sample a Gaussian noise array with the configured mean and std."""
         return self.mean + self.std * self.rng.standard_normal(self.mean.shape)

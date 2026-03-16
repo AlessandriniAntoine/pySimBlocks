@@ -28,13 +28,42 @@ from pySimBlocks.gui.services.yaml_tools import load_yaml_file
 
 
 class ProjectLoader(ABC):
+    """Define the interface for project loading services."""
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     @abstractmethod
     def load(self, controller: ProjectController, directory: Path):
+        """Load a project into the given controller.
+
+        Args:
+            controller: Controller that receives the loaded project state.
+            directory: Project directory containing project data.
+        """
         pass
 
 
 class ProjectLoaderYaml(ProjectLoader):
+    """Load projects from the YAML project format."""
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def load(self, controller: ProjectController, directory: Path):
+        """Load a YAML project into the given controller.
+
+        Args:
+            controller: Controller that receives the loaded project state.
+            directory: Project directory containing ``project.yaml``.
+
+        Raises:
+            ValueError: If the project file structure is invalid.
+        """
         project_yaml = directory / "project.yaml"
         project_data = load_yaml_file(str(project_yaml))
 
@@ -59,7 +88,13 @@ class ProjectLoaderYaml(ProjectLoader):
 
         controller.clear_dirty()
 
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _load_simulation(self, controller: ProjectController, sim_data: dict):
+        """Load simulation settings into the controller project state."""
         if not isinstance(sim_data, dict):
             sim_data = {}
         controller.project_state.load_simulation(
@@ -72,6 +107,7 @@ class ProjectLoaderYaml(ProjectLoader):
         diagram_data: dict,
         layout_blocks: dict | None = None,
     ):
+        """Create block instances and restore their layout metadata."""
         positions, position_warnings = self._compute_block_positions(
             diagram_data, layout_blocks
         )
@@ -116,6 +152,7 @@ class ProjectLoaderYaml(ProjectLoader):
             controller.view.refresh_block_port(block)
 
     def _sanitize_block_layout(self, block_layout: dict | None) -> dict:
+        """Filter a raw block layout mapping down to supported properties."""
         if not isinstance(block_layout, dict):
             return {}
 
@@ -141,6 +178,7 @@ class ProjectLoaderYaml(ProjectLoader):
         diagram_data: dict,
         layout_conns: dict | None,
     ):
+        """Create connections and restore any manual routing data."""
         connections = diagram_data.get("connections", [])
         if not isinstance(connections, list):
             raise ValueError("'diagram.connections' must be a list.")
@@ -195,19 +233,17 @@ class ProjectLoaderYaml(ProjectLoader):
             controller.add_connection(src_port, dst_port, points)
 
     def _load_logging(self, controller: ProjectController, sim_data: dict):
+        """Load the configured logging signal list."""
         log_data = sim_data.get("logging", [])
         controller.project_state.logging = log_data if isinstance(log_data, list) else []
 
     def _load_plots(self, controller: ProjectController, sim_data: dict):
+        """Load the configured plot definitions."""
         plot_data = sim_data.get("plots", [])
         controller.project_state.plots = plot_data if isinstance(plot_data, list) else []
 
     def _load_layout_data(self, gui_data: dict) -> tuple[dict, dict, list[str]]:
-        """
-        Load layout data from:
-            gui.layout.blocks
-            gui.layout.connections
-        """
+        """Extract block and connection layout data from GUI configuration."""
         warnings = []
 
         if not isinstance(gui_data, dict):
@@ -237,6 +273,7 @@ class ProjectLoaderYaml(ProjectLoader):
         diagram_data: dict,
         layout_blocks: dict | None,
     ) -> tuple[dict[str, QPointF], list[str]]:
+        """Compute block positions from saved layout or fallback auto-placement."""
         warnings = []
         positions = {}
 
@@ -296,6 +333,7 @@ class ProjectLoaderYaml(ProjectLoader):
         diagram_data: dict,
         layout_connections: dict | None,
     ) -> tuple[dict[str, list[QPointF]], list[str]]:
+        """Parse manual connection routes from saved layout data."""
         warnings = []
         routes: dict[str, list[QPointF]] = {}
 

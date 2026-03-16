@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class ChirpMeta(BlockMeta):
+    """Describe the GUI metadata of the chirp source block."""
 
     def __init__(self):
+        """Initialize chirp-source block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Chirp"
         self.category = "sources"
         self.type = "chirp"

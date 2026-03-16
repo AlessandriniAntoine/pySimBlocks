@@ -1,5 +1,13 @@
 .temp/
 
+# CLAUDE
+.claudeignore
+CLAUDE.md
+
+# docs 
+docs/_build/
+docs/source/api/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

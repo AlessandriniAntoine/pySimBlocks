@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,41 +27,31 @@ from pySimBlocks.core.block import Block
 
 
 class Mux(Block):
-    """
-    Vertical signal concatenation block.
+    """Vertical signal concatenation block.
 
-    Summary:
-        Concatenates multiple scalar or column-vector inputs vertically into a
-        single column vector.
+    Concatenates multiple scalar or column-vector inputs vertically into a
+    single output column vector. Each input must be a scalar, a 1D array, or
+    a column vector (n,1). Any 2D non-column input (k,m) with m != 1 is
+    rejected.
 
-    Parameters:
-        num_inputs : int
-            Number of input ports to concatenate.
-        sample_time : float, optional
-            Block execution period.
-
-    Inputs:
-        in1, in2, ..., inN : array
-            Each input must be either:
-              - scalar (will be converted to (1,1))
-              - 1D array (k,) (will be converted to (k,1))
-              - column vector (k,1)
-
-            Any 2D non-column input (k,n) with n != 1 is rejected.
-
-    Outputs:
-        out : array (sum_k, 1)
-            Concatenated column vector.
-
-    Notes:
-        - Stateless.
-        - Direct feedthrough.
-        - This block intentionally enforces vector signals (Simulink-like Mux).
+    Attributes:
+        num_inputs: Number of input ports to concatenate.
     """
 
     direct_feedthrough = True
 
     def __init__(self, name: str, num_inputs: int = 2, sample_time: float | None = None):
+        """Initialize a Mux block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            num_inputs: Number of input ports to concatenate. Must be >= 1.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            ValueError: If ``num_inputs`` is not a positive integer.
+        """
         super().__init__(name, sample_time)
 
         if not isinstance(num_inputs, int) or num_inputs < 1:
@@ -75,8 +67,13 @@ class Mux(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
-        # If not all inputs available, defer
+        """Compute the initial output if all inputs are available.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
                 self.outputs["out"] = None
@@ -84,19 +81,35 @@ class Mux(Block):
 
         self.outputs["out"] = self._compute_output()
 
-    # ---------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Concatenate all inputs vertically and write the result to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If any input port is not connected.
+            ValueError: If any input is not a scalar, 1D, or column vector.
+        """
         self.outputs["out"] = self._compute_output()
 
-    # ---------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        return  # stateless
+        """No-op: Mux is a stateless block.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
+        return
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_column_vector(self, input_name: str, value: ArrayLike) -> np.ndarray:
+        """Convert a scalar, 1D array, or column vector to a (n,1) array."""
         arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:
@@ -116,8 +129,8 @@ class Mux(Block):
             f"Got ndim={arr.ndim} with shape {arr.shape}."
         )
 
-    # ---------------------------------------------------------
     def _compute_output(self) -> np.ndarray:
+        """Collect and concatenate all input column vectors."""
         vectors = []
 
         for i in range(self.num_inputs):

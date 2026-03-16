@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class LuenbergerMeta(BlockMeta):
+    """Describe the GUI metadata of the Luenberger observer block."""
 
     def __init__(self):
+        """Initialize Luenberger-observer block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Luenberger"
         self.category = "observers"
         self.type = "luenberger"

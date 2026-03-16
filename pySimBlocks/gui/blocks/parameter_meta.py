@@ -25,10 +25,25 @@ from typing import Any, List, Optional
 
 @dataclass(frozen=True)
 class ParameterMeta:
+    """Describe one configurable parameter of a GUI block."""
+    
+    #: Parameter name.
     name: str
+    
+    #: User-facing parameter type description.
     type: str
+    
+    #: Whether the parameter must be provided.
     required: bool = False
+    
+    #: Whether a default value should be inserted automatically.
     autofill: bool = False
+    
+    #: Default parameter value.
     default: Optional[Any] = None
+     
+    #: Allowed values for enum-like parameters.
     enum: List[Any] = field(default_factory=list)
+    
+    #: Optional help text displayed in the GUI.
     description: str = ""

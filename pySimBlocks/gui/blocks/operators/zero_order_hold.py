@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class ZeroOrderHoldMeta(BlockMeta):
+    """Describe the GUI metadata of the zero-order-hold block."""
 
     def __init__(self):
+        """Initialize zero-order-hold block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "ZeroOrderHold"
         self.category = "operators"
         self.type = "zero_order_hold"

@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class GainMeta(BlockMeta):
+    """Describe the GUI metadata of the gain block."""
 
     def __init__(self):
+        """Initialize gain block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Gain"
         self.category = "operators"
         self.type = "gain"

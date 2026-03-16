@@ -18,18 +18,29 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
 class Chirp(BlockSource):
-    """
-    Multi-dimensional chirp signal source (linear or logarithmic).
+    """Multi-dimensional chirp signal source (linear or logarithmic).
 
-    mode:
-        "linear"      -> linear frequency sweep
-        "log"         -> logarithmic (exponential) sweep
+    Generates a sinusoidal signal whose frequency sweeps from f0 to f1
+    over a given duration, then continues at f1. The sweep can be linear
+    or logarithmic (exponential).
+
+    Attributes:
+        amplitude: Amplitude of the chirp signal, as a 2D array.
+        f0: Starting frequency in Hz, as a 2D array.
+        f1: Ending frequency in Hz, as a 2D array.
+        duration: Sweep duration in seconds, as a 2D array.
+        start_time: Time at which the chirp starts, as a 2D array.
+        offset: DC offset added to the output, as a 2D array.
+        phase: Initial phase in radians, as a 2D array.
+        mode: Frequency sweep mode, either ``"linear"`` or ``"log"``.
     """
 
     VALID_MODES = {"linear", "log"}
@@ -47,6 +58,27 @@ class Chirp(BlockSource):
         mode: str = "linear",
         sample_time: float | None = None,
     ):
+        """Initialize a Chirp block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            amplitude: Amplitude of the chirp. Can be scalar, vector, or matrix.
+            f0: Starting frequency in Hz. Can be scalar, vector, or matrix.
+            f1: Ending frequency in Hz. Can be scalar, vector, or matrix.
+            duration: Sweep duration in seconds. Can be scalar, vector, or matrix.
+            start_time: Time at which the chirp starts in seconds. Can be
+                scalar, vector, or matrix.
+            offset: DC offset added to the output. Can be scalar, vector, or matrix.
+            phase: Initial phase in radians. Can be scalar, vector, or matrix.
+            mode: Frequency sweep mode. Must be ``"linear"`` or ``"log"``.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If mode is not valid, duration is not strictly positive,
+                or (in log mode) f0 or f1 are not strictly positive or are equal.
+            ValueError: If non-scalar parameters have incompatible shapes.
+        """
         super().__init__(name, sample_time)
 
         if mode not in self.VALID_MODES:
@@ -97,37 +129,55 @@ class Chirp(BlockSource):
 
         self.outputs["out"] = np.zeros(target_shape, dtype=float)
 
-    # ------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Public methods
+    # --------------------------------------------------------------------------
 
     def initialize(self, t0: float) -> None:
+        """Compute and set the output at the initial time t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self._compute_output(t0)
 
-    # ------------------------------------------------------------------
-
     def output_update(self, t: float, dt: float) -> None:
+        """Compute and write the chirp value to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         self._compute_output(t)
 
-    # ------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Private methods
+    # --------------------------------------------------------------------------
 
     def _compute_output(self, t: float) -> None:
-
+        """Evaluate the chirp formula at time t and write to outputs."""
         tau = np.maximum(0.0, t - self.start_time)
         tau_clip = np.minimum(tau, self.duration)
 
         if self.mode == "linear":
             phi = self._linear_phase(tau, tau_clip)
-
         else:  # log
             phi = self._log_phase(tau, tau_clip)
 
-        self.outputs["out"] = (
-            self.amplitude * np.sin(phi) + self.offset
-        )
+        self.outputs["out"] = self.amplitude * np.sin(phi) + self.offset
 
-    # ------------------------------------------------------------------
+    def _linear_phase(self, tau: np.ndarray, tau_clip: np.ndarray) -> np.ndarray:
+        """Compute the instantaneous phase for a linear frequency sweep.
 
-    def _linear_phase(self, tau, tau_clip):
+        Args:
+            tau: Elapsed time since start_time, clipped to zero, as a 2D array.
+            tau_clip: tau clipped to duration, as a 2D array.
 
+        Returns:
+            Instantaneous phase in radians as a 2D array.
+        """
         k = (self.f1 - self.f0) / self.duration
 
         phi_sweep = (
@@ -143,10 +193,16 @@ class Chirp(BlockSource):
 
         return phi_sweep + extra + self.phase
 
-    # ------------------------------------------------------------------
+    def _log_phase(self, tau: np.ndarray, tau_clip: np.ndarray) -> np.ndarray:
+        """Compute the instantaneous phase for a logarithmic frequency sweep.
 
-    def _log_phase(self, tau, tau_clip):
+        Args:
+            tau: Elapsed time since start_time, clipped to zero, as a 2D array.
+            tau_clip: tau clipped to duration, as a 2D array.
 
+        Returns:
+            Instantaneous phase in radians as a 2D array.
+        """
         ratio = self.f1 / self.f0
         log_ratio = np.log(ratio)
 
@@ -155,9 +211,6 @@ class Chirp(BlockSource):
         phi_sweep = coeff * (
             np.power(ratio, tau_clip / self.duration) - 1.0
         )
-
-        # phase continuity after duration
-        phi_end = coeff * (ratio - 1.0)
 
         extra = (
             2.0 * np.pi *

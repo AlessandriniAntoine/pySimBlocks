@@ -27,8 +27,17 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class DemuxMeta(BlockMeta):
+    """Describe the GUI metadata of the demux block."""
 
     def __init__(self):
+        """Initialize demux block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Demux"
         self.category = "operators"
         self.type = "demux"
@@ -74,12 +83,26 @@ class DemuxMeta(BlockMeta):
             )
         ]
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def resolve_port_group(
         self,
         port_meta: PortMeta,
         direction: Literal["input", "output"],
         instance: "BlockInstance"
     ) -> list["PortInstance"]:
+        """Resolve demux output ports from the configured output count.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         if direction == "output" and port_meta.name == "out":
             num_outputs = instance.parameters.get("num_outputs", 0)

@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import importlib
 from pathlib import Path
 from typing import Dict, Any
@@ -25,30 +27,33 @@ import yaml
 
 from pySimBlocks.core.model import Model
 
-# ============================================================
-# Public API
-# ============================================================
-
 
 def build_model_from_dict(
     model: Model,
     model_data: Dict[str, Any],
     params_dir: Path | None = None,
 ) -> None:
-    """
-    Build a Model instance from an already loaded model dictionary.
-    """
+    """Build a Model instance from an already-loaded model dictionary.
 
-    # ------------------------------------------------------------
-    # Load block registry
-    # ------------------------------------------------------------
+    Reads the block registry index, instantiates each block described in
+    ``model_data``, and wires up the connections.
+
+    Args:
+        model: The :class:`Model` instance to populate with blocks and
+            connections.
+        model_data: Model dictionary with ``'blocks'`` and ``'connections'``
+            sections, as produced by :func:`load_project_config`.
+        params_dir: Directory used to resolve relative file paths in block
+            parameters (e.g. scene files, function files). Passed to each
+            block's ``adapt_params`` classmethod.
+
+    Raises:
+        ValueError: If a block type or category is not found in the registry.
+    """
     index_path = Path(__file__).parent / "pySimBlocks_blocks_index.yaml"
     with index_path.open("r") as f:
         blocks_index = yaml.safe_load(f) or {}
 
-    # ------------------------------------------------------------
-    # Instantiate blocks
-    # ------------------------------------------------------------
     for desc in model_data.get("blocks", []):
         name = desc["name"]
         category = desc["category"]
@@ -65,27 +70,15 @@ def build_model_from_dict(
                 f"Unknown block '{block_type}' in category '{category}'."
             )
 
-        # --------------------------------------------------------
-        # Load Python block class
-        # --------------------------------------------------------
         module = importlib.import_module(block_info["module"])
         BlockClass = getattr(module, block_info["class"])
 
-        # --------------------------------------------------------
-        # Load parameters
-        # --------------------------------------------------------
         params = desc.get("parameters", {})
 
-        # --------------------------------------------------------
-        # Instantiate block
-        # --------------------------------------------------------
         params = BlockClass.adapt_params(params, params_dir=params_dir)
         block = BlockClass(name=name, **params)
         model.add_block(block)
 
-    # ------------------------------------------------------------
-    # Connections
-    # ------------------------------------------------------------
     for src, dst in model_data.get("connections", []):
         src_block, src_port = src.split(".")
         dst_block, dst_port = dst.split(".")

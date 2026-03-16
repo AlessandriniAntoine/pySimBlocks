@@ -27,12 +27,38 @@ from pySimBlocks.gui.models.connection_instance import ConnectionInstance
 
 
 class OrthogonalRoute:
+    """Store routed connection points and the segment being dragged.
+
+    Attributes:
+        points: Ordered route points in scene coordinates.
+        dragged_index: Index of the segment currently being dragged.
+    """
+
     def __init__(self, points: list[QPointF]):
+        """Initialize a routed polyline.
+
+        Args:
+            points: Ordered route points in scene coordinates.
+
+        Raises:
+            None.
+        """
         self.points = points
         self.dragged_index: int | None = None
 
 
 class ConnectionItem(QGraphicsPathItem):
+    """Render and interact with a connection between two ports.
+
+    Attributes:
+        src_port: Source port item of the connection.
+        dst_port: Destination port item of the connection.
+        instance: Connection model represented by this item.
+        is_temporary: Whether the connection is currently incomplete.
+        is_manual: Whether the route was manually adjusted.
+        route: Current orthogonal route definition.
+    """
+
     OFFSET = 8
     MARGIN = 12
     DETOUR = 8
@@ -44,6 +70,17 @@ class ConnectionItem(QGraphicsPathItem):
                  dst_port: PortItem | None,
                  instance: ConnectionInstance,
                  points: list[QPointF] | None = None):
+        """Initialize a connection item.
+
+        Args:
+            src_port: Source port item, if already known.
+            dst_port: Destination port item, if already known.
+            instance: Connection model represented by this item.
+            points: Optional persisted route points.
+
+        Raises:
+            ValueError: If both ports are missing.
+        """
         super().__init__()
 
         if src_port is None and dst_port is None:
@@ -78,9 +115,10 @@ class ConnectionItem(QGraphicsPathItem):
         self.update_position()
 
     # --------------------------------------------------------------------------
-    #  Position methods
+    # Public Methods
     # --------------------------------------------------------------------------
     def update_position(self):
+        """Recompute the displayed route from the current port positions."""
         if self.is_temporary:
             return
 
@@ -96,31 +134,125 @@ class ConnectionItem(QGraphicsPathItem):
         self.route = OrthogonalRoute(pts)
         self._apply_route(self.route.points)
 
-    # ------------------------------------------------------------------
     def update_temp_position(self, scene_pos: QPointF):
+        """Update the temporary route endpoint while dragging.
+
+        Args:
+            scene_pos: Current mouse position in scene coordinates.
+        """
         p1 = self._valid_port.connection_anchor()
         pts = [p1, scene_pos]
         self._apply_route(pts)
 
-    # --------------------------------------------------------------------------
-    # Routing methods
-    # --------------------------------------------------------------------------
     def apply_manual_route(self, points: list[QPointF]):
+        """Apply a persisted manual route to the connection.
+
+        Args:
+            points: Route points in scene coordinates.
+        """
         self.route = OrthogonalRoute(points)
         self.is_manual = True
         self._apply_route(self.route.points)
 
-    # ------------------------------------------------------------------
     def invalidate_manual_route(self):
-        """
-        Called when a connected block moves: manual routing is discarded and
-        next update_position() will fully recompute the orthogonal route.
-        """
+        """Discard any manual route so the next update recomputes it."""
         self.is_manual = False
         self.route = None
 
-    # ------------------------------------------------------------------
+    def segment_at(self, scene_pos: QPointF) -> int | None:
+        """Return the route segment index located near the given scene point.
+
+        Args:
+            scene_pos: Scene position to test.
+
+        Returns:
+            Index of the matching segment, or None if none is close enough.
+        """
+        if not self.route:
+            return None
+
+        pts = self.route.points
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+
+            if a.x() == b.x():  # vertical
+                if abs(scene_pos.x() - a.x()) < self.PICK_TOL \
+                   and min(a.y(), b.y()) <= scene_pos.y() <= max(a.y(), b.y()):
+                    return i
+
+            if a.y() == b.y():  # horizontal
+                if abs(scene_pos.y() - a.y()) < self.PICK_TOL \
+                   and min(a.x(), b.x()) <= scene_pos.x() <= max(a.x(), b.x()):
+                    return i
+        return None
+
+    def shape(self):
+        """Return an enlarged hit shape so connections are easier to select.
+
+        Returns:
+            Stroke path used for hit testing.
+        """
+        stroker = QPainterPathStroker()
+        stroker.setWidth(6)
+        return stroker.createStroke(self.path())
+
+    def mousePressEvent(self, event):
+        """Start manual segment dragging when pressing a routed segment.
+
+        Args:
+            event: Qt mouse-press event.
+        """
+        idx = self.segment_at(event.scenePos())
+        if idx is not None:
+            self.route.dragged_index = idx
+            self.is_manual = True
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Move the selected orthogonal segment during manual route editing.
+
+        Args:
+            event: Qt mouse-move event.
+        """
+        if not self.route or self.route.dragged_index is None:
+            return
+
+        i = self.route.dragged_index
+        a = self.route.points[i]
+        b = self.route.points[i + 1]
+        pos = event.scenePos()
+
+        if a.x() == b.x():  # vertical segment
+            x = self._snap(pos.x())
+            self.route.points[i]     = QPointF(x, a.y())
+            self.route.points[i + 1] = QPointF(x, b.y())
+
+        elif a.y() == b.y():  # horizontal segment
+            y = self._snap(pos.y())
+            self.route.points[i]     = QPointF(a.x(), y)
+            self.route.points[i + 1] = QPointF(b.x(), y)
+
+        self._apply_route(self.route.points)
+
+    def mouseReleaseEvent(self, event):
+        """Finish manual segment dragging.
+
+        Args:
+            event: Qt mouse-release event.
+        """
+        if self.route:
+            self.route.dragged_index = None
+        super().mouseReleaseEvent(event)
+
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _compute_auto_route(self, p1: QPointF, p2: QPointF) -> list[QPointF]:
+        """Compute an orthogonal route between two port anchors."""
         src_block = self.src_port.parent_block
         dst_block = self.dst_port.parent_block
 
@@ -174,93 +306,20 @@ class ConnectionItem(QGraphicsPathItem):
             p2_in, p2
         ]
 
-    # ------------------------------------------------------------------
     def _snap(self, v: float) -> float:
+        """Snap a scalar coordinate to the routing grid."""
         return round(v / self.GRID) * self.GRID
 
-    # --------------------------------------------------------------------------
-    # Path methods
-    # --------------------------------------------------------------------------
     def _apply_route(self, points: list[QPointF]):
+        """Apply a route by building and setting the corresponding path."""
         path = QPainterPath(points[0])
         for p in points[1:]:
             path.lineTo(p)
         self.setPath(path)
 
-    # ------------------------------------------------------------------
     def _path_from(self, pts: list[QPointF]) -> QPainterPath:
+        """Build a painter path from an ordered list of route points."""
         p = QPainterPath(pts[0])
         for pt in pts[1:]:
             p.lineTo(pt)
         return p
-
-    # --------------------------------------------------------------------------
-    # Interaction (segment dragging)
-    # --------------------------------------------------------------------------
-    def segment_at(self, scene_pos: QPointF) -> int | None:
-        if not self.route:
-            return None
-
-        pts = self.route.points
-        for i in range(len(pts) - 1):
-            a, b = pts[i], pts[i + 1]
-
-            if a.x() == b.x():  # vertical
-                if abs(scene_pos.x() - a.x()) < self.PICK_TOL \
-                   and min(a.y(), b.y()) <= scene_pos.y() <= max(a.y(), b.y()):
-                    return i
-
-            if a.y() == b.y():  # horizontal
-                if abs(scene_pos.y() - a.y()) < self.PICK_TOL \
-                   and min(a.x(), b.x()) <= scene_pos.x() <= max(a.x(), b.x()):
-                    return i
-        return None
-
-    # --------------------------------------------------------------
-    def shape(self):
-        """
-        Override the default shape to make it easier to click on the connection.
-        """
-        stroker = QPainterPathStroker()
-        stroker.setWidth(6)  # zone cliquable (px)
-        return stroker.createStroke(self.path())
-
-    # --------------------------------------------------------------------------
-    # Events methods
-    # --------------------------------------------------------------------------
-    def mousePressEvent(self, event):
-        idx = self.segment_at(event.scenePos())
-        if idx is not None:
-            self.route.dragged_index = idx
-            self.is_manual = True
-            event.accept()
-        else:
-            super().mousePressEvent(event)
-
-    # ------------------------------------------------------------------
-    def mouseMoveEvent(self, event):
-        if not self.route or self.route.dragged_index is None:
-            return
-
-        i = self.route.dragged_index
-        a = self.route.points[i]
-        b = self.route.points[i + 1]
-        pos = event.scenePos()
-
-        if a.x() == b.x():  # vertical segment
-            x = self._snap(pos.x())
-            self.route.points[i]     = QPointF(x, a.y())
-            self.route.points[i + 1] = QPointF(x, b.y())
-
-        elif a.y() == b.y():  # horizontal segment
-            y = self._snap(pos.y())
-            self.route.points[i]     = QPointF(a.x(), y)
-            self.route.points[i + 1] = QPointF(b.x(), y)
-
-        self._apply_route(self.route.points)
-
-    # ------------------------------------------------------------------
-    def mouseReleaseEvent(self, event):
-        if self.route:
-            self.route.dragged_index = None
-        super().mouseReleaseEvent(event)

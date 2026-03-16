@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -32,6 +34,7 @@ from pySimBlocks.project.load_simulation_config import (
 
 
 def _validate_schema_version(raw: Dict[str, Any]) -> None:
+    """Raise if ``schema_version`` is missing or not equal to 1."""
     schema_version = raw.get("schema_version", None)
     if schema_version != 1:
         raise ValueError(
@@ -41,6 +44,7 @@ def _validate_schema_version(raw: Dict[str, Any]) -> None:
 
 
 def _load_scope(raw: Dict[str, Any], project_yaml: Path) -> Tuple[Any, Dict[str, Any]]:
+    """Load the external parameters module and return (module, scope dict)."""
     simulation = raw.get("simulation", {})
     if not isinstance(simulation, dict):
         raise ValueError("'simulation' section must be a mapping")
@@ -61,6 +65,7 @@ def _load_scope(raw: Dict[str, Any], project_yaml: Path) -> Tuple[Any, Dict[str,
 
 
 def _build_plot_config(sim_data: Dict[str, Any]) -> PlotConfig | None:
+    """Build and validate a :class:`PlotConfig` from the simulation section, or return None."""
     plots_data = sim_data.get("plots", None)
     if plots_data is None:
         return None
@@ -77,6 +82,7 @@ def _adapt_diagram_to_model_dict(
     diagram_data: Dict[str, Any],
     scope: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """Convert a diagram section dict into the model dict format expected by build_model."""
     blocks = diagram_data.get("blocks", [])
     if not isinstance(blocks, list):
         raise ValueError("'diagram.blocks' section must be a list")
@@ -142,11 +148,30 @@ def _adapt_diagram_to_model_dict(
 def load_project_config(
     project_yaml: str | Path,
 ) -> Tuple[SimulationConfig, Dict[str, Any], PlotConfig | None, str, Path]:
-    """
-    Load a full pySimBlocks unified project.yaml configuration.
+    """Load a full pySimBlocks unified project.yaml configuration.
+
+    Parses and validates all sections of the project file, evaluates parameter
+    expressions against the optional external parameters module, and returns
+    all configuration objects needed to build and run the simulation.
+
+    Args:
+        project_yaml: Path to the unified ``project.yaml`` file.
 
     Returns:
-        (SimulationConfig, model_dict, PlotConfig | None, project_name, params_dir)
+        A tuple ``(sim_cfg, model_dict, plot_cfg, project_name, params_dir)``
+        where:
+
+        - ``sim_cfg``: validated :class:`SimulationConfig`.
+        - ``model_dict``: model dict with ``'blocks'`` and ``'connections'``
+          sections ready to pass to :func:`build_model_from_dict`.
+        - ``plot_cfg``: :class:`PlotConfig` or None if no plots are defined.
+        - ``project_name``: project name string from ``project.name``.
+        - ``params_dir``: resolved directory of the project file.
+
+    Raises:
+        FileNotFoundError: If the project file does not exist.
+        ValueError: If the file is malformed, the schema version is wrong, or
+            required fields are missing.
     """
     project_yaml = Path(project_yaml)
     raw = _load_yaml(project_yaml)

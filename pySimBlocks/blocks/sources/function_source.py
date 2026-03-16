@@ -29,18 +29,19 @@ from pySimBlocks.core.block_source import BlockSource
 
 
 class FunctionSource(BlockSource):
-    """
-    User-defined source block with no inputs.
+    """User-defined source block driven by a callable.
 
-    Summary:
-        Computes:
-            y = f(t, dt)
+    Computes outputs at each step by calling a user-provided function:
 
-    Notes:
-        - The function must accept exactly (t, dt).
-        - Function must return a dict with keys matching output_keys.
-        - Each output value can be scalar, 1D, or 2D (internally normalized to 2D).
-        - Output shape is frozen independently for each output key.
+        y = f(t, dt)
+
+    The function must accept exactly ``(t, dt)`` as positional arguments
+    and return a ``dict`` mapping each key in ``output_keys`` to a scalar,
+    1D, or 2D array-like value. Output shapes are frozen after the first
+    call and must remain constant throughout the simulation.
+
+    Attributes:
+        output_keys: List of output port names produced by the function.
     """
 
     def __init__(
@@ -50,6 +51,20 @@ class FunctionSource(BlockSource):
         output_keys: List[str] | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a FunctionSource block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            function: Callable with signature ``f(t, dt) -> dict``. Must
+                return a dict whose keys match ``output_keys``.
+            output_keys: List of output port names. Defaults to ``["out"]``.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            TypeError: If ``function`` is None or not callable.
+            ValueError: If ``output_keys`` is an empty list.
+        """
         super().__init__(name, sample_time)
 
         if function is None or not callable(function):
@@ -65,17 +80,37 @@ class FunctionSource(BlockSource):
             k: None for k in self.output_keys
         }
 
+
     # --------------------------------------------------------------------------
-    # Class Methods
+    # Class methods
     # --------------------------------------------------------------------------
+
     @classmethod
     def adapt_params(
         cls,
         params: Dict[str, Any],
         params_dir: Path | None = None,
     ) -> Dict[str, Any]:
-        """
-        Adapt YAML parameters by loading a callable from (file_path, function_name).
+        """Load a callable from ``file_path`` and ``function_name`` YAML keys.
+
+        If ``function`` is already present in ``params``, it is returned as-is.
+        Otherwise, the callable is loaded dynamically from the specified file.
+
+        Args:
+            params: Raw parameter dict loaded from the YAML project file.
+            params_dir: Directory of the project file, for resolving relative
+                paths. None if not applicable.
+
+        Returns:
+            Parameter dict with ``function`` set to the loaded callable and
+            ``file_path``/``function_name`` keys removed.
+
+        Raises:
+            ValueError: If only one of ``file_path`` or ``function_name`` is
+                provided.
+            FileNotFoundError: If the function file does not exist.
+            AttributeError: If the named function is not found in the module.
+            TypeError: If the resolved attribute is not callable.
         """
         adapted = dict(params)
 
@@ -119,25 +154,40 @@ class FunctionSource(BlockSource):
             adapted["output_keys"] = ["out"]
         return adapted
 
+
     # --------------------------------------------------------------------------
-    # Public Methods
+    # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Validate the function signature and compute initial outputs at t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self._validate_signature()
         out = self._call_func(t0, 0.0)
         for key in self.output_keys:
             self.outputs[key] = out[key]
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Call the user function and write results to the output ports.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         out = self._call_func(t, dt)
         for key in self.output_keys:
             self.outputs[key] = out[key]
 
+
     # --------------------------------------------------------------------------
-    # Private Methods
+    # Private methods
     # --------------------------------------------------------------------------
+
     def _call_func(self, t: float, dt: float) -> Dict[str, np.ndarray]:
+        """Invoke the user function, validate its output, and normalize arrays."""
         try:
             out = self._func(t, dt)
         except Exception as e:
@@ -174,8 +224,8 @@ class FunctionSource(BlockSource):
 
         return normalized
 
-    # ------------------------------------------------------------------
     def _validate_signature(self) -> None:
+        """Raise if the user function does not have exactly the signature (t, dt)."""
         sig = inspect.signature(self._func)
         params = list(sig.parameters.values())
 

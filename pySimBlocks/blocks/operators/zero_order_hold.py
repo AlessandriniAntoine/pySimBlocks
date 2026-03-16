@@ -18,40 +18,36 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 
 from pySimBlocks.core.block import Block
 
 
 class ZeroOrderHold(Block):
-    """
-    Zero-Order Hold (ZOH) block.
+    """Zero-Order Hold (ZOH) block.
 
-    Summary:
-        Samples the input signal at discrete instants and holds the sampled
-        value constant between sampling instants.
+    Samples the input at discrete instants separated by ``sample_time`` and
+    holds the sampled value constant between sampling instants. The input shape
+    is frozen after the first resolution.
 
-    Parameters:
-        sample_time : float
-            Sampling period Ts (> 0).
-
-    Inputs:
-        in : array (m,n)
-            Input signal (must be 2D).
-
-    Outputs:
-        out : array (m,n)
-            Held output signal.
-
-    Notes:
-        - Stateful block.
-        - Direct feedthrough (output depends on current u only at sampling instants).
-        - Shape is frozen after first resolution.
+    Attributes:
+        sample_time: Sampling period in seconds.
     """
 
     direct_feedthrough = True
 
     def __init__(self, name: str, sample_time: float):
+        """Initialize a ZeroOrderHold block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            sample_time: Sampling period Ts (> 0) in seconds.
+
+        Raises:
+            ValueError: If ``sample_time`` is not a positive number.
+        """
         super().__init__(name, sample_time)
 
         if not isinstance(sample_time, (float, int)) or float(sample_time) <= 0.0:
@@ -74,7 +70,17 @@ class ZeroOrderHold(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
+
+    def initialize(self, t0: float) -> None:
+        """Sample the initial input and set up the hold state.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None at initialization.
+            ValueError: If input is not 2D.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
@@ -91,8 +97,16 @@ class ZeroOrderHold(Block):
 
         self.outputs["out"] = y0.copy()
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def output_update(self, t: float, dt: float) -> None:
+        """Output the current sample or the held value depending on the elapsed time.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None or block is not initialized.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
@@ -104,14 +118,21 @@ class ZeroOrderHold(Block):
         if t_last is None:
             raise RuntimeError(f"[{self.name}] ZOH not initialized (t_last is None).")
 
-        # Sample if enough time elapsed
         if (t - t_last) >= self.sample_time - self.EPS:
             self.outputs["out"] = u.copy()
         else:
             self.outputs["out"] = self.state["y"].copy()
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
+    def state_update(self, t: float, dt: float) -> None:
+        """Update the held value and timestamp if a new sample was taken.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If block is not initialized.
+        """
         t_last = self.state["t_last"]
         if t_last is None:
             raise RuntimeError(f"[{self.name}] ZOH not initialized (t_last is None).")
@@ -127,7 +148,9 @@ class ZeroOrderHold(Block):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _ensure_shape(self, u: np.ndarray) -> None:
+        """Validate input shape and freeze it on the first call."""
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."

@@ -27,6 +27,15 @@ if TYPE_CHECKING:
     from pySimBlocks.gui.project_controller import BlockInstance
 
 class PortInstance:
+    """Represent a GUI port bound to a block instance.
+
+    Attributes:
+        name: Internal port name.
+        display_as: Label shown in the GUI.
+        direction: Port direction, either input or output.
+        block: Owning block instance.
+    """
+
     def __init__(
         self,
         name: str,
@@ -34,19 +43,43 @@ class PortInstance:
         direction: Literal['input', 'output'],
         block: "BlockInstance"
     ):
+        """Initialize a port instance.
+
+        Args:
+            name: Internal port name.
+            display_as: Label shown in the GUI.
+            direction: Port direction.
+            block: Owning block instance.
+
+        Raises:
+            None.
+        """
         self.name = name
         self.display_as = display_as
         self.direction = direction
         self.block = block
 
+
+    # --- Public methods ---
+
     def is_compatible(self, other: "PortInstance"):
+        """Return whether this port can connect to another port.
+
+        Args:
+            other: Port to compare against.
+
+        Returns:
+            True if the ports have opposite directions.
+        """
         return self.direction != other.direction
 
     def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
-        """
-        Check whether this port can accept a new connection.
+        """Return whether this port can accept one more connection.
 
-        The `connections` list is expected to contain all and only the connections
-        already linked to this PortInstance.
+        Args:
+            connections: Existing connections currently attached to this port.
+
+        Returns:
+            True if the port can accept an additional connection.
         """
         return self.direction == "output" or not connections

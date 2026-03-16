@@ -18,43 +18,32 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
 class PolytopicStateSpace(Block):
-    """
-    Discrete-time polytopic state-space block.
+    """Discrete-time polytopic state-space block.
 
-    Summary:
-        Implements:
-            x[k+1] = sum_{i=1}^r w_i[k] (A_i x[k] + B_i u[k])
-            y[k]   = C x[k]
+    Implements a convex combination of linear state-space models:
 
-    Parameters (overview):
-        A : array-like
-            concatenation of A_i matrices [A_1, A_2, ..., A_r], shape (nx, r*nx).
-        B : array-like
-            concatenation of B_i matrices [B_1, B_2, ..., B_r], shape (nx, r*nu).
-        C : array-like
-            Output matrix.
-        x0 : array-like, optional
-            Initial state vector.
-        sample_time : float, optional
-            Block execution period.
+        x[k+1] = sum_{i=1}^r w_i[k] (A_i x[k] + B_i u[k])
 
-    I/O:
-        Inputs:
-            u : input vector.
-            w : vertex weight vector (must sum to 1).
-        Outputs:
-            y : output vector.
-            x : state vector.
+        y[k]   = C x[k]
 
-    Notes:
-        - The system is strictly proper (no direct feedthrough).
-        - The block has internal state.
+    The weight vector ``w`` must be non-negative and sum to 1 at each step.
+    Matrices A and B are provided as horizontal concatenations of the
+    per-vertex matrices: A = [A_1, ..., A_r] of shape (nx, r*nx) and
+    B = [B_1, ..., B_r] of shape (nx, r*nu).
+
+    Attributes:
+        A: Concatenated vertex state matrices of shape (nx, r*nx).
+        B: Concatenated vertex input matrices of shape (nx, r*nu).
+        C: Output matrix of shape (ny, nx).
     """
 
     direct_feedthrough = False
@@ -68,6 +57,24 @@ class PolytopicStateSpace(Block):
         x0: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a PolytopicStateSpace block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            A: Concatenated vertex state matrices [A_1, ..., A_r],
+                array-like of shape (nx, r*nx).
+            B: Concatenated vertex input matrices [B_1, ..., B_r],
+                array-like of shape (nx, r*nu).
+            C: Output matrix, array-like of shape (ny, nx).
+            x0: Initial state vector, array-like of shape (nx, 1) or (nx,).
+                Defaults to zeros.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If any matrix is not 2D, if dimensions are
+                inconsistent, or if x0 does not match the state dimension.
+        """
         super().__init__(name, sample_time)
 
         self.A = np.asarray(A, dtype=float)
@@ -131,23 +138,45 @@ class PolytopicStateSpace(Block):
         self.outputs["x"] = None
         self.outputs["y"] = None
 
+
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Compute initial outputs from the initial state.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         x = self.state["x"]
         self.outputs["x"] = x.copy()
         self.outputs["y"] = self.C @ x
         self.next_state["x"] = x.copy()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Compute y and x outputs from the committed state.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         x = self.state["x"]
         self.outputs["x"] = x.copy()
         self.outputs["y"] = self.C @ x
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
+        """Compute the next state as a weighted sum of vertex dynamics.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If inputs ``w`` or ``u`` are not connected.
+            ValueError: If ``w`` does not sum to 1, has negative entries,
+                or if input shapes are wrong.
+        """
         w = self.inputs["w"]
         u = self.inputs["u"]
         if w is None:
@@ -167,10 +196,13 @@ class PolytopicStateSpace(Block):
         x_next = self.A @ np.kron(w_vec, x) + self.B @ np.kron(w_vec, u_vec)
         self.next_state["x"] = x_next
 
+
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_col_vec(self, name: str, value: ArrayLike, expected_rows: int) -> np.ndarray:
+        """Normalize value to a (n,1) column vector and validate its size."""
         arr = np.asarray(value, dtype=float)
 
         if arr.ndim == 0:

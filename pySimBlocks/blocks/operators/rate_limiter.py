@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,39 +27,25 @@ from pySimBlocks.core.block import Block
 
 
 class RateLimiter(Block):
-    """
-    Discrete-time rate limiter block.
+    """Discrete-time rate limiter block.
 
-    Summary:
-        Limits the rate of change of the output signal by constraining the
-        maximum allowed increase and decrease per time step.
+    Limits the rate of change of the output signal by constraining the maximum
+    allowed increase and decrease per time step:
 
-    Parameters:
-        rising_slope : scalar or array-like, optional
-            Maximum allowed positive rate of change (>= 0).
-        falling_slope : scalar or array-like, optional
-            Maximum allowed negative rate of change (<= 0).
-        initial_output : scalar or array-like, optional
-            Initial output y(-1). If not provided, y(-1) = u(0).
-        sample_time : float, optional
-            Block execution period.
+        delta  = u[k] - y[k-1]
 
-    Inputs:
-        in : array (m,n)
-            Input signal (must be 2D).
+        y[k]   = y[k-1] + clip(delta, falling_slope * dt, rising_slope * dt)
 
-    Outputs:
-        out : array (m,n)
-            Rate-limited output signal.
+    Bounds are applied component-wise and resolved on the first call. Once the
+    input shape is resolved it must remain constant.
 
-    Notes:
-        - Stateful block.
-        - Direct feedthrough.
-        - Broadcasting rules (to match input shape (m,n)):
-            * scalar (1,1) broadcasts to (m,n)
-            * vector (m,1) broadcasts across columns to (m,n)
-            * matrix (m,n) must match exactly
-        - Once resolved, input shape must remain constant.
+    Attributes:
+        rising_raw: Raw rising-slope array before broadcasting.
+        falling_raw: Raw falling-slope array before broadcasting.
+        rising_slope: Broadcasted rising slope matched to the input shape, or
+            None before the first resolution.
+        falling_slope: Broadcasted falling slope matched to the input shape, or
+            None before the first resolution.
     """
 
     direct_feedthrough = True
@@ -70,28 +58,41 @@ class RateLimiter(Block):
         initial_output: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a RateLimiter block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            rising_slope: Maximum allowed positive rate of change (>= 0).
+                Accepted shapes: scalar, 1D vector, or 2D matrix.
+            falling_slope: Maximum allowed negative rate of change (<= 0).
+                Accepted shapes: scalar, 1D vector, or 2D matrix.
+            initial_output: Initial output y(-1). If not provided, y(-1) is
+                set to the first input u(0).
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            ValueError: If ``rising_slope`` has a negative component or
+                ``falling_slope`` has a positive component.
+        """
         super().__init__(name, sample_time)
 
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        # Raw parameters (2D normalized)
         self.rising_raw = self._to_2d_array("rising_slope", rising_slope)
         self.falling_raw = self._to_2d_array("falling_slope", falling_slope)
         self.y0_raw = None if initial_output is None else self._to_2d_array("initial_output", initial_output)
 
-        # Basic sign constraints (raw)
         if np.any(self.rising_raw < 0):
             raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
         if np.any(self.falling_raw > 0):
             raise ValueError(f"[{self.name}] falling_slope must be <= 0.")
 
-        # Resolved parameters (broadcasted to input shape once known)
         self.rising_slope: ArrayLike | None = None
-        self.falling_slope: ArrayLike | None  = None
+        self.falling_slope: ArrayLike | None = None
         self._resolved_shape: tuple[int, int] | None = None
 
-        # State
         self.state["y"] = None
         self.next_state["y"] = None
 
@@ -99,7 +100,17 @@ class RateLimiter(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Resolve slopes from the initial input and set the initial state.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None at initialization.
+            ValueError: If input is not 2D or slopes have incompatible shapes.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
@@ -120,8 +131,19 @@ class RateLimiter(Block):
         self.state["y"] = y0.copy()
         self.outputs["out"] = y0.copy()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Apply the rate limit and write the result to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is None or the block is not
+                initialized.
+            ValueError: If input is not 2D or its shape changed after
+                initialization.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
@@ -139,7 +161,6 @@ class RateLimiter(Block):
 
         y_prev = self.state["y"]
         if y_prev.shape != u.shape:
-            # extra safety: state shape must match input shape
             raise ValueError(
                 f"[{self.name}] Internal state shape mismatch: y has shape {y_prev.shape}, input has shape {u.shape}."
             )
@@ -151,21 +172,22 @@ class RateLimiter(Block):
         du_limited = np.clip(du, du_min, du_max)
         self.outputs["out"] = y_prev + du_limited
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
+        """Store the current output as the previous value for the next step.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         self.next_state["y"] = None if self.outputs["out"] is None else self.outputs["out"].copy()
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _broadcast_param(self, p: np.ndarray, target_shape: tuple[int, int], name: str) -> np.ndarray:
-        """
-        Broadcast p to target_shape using explicit rules:
-            - scalar (1,1) -> (m,n)
-            - vector (m,1) -> repeat along columns to (m,n)
-            - matrix (m,n) -> exact match
-        """
+        """Broadcast a parameter array to the target input shape."""
         m, n = target_shape
 
         if self._is_scalar_2d(p):
@@ -184,12 +206,8 @@ class RateLimiter(Block):
             f"Allowed: scalar (1,1), vector (m,1), or matrix (m,n)."
         )
 
-    # ------------------------------------------------------------------
     def _resolve_for_input(self, u: np.ndarray) -> None:
-        """
-        Resolve (broadcast) slopes and initial_output to match the current input shape.
-        Done once. After that, input shape is fixed.
-        """
+        """Broadcast and validate slopes against the input shape on first call."""
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
@@ -200,7 +218,6 @@ class RateLimiter(Block):
             self.rising_slope = self._broadcast_param(self.rising_raw, u.shape, "rising_slope")
             self.falling_slope = self._broadcast_param(self.falling_raw, u.shape, "falling_slope")
 
-            # Re-check signs after broadcasting (useful if vector/matrix provided)
             if np.any(self.rising_slope < 0):
                 raise ValueError(f"[{self.name}] rising_slope must be >= 0.")
             if np.any(self.falling_slope > 0):

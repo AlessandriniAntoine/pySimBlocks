@@ -18,44 +18,28 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
 class Ramp(BlockSource):
-    """
-    Multi-dimensional ramp signal source block (Option B).
+    """Multi-dimensional ramp signal source block.
 
-    Summary:
-        Generates a ramp signal element-wise on a 2D output array:
-            y(t) = offset + slope * max(0, t - start_time)
+    Generates a ramp signal element-wise on a 2D output array:
 
-        Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
-        broadcasting is allowed; all non-scalar parameters must share the same
-        shape.
+        y(t) = offset + slope * max(0, t - start_time)
 
-    Parameters (overview):
-        slope : float or array-like
-            Ramp slope. Scalar -> broadcast; otherwise fixes output shape.
-        start_time : float or array-like, optional
-            Ramp start time. Scalar -> broadcast; otherwise must match output shape.
-        offset : float or array-like, optional
-            Output value before the ramp starts. Scalar -> broadcast; otherwise must match output shape.
-        sample_time : float, optional
-            Block execution period.
+    Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
+    broadcasting is allowed; all non-scalar parameters must share the same
+    shape.
 
-    Outputs:
-        out : ramp output signal (2D ndarray)
-
-    Notes:
-        - Stateless block.
-        - Normalization:
-            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n)
-        - Broadcasting:
-            Only (1,1) scalars are broadcast to the common shape.
-            No NumPy broadcasting beyond that.
-        - No implicit flattening is performed.
+    Attributes:
+        slope: Ramp slope as a 2D array.
+        start_time: Time at which the ramp starts, as a 2D array.
+        offset: Output value before the ramp starts, as a 2D array.
     """
 
     def __init__(
@@ -66,6 +50,21 @@ class Ramp(BlockSource):
         offset: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a Ramp block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            slope: Ramp slope. Can be scalar, vector, or matrix.
+            start_time: Time at which the ramp starts in seconds. Can be
+                scalar, vector, or matrix.
+            offset: Output value before the ramp starts. Defaults to zero.
+                Can be scalar, vector, or matrix.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If non-scalar parameters have incompatible shapes.
+        """
         super().__init__(name, sample_time)
 
         S = self._to_2d_array("slope", slope, dtype=float)
@@ -76,24 +75,33 @@ class Ramp(BlockSource):
         else:
             O = self._to_2d_array("offset", offset, dtype=float)
 
-        # Resolve common shape using strict scalar-only broadcasting policy
         target_shape = self._resolve_common_shape({"slope": S, "start_time": T, "offset": O})
 
         self.slope = self._broadcast_scalar_only("slope", S, target_shape)
         self.start_time = self._broadcast_scalar_only("start_time", T, target_shape)
         self.offset = self._broadcast_scalar_only("offset", O, target_shape)
 
-        # Output port
         self.outputs["out"] = self.offset.copy()
+
 
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Set the output to the offset value at t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.outputs["out"] = self.offset.copy()
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        # Element-wise time shift
+        """Compute and write the ramp value to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         dt_mat = np.maximum(0.0, t - self.start_time)
         self.outputs["out"] = self.offset + self.slope * dt_mat

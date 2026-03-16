@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import importlib.util
 import inspect
 import os
@@ -29,10 +31,8 @@ from pathlib import Path
 import yaml
 
 
-def _load_scene_in_subprocess(scene_path, conn):
-    """
-    Load SOFA scene in subprocess and return controller file path.
-    """
+def _load_scene_in_subprocess(scene_path, conn) -> None:
+    """Load a SOFA scene in a subprocess and send back the controller source file path."""
     try:
         scene_path = Path(scene_path).resolve()
         scene_dir = scene_path.parent
@@ -64,8 +64,18 @@ def _load_scene_in_subprocess(scene_path, conn):
 
 
 def detect_controller_file_from_scene(scene_file: Path) -> Path:
-    """
-    Automatically get controller path from scene.
+    """Determine the controller source file by loading the SOFA scene in a subprocess.
+
+    Args:
+        scene_file: Path to the SOFA Python scene file. The scene's
+            ``createScene`` function must return ``(root, controller)``.
+
+    Returns:
+        Path to the Python source file that defines the controller class.
+
+    Raises:
+        RuntimeError: If the controller file cannot be determined (e.g. the
+            scene does not return a controller).
     """
     parent_conn, child_conn = Pipe()
     p = Process(target=_load_scene_in_subprocess, args=(scene_file, child_conn))
@@ -85,6 +95,14 @@ def detect_controller_file_from_scene(scene_file: Path) -> Path:
 
 
 def inject_base_dir(src: str) -> str:
+    """Inject a ``BASE_DIR`` declaration after the last import statement if not present.
+
+    Args:
+        src: Source code string of the controller file.
+
+    Returns:
+        Source code with ``BASE_DIR = Path(__file__).resolve().parent`` injected.
+    """
     if "BASE_DIR = Path(__file__).resolve().parent" in src:
         return src
 
@@ -106,8 +124,12 @@ def inject_project_path_into_controller(
     controller_file: Path,
     project_yaml: Path,
 ) -> None:
-    """
-    Inject or replace project_yaml attribute inside SofaPysimBlocksController __init__.
+    """Inject or update the ``self.project_yaml`` assignment in the controller ``__init__``.
+
+    Args:
+        controller_file: Path to the controller Python source file.
+        project_yaml: Path to the ``project.yaml`` file to reference from
+            the controller.
     """
     src = controller_file.read_text()
     src = inject_base_dir(src)
@@ -136,6 +158,7 @@ def inject_project_path_into_controller(
 
 
 def _load_project_yaml(project_yaml: Path) -> dict:
+    """Load and return a project YAML file as a dict."""
     if not project_yaml.exists():
         raise FileNotFoundError(f"project.yaml not found: {project_yaml}")
 
@@ -146,6 +169,7 @@ def _load_project_yaml(project_yaml: Path) -> dict:
 
 
 def _find_sofa_block(raw_project: dict) -> dict:
+    """Return the first SofaPlant or SofaExchangeIO block dict from the project diagram."""
     diagram = raw_project.get("diagram", {})
     if not isinstance(diagram, dict):
         raise ValueError("'diagram' section must be a mapping")
@@ -171,6 +195,7 @@ def _find_sofa_block(raw_project: dict) -> dict:
 
 
 def _resolve_scene_file(project_yaml: Path, sofa_block: dict) -> Path:
+    """Resolve the absolute scene file path from a SOFA block's parameters."""
     params = sofa_block.get("parameters", {})
     if not isinstance(params, dict):
         raise ValueError(
@@ -193,6 +218,25 @@ def generate_sofa_controller(
     project_dir: Path | None = None,
     project_yaml: Path | None = None,
 ) -> None:
+    """Update the SOFA controller file with the project YAML path.
+
+    Finds the SOFA scene file from the project, detects the controller class,
+    and injects or replaces the ``self.project_yaml`` assignment so the
+    controller can locate the project at runtime.
+
+    Exactly one of ``project_dir`` or ``project_yaml`` must be provided.
+
+    Args:
+        project_dir: Path to a project folder containing ``project.yaml``.
+        project_yaml: Explicit path to a ``project.yaml`` file.
+
+    Raises:
+        ValueError: If both or neither of ``project_dir`` / ``project_yaml``
+            are given.
+        FileNotFoundError: If ``project.yaml`` or the scene file is not found.
+        RuntimeError: If no SOFA block is found in the project or the
+            controller file cannot be detected.
+    """
     has_project_path = project_yaml is not None
 
     if project_dir and has_project_path:

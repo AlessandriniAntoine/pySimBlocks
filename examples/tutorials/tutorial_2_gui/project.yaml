@@ -1,0 +1,95 @@
+schema_version: 1
+project:
+  name: tutorial_2_gui
+  metadata:
+    created_by: pySimBlocks
+    created_at: '2026-02-18T00:00:00Z'
+simulation:
+  dt: 0.01
+  T: 5.0
+  solver: fixed
+  logging:
+  - system.outputs.y
+  - ref.outputs.out
+  - PID.outputs.u
+  plots:
+  - title: Ref vs Output
+    signals:
+    - system.outputs.y
+    - ref.outputs.out
+  - title: Command
+    signals:
+    - PID.outputs.u
+diagram:
+  blocks:
+  - name: system
+    category: systems
+    type: linear_state_space
+    parameters:
+      A: [[0.9]]
+      B: [[0.5]]
+      C: [[1.0]]
+      x0: 0.0
+  - name: PID
+    category: controllers
+    type: pid
+    parameters:
+      controller: PI
+      Kp: 0.5
+      Ki: 2.0
+  - name: error
+    category: operators
+    type: sum
+    parameters:
+      signs: +-
+  - name: ref
+    category: sources
+    type: step
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[1.0]]
+      start_time: 1.0
+  connections:
+  - name: c1
+    ports:
+    - ref.out
+    - error.in1
+  - name: c2
+    ports:
+    - error.out
+    - PID.e
+  - name: c3
+    ports:
+    - PID.u
+    - system.u
+  - name: c4
+    ports:
+    - system.y
+    - error.in2
+gui:
+  layout:
+    blocks:
+      system:
+        x: -15.0
+        y: -600.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      PID:
+        x: -220.0
+        y: -600.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      error:
+        x: -415.0
+        y: -600.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      ref:
+        x: -595.0
+        y: -610.0
+        orientation: normal
+        width: 120.0
+        height: 60.0

@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class QuadraticProgramMeta(BlockMeta):
+    """Describe the GUI metadata of the quadratic-program optimizer block."""
 
     def __init__(self):
+        """Initialize quadratic-program block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "QuadraticProgram"
         self.category = "optimizers"
         self.type = "quadratic_program"

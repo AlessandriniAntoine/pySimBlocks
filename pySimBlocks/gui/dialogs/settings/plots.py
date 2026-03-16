@@ -29,7 +29,24 @@ from pySimBlocks.gui.project_controller import ProjectController
 
 
 class PlotSettingsWidget(QWidget):
+    """Edit the set of named plots stored in the project.
+
+    Attributes:
+        project_state: Project state edited by the widget.
+        project_controller: Controller applying plot changes.
+        edit_index: Index of the plot currently being edited, or None.
+    """
+
     def __init__(self, project_state: ProjectState, project_controller: ProjectController):
+        """Initialize the plot settings widget.
+
+        Args:
+            project_state: Project state edited by the widget.
+            project_controller: Controller applying plot changes.
+
+        Raises:
+            None.
+        """
         super().__init__()
         self.project_state = project_state
         self.project_controller = project_controller
@@ -82,9 +99,10 @@ class PlotSettingsWidget(QWidget):
         self.populate_signal_list()
         self.update_buttons_state()
 
-    # ==================================================
-    # Helpers
-    # ==================================================
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def refresh_from_project(self):
         """Synchronize the plot editor with the current project state."""
         self.edit_index = None
@@ -95,14 +113,16 @@ class PlotSettingsWidget(QWidget):
         self.update_buttons_state()
 
     def refresh_plot_list(self):
+        """Refresh the plot titles shown in the list widget."""
         self.plot_list.clear()
         for plot in self.project_state.plots:
             self.plot_list.addItem(plot["title"])
 
     def populate_signal_list(self, checked=None):
-        """
-        Populate signal list.
-        checked: optional set/list of signals to check.
+        """Populate the signal checklist.
+
+        Args:
+            checked: Optional iterable of signal names to preselect.
         """
         self.signal_list.clear()
         checked = set(checked or [])
@@ -114,6 +134,11 @@ class PlotSettingsWidget(QWidget):
             self.signal_list.addItem(item)
 
     def collect_selected_signals(self) -> list[str]:
+        """Return the currently selected signal names.
+
+        Returns:
+            Selected signal names from the checklist.
+        """
         return [
             self.signal_list.item(i).text()
             for i in range(self.signal_list.count())
@@ -121,17 +146,21 @@ class PlotSettingsWidget(QWidget):
         ]
 
     def reset_form(self):
+        """Clear the editor fields and uncheck all signals."""
         self.title_edit.clear()
         self.populate_signal_list()
 
     def update_buttons_state(self):
+        """Enable or disable actions based on the current selection state."""
         has_selection = self.plot_list.currentRow() >= 0
         self.del_btn.setEnabled(has_selection)
 
-    # ==================================================
-    # Selection handling
-    # ==================================================
     def load_plot(self, index):
+        """Load the selected plot into the editor.
+
+        Args:
+            index: Index of the plot selected in the list.
+        """
         if index < 0:
             self.edit_index = None
             self.reset_form()
@@ -145,16 +174,15 @@ class PlotSettingsWidget(QWidget):
         self.update_buttons_state()
 
 
-    # ==================================================
-    # Actions
-    # ==================================================
     def new_plot(self):
+        """Start editing a new plot definition."""
         self.edit_index = None
         self.plot_list.clearSelection()
         self.reset_form()
         self.update_buttons_state()
 
     def save_plot(self):
+        """Create or update the currently edited plot."""
         title = self.title_edit.text().strip()
         if not title:
             QMessageBox.warning(self, "Invalid plot", "Plot title cannot be empty.")
@@ -176,6 +204,7 @@ class PlotSettingsWidget(QWidget):
 
 
     def delete_plot(self):
+        """Delete the currently selected plot."""
         if self.edit_index is None:
             return
 

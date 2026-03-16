@@ -30,20 +30,20 @@ Connection = Tuple[Tuple[str, str], Tuple[str, str]]
 
 
 class Model:
-    """
-    Discrete-time block-diagram model (Simulink-like).
-
-    Responsibilities:
-      - Store blocks.
-      - Store signal connections.
-      - Build execution order (topological sort).
-      - Provide fast access to downstream connections.
-
-    Notes:
-      * Topological sorting is applied only to the combinational graph.
-      * Blocks with state (i.e., blocks where next_state is non-empty)
-        are treated as "cycle breakers" (delay elements),
-        exactly like Simulink does for algebraic loops.
+    """Discrete-time block-diagram model (Simulink-like).
+ 
+    Stores blocks and signal connections, builds the topological execution
+    order, and provides fast access to downstream connections.
+ 
+    Topological sorting is applied only to the combinational (direct-
+    feedthrough) graph. Stateful blocks act as cycle breakers, exactly as
+    Simulink handles algebraic loops (see Simulink PDF p.7).
+ 
+    Attributes:
+        name: Identifier for this model.
+        verbose: If True, print detailed execution-order build logs.
+        blocks: Registry of blocks keyed by name.
+        connections: List of signal connections.
     """
 
     def __init__(
@@ -53,6 +53,16 @@ class Model:
             params_dir: Path | None = None,
             verbose: bool = False,
         ):
+        """Initialize a model.
+ 
+        Args:
+            name: Identifier for this model.
+            model_data: Optional dict loaded from a YAML project file.
+                If provided, blocks and connections are built immediately.
+            params_dir: Directory of the project file, for resolving
+                relative paths. None if not applicable.
+            verbose: If True, print execution-order build logs.
+        """
         self.name = name
         self.verbose = verbose
 
@@ -72,31 +82,58 @@ class Model:
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def add_block(self, block: Block) -> Block:
-        """Add a block to the model."""
+        """Add a block to the model.
+ 
+        Args:
+            block: Block instance to register.
+ 
+        Returns:
+            The registered block.
+ 
+        Raises:
+            ValueError: If a block with the same name already exists.
+        """
         if block.name in self.blocks:
             raise ValueError(f"Block name '{block.name}' already exists.")
 
         self.blocks[block.name] = block
         return block
 
-    # ------------------------------------------------------------------
     def get_block_by_name(self, name: str) -> Block:
-        """Get a block by its name."""
+        """Return a block by its name.
+ 
+        Args:
+            name: Name of the block to retrieve.
+ 
+        Returns:
+            The matching Block instance.
+ 
+        Raises:
+            ValueError: If no block with that name exists.
+        """
         if name not in self.blocks:
             raise ValueError(
                 f"Block name '{name}' not found. Known blocks: {list(self.blocks.keys())}"
             )
         return self.blocks[name]
 
-    # ------------------------------------------------------------------
     def connect(self, src_block: str, src_port: str,
                       dst_block: str, dst_port: str) -> None:
-        """
-        Connect:
-            blocks[src_block].outputs[src_port]
-        to:
-            blocks[dst_block].inputs[dst_port]
+        """Connect an output port to an input port.
+ 
+        Registers a connection from ``blocks[src_block].outputs[src_port]``
+        to ``blocks[dst_block].inputs[dst_port]``.
+ 
+        Args:
+            src_block: Name of the source block.
+            src_port: Name of the source output port.
+            dst_block: Name of the destination block.
+            dst_port: Name of the destination input port.
+ 
+        Raises:
+            ValueError: If src_block or dst_block is not registered.
         """
         if src_block not in self.blocks:
             raise ValueError(
@@ -114,11 +151,18 @@ class Model:
         )
         self._connections_dirty = True
 
-    # ------------------------------------------------------------------
     def build_execution_order(self):
-        """
-        Build Simulink-like execution order based solely on direct-feedthrough
-        causal dependencies (Simulink PDF p.7).
+        """Build the Simulink-like output execution order.
+ 
+        Runs a Kahn topological sort on the direct-feedthrough dependency
+        graph. Blocks without direct feedthrough act as cycle breakers.
+ 
+        Returns:
+            Ordered list of blocks for output_update execution.
+ 
+        Raises:
+            RuntimeError: If a direct-feedthrough cycle (algebraic loop)
+                is detected.
         """
 
         blocks = self.blocks
@@ -200,8 +244,15 @@ class Model:
 
         return self._output_execution_order
 
-    # ------------------------------------------------------------------
-    def downstream_of(self, block_name: str):
+    def downstream_of(self, block_name: str) -> List[Connection]:
+        """Return all connections where block_name is the source.
+ 
+        Args:
+            block_name: Name of the source block.
+ 
+        Returns:
+            List of connections originating from block_name.
+        """
         """
         Returns all connections where block_name is the source.
         """
@@ -209,29 +260,37 @@ class Model:
             self._rebuild_downstream_map()
         return self._downstream_map.get(block_name, [])
 
-    # ------------------------------------------------------------------
-    def execution_order(self):
-        """Get execution order, building it if necessary."""
+    def execution_order(self) -> List[Block]:
+        """Return the output execution order, building it if necessary.
+ 
+        Returns:
+            Ordered list of blocks for output_update execution.
+        """
         if not self._output_execution_order:
             return self.build_execution_order()
         return self._output_execution_order
 
-    # ------------------------------------------------------------------
     def predecessors_of(self, block_name):
-        """Get all blocks that feed into block_name."""
+        """Yield the names of all blocks that feed into block_name.
+ 
+        Args:
+            block_name: Name of the destination block.
+ 
+        Yields:
+            Source block names connected to block_name.
+        """
         for (src, dst) in self.connections:
             if dst[0] == block_name:
                 yield src[0]
 
-    # ------------------------------------------------------------------
-    def resolve_sample_times(self, dt):
-        """
-        Resolve effective sample times for all blocks.
-
-        Returns:
-            has_explicit_rate (bool): True if at least one block defines a sample_time.
-        """
-
+    def resolve_sample_times(self, dt) -> None:
+        """Resolve effective sample times for all blocks.
+ 
+        Blocks with an explicit sample_time keep it; others inherit dt.
+ 
+        Args:
+            dt: Global simulation time step in seconds.
+        """        
         for b in self.blocks.values():
             if b.sample_time is None:
                 b._effective_sample_time = dt
@@ -242,7 +301,9 @@ class Model:
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _rebuild_downstream_map(self) -> None:
+        """Rebuild the downstream connection map from the current connections."""
         downstream = {name: [] for name in self.blocks.keys()}
         for (src, dst) in self.connections:
             downstream[src[0]].append((src, dst))

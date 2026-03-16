@@ -33,6 +33,15 @@ if TYPE_CHECKING:
 
 
 class BlockItem(QGraphicsRectItem):
+    """Render and interact with a block instance on the diagram scene.
+
+    Attributes:
+        view: Diagram view owning this graphics item.
+        instance: Block instance represented by the item.
+        orientation: Display orientation of the block.
+        port_items: Visual port items attached to the block.
+    """
+
     WIDTH = 120
     HEIGHT = 60
     MIN_WIDTH = 40
@@ -48,6 +57,17 @@ class BlockItem(QGraphicsRectItem):
                  view: "DiagramView",
                  layout: dict | None = None,
     ):
+        """Initialize a block item.
+
+        Args:
+            instance: Block instance represented by this item.
+            pos: Initial scene position.
+            view: Diagram view owning the item.
+            layout: Optional persisted layout properties.
+
+        Raises:
+            None.
+        """
         layout = layout or {}
         width = layout.get("width", self.WIDTH)
         height = layout.get("height", self.HEIGHT)
@@ -82,12 +102,20 @@ class BlockItem(QGraphicsRectItem):
     # Public Methods
     # --------------------------------------------------------------------------
     def get_port_item(self, name:str) -> PortItem | None:
+        """Return the visual port item matching the given port name.
+
+        Args:
+            name: Port name to look up.
+
+        Returns:
+            Matching port item, or None if not found.
+        """
         for port in self.port_items:
             if port.instance.name == name:
                 return port
 
-    # --------------------------------------------------------------
     def refresh_ports(self):
+        """Synchronize visual ports with the current block instance ports."""
 
         for item in list(self.port_items):
             if item.instance not in self.instance.ports:
@@ -106,31 +134,43 @@ class BlockItem(QGraphicsRectItem):
             item.update_display_as()
         self.view.on_block_ports_refreshed(self)
 
-    # --------------------------------------------------------------
     def toggle_orientation(self):
+        """Flip the block orientation and relayout its ports."""
         self.orientation = "flipped" if self.orientation == "normal" else "normal"
 
         self._layout_ports()
         self.view.on_block_moved(self)
         self.update()
 
-    # --------------------------------------------------------------------------
-    # Visual Methods
-    # --------------------------------------------------------------------------
     def boundingRect(self) -> QRectF:
+        """Return the item bounds including resize-handle hit areas.
+
+        Returns:
+            Bounding rectangle used for painting and interaction.
+        """
         half = self.SELECTION_HANDLE_HIT_SIZE / 2
         return self.rect().adjusted(-half, -half, half, half)
 
-    # --------------------------------------------------------------
     def shape(self) -> QPainterPath:
+        """Return the selectable shape including resize handles.
+
+        Returns:
+            Painter path used for hit testing.
+        """
         path = QPainterPath()
         path.addRect(self.rect())
         for rect in self._handle_hit_rects().values():
             path.addRect(rect)
         return path
 
-    # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
+        """Paint the block body, label, and resize handles when selected.
+
+        Args:
+            painter: Painter used to render the item.
+            option: Style option describing the current paint state.
+            widget: Optional target widget.
+        """
         t = self.view.theme
         selected = bool(option.state & QStyle.State_Selected)
 
@@ -163,10 +203,12 @@ class BlockItem(QGraphicsRectItem):
             for x, y in corners:
                 painter.drawRect(x - half, y - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE)
 
-    # --------------------------------------------------------------------------
-    # Event Methods
-    # --------------------------------------------------------------------------
     def mousePressEvent(self, event):
+        """Start resize interaction when a selected handle is pressed.
+
+        Args:
+            event: Qt mouse-press event.
+        """
         if self.isSelected():
             handle = self._handle_at(event.pos())
             if handle is not None:
@@ -180,8 +222,12 @@ class BlockItem(QGraphicsRectItem):
 
         super().mousePressEvent(event)
 
-    # --------------------------------------------------------------
     def mouseMoveEvent(self, event):
+        """Resize or move the block in response to mouse movement.
+
+        Args:
+            event: Qt mouse-move event.
+        """
         if self._resize_handle and self._resize_start_mouse and self._resize_start_pos:
             delta = event.scenePos() - self._resize_start_mouse
             dx = round(delta.x() / self.GRID_DX) * self.GRID_DX
@@ -216,22 +262,39 @@ class BlockItem(QGraphicsRectItem):
 
         super().mouseMoveEvent(event)
 
-    # --------------------------------------------------------------
     def mouseReleaseEvent(self, event):
+        """End any active resize interaction.
+
+        Args:
+            event: Qt mouse-release event.
+        """
         self._resize_handle = None
         self._resize_start_mouse = None
         self._resize_start_pos = None
         super().mouseReleaseEvent(event)
 
-    # --------------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
+        """Open the block configuration dialog on double click.
+
+        Args:
+            event: Qt mouse double-click event.
+        """
         dialog = BlockDialog(self, readonly=False)
         dialog.exec()
         self.update()
         event.accept()
 
-    # --------------------------------------------------------------
     def itemChange(self, change, value):
+        """Snap movement to the grid and notify the view when position changes.
+
+        Args:
+            change: Item change identifier.
+            value: Proposed new value for the change.
+
+        Returns:
+            Adjusted change value when snapping is needed, otherwise the base
+            implementation result.
+        """
         if change == QGraphicsItem.ItemPositionChange and self.scene():
             x = round(value.x() / self.GRID_DX) * self.GRID_DX
             y = round(value.y() / self.GRID_DY) * self.GRID_DY
@@ -246,6 +309,7 @@ class BlockItem(QGraphicsRectItem):
     # Private Methods
     # --------------------------------------------------------------------------
     def _handle_hit_rects(self) -> dict[str, QRectF]:
+        """Return enlarged hit rectangles for the resize handles."""
         half = self.SELECTION_HANDLE_HIT_SIZE / 2
         r = self.rect()
         return {
@@ -255,15 +319,15 @@ class BlockItem(QGraphicsRectItem):
             "br": QRectF(r.right() - half, r.bottom() - half, self.SELECTION_HANDLE_HIT_SIZE, self.SELECTION_HANDLE_HIT_SIZE),
         }
 
-    # --------------------------------------------------------------
     def _handle_at(self, local_pos: QPointF) -> str | None:
+        """Return the resize handle name located under the given position."""
         for name, rect in self._handle_hit_rects().items():
             if rect.contains(local_pos):
                 return name
         return None
 
-    # --------------------------------------------------------------
     def _layout_ports(self):
+        """Place input and output ports on the correct block sides."""
         inputs = [p for p in self.port_items if p.is_input]
         outputs = [p for p in self.port_items if not p.is_input]
 
@@ -277,8 +341,8 @@ class BlockItem(QGraphicsRectItem):
             self._layout_side(inputs, x=width)
             self._layout_side(outputs, x=0)
 
-    # --------------------------------------------------------------
     def _layout_side(self, ports, x):
+        """Evenly distribute a list of ports along one block side."""
         if not ports:
             return
 

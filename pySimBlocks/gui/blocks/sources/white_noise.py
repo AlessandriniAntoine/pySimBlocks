@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class WhiteNoiseMeta(BlockMeta):
+    """Describe the GUI metadata of the white-noise source block."""
 
     def __init__(self):
+        """Initialize white-noise block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "WhiteNoise"
         self.category = "sources"
         self.type = "white_noise"

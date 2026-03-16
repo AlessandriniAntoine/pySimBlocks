@@ -27,23 +27,53 @@ from pySimBlocks.project.generate_run_script import generate_python_content
 
 
 class ProjectSaver(ABC):
-    
+    """Define the interface for project persistence services."""
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     @abstractmethod
     def save(self, project_state: ProjectState, 
              block_items: dict[str, BlockItem] | None = None):
+        """Persist the current project state.
+
+        Args:
+            project_state: Project state to save.
+            block_items: Optional GUI block items used to persist layout data.
+        """
         pass
 
     @abstractmethod
     def export(self, project_state: ProjectState, 
                block_items: dict[str, BlockItem] | None = None):
+        """Export the current project state into runnable project artifacts.
+
+        Args:
+            project_state: Project state to export.
+            block_items: Optional GUI block items used to persist layout data.
+        """
         pass
 
 class ProjectSaverYaml(ProjectSaver):
+    """Save and export projects using the YAML project format."""
+
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
 
     def save(self, 
              project_state: ProjectState, 
              block_items: dict[str, BlockItem] | None = None
     ):
+        """Write the project YAML file to disk.
+
+        Args:
+            project_state: Project state to save.
+            block_items: Optional GUI block items used to persist layout data.
+        """
         save_yaml(
             project_state,
             block_items if block_items is not None else {},
@@ -54,6 +84,15 @@ class ProjectSaverYaml(ProjectSaver):
                project_state: ProjectState,
                block_items: dict[str, BlockItem] | None = None
     ):
+        """Export the project YAML file and generated run script.
+
+        Args:
+            project_state: Project state to export.
+            block_items: Optional GUI block items used to persist layout data.
+
+        Raises:
+            ValueError: If the project directory is not defined.
+        """
         if project_state.directory_path is None:
             raise ValueError("Project directory is not set.")
 

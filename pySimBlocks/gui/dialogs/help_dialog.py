@@ -23,7 +23,18 @@ from PySide6.QtWidgets import  QTextBrowser, QDialog, QVBoxLayout
 
 
 class HelpDialog(QDialog):
+    """Display Markdown help content for a block or feature."""
+
     def __init__(self, md_path: Path, parent=None):
+        """Initialize a help dialog.
+
+        Args:
+            md_path: Markdown file to display.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
         self.setWindowTitle(md_path.name)
         self.resize(600, 500)

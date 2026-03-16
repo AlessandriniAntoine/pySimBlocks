@@ -1,0 +1,26 @@
+body {
+  font-size: 16px;
+}
+
+div.body h1,
+div.body h2,
+div.body h3 {
+  color: #16324f;
+}
+
+div.sphinxsidebar a {
+  color: #0f5c8a;
+}
+
+div.related {
+  background: #16324f;
+}
+
+div.related a {
+  color: #ffffff;
+}
+
+.auto-nav.user-guide-page .caption,
+.auto-nav.user-guide-page > ul > li:first-child {
+  display: none;
+}

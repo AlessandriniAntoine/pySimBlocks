@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class ConstantMeta(BlockMeta):
+    """Describe the GUI metadata of the constant source block."""
     
     def __init__(self):
+        """Initialize constant-source block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Constant"
         self.category = "sources"
         self.type = "constant"

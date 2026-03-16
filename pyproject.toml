@@ -55,6 +55,12 @@ examples = [
     "qpsolvers[osqp,clarabel]",
 ]
 
+docs = [
+    "sphinx",
+    "myst-parser",
+    "furo",
+]
+
 tests = [
     "pytest",
     "pytest-qt",

@@ -34,10 +34,27 @@ from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class DisplayYamlDialog(QDialog):
+    """Preview the generated project YAML inside a dialog.
+
+    Attributes:
+        project_state: Project state being previewed.
+        view: Diagram view supplying block layout information.
+    """
+
     def __init__(self,
                  project: ProjectState,
                  view: DiagramView,
                  parent=None):
+        """Initialize the YAML preview dialog.
+
+        Args:
+            project: Project state being previewed.
+            view: Diagram view supplying block layout information.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
 
         self.setWindowTitle("project.yaml Preview")
@@ -77,10 +94,11 @@ class DisplayYamlDialog(QDialog):
 
         main_layout.addLayout(buttons)
 
-    # -------------------------------------------------
-    # Helpers
-    # -------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
     def _make_code_view(self, text:str) -> QTextEdit:
+        """Build a read-only text editor configured for code display."""
         edit = QTextEdit()
         edit.setReadOnly(True)
         edit.setFont(QFont("Courier New", 10))

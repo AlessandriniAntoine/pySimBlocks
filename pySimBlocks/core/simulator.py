@@ -22,6 +22,7 @@ from typing import Dict, List
 
 import numpy as np
 
+from pySimBlocks.core.block import Block
 from pySimBlocks.core.config import SimulationConfig
 from pySimBlocks.core.fixed_time_manager import FixedStepTimeManager
 from pySimBlocks.core.model import Model
@@ -30,25 +31,24 @@ from pySimBlocks.core.task import Task
 
 
 class Simulator:
-    """
-    Discrete-time simulator with strict Simulink-like semantics:
-
-        For each step k:
-
-          1) PHASE 1: output_update(t)
-             Blocks compute outputs y[k] from x[k] and u[k].
-
-          2) Propagate all outputs to downstream inputs.
-
-          3) PHASE 2: state_update(t, dt)
-             Blocks compute x[k+1] from x[k] and u[k].
-
-          4) Commit x[k+1] -> x[k].
-
-    This guarantees:
-        - Proper separation of outputs and state transitions.
-        - Correct causal behavior for feedback loops.
-        - Algebraic loop detection through the Model's topo ordering.
+    """Discrete-time simulator with strict Simulink-like semantics.
+ 
+    Each simulation step follows four phases:
+ 
+    1. **output_update** — blocks compute y[k] from x[k] and u[k].
+    2. **Propagate** — outputs are forwarded to downstream inputs.
+    3. **state_update** — blocks compute x[k+1] from x[k] and u[k].
+    4. **Commit** — x[k+1] is copied into x[k].
+ 
+    This guarantees proper separation of outputs and state transitions,
+    correct causal behavior for feedback loops, and algebraic loop
+    detection through the model's topological ordering.
+ 
+    Attributes:
+        model: The block-diagram model to simulate.
+        sim_cfg: Simulation execution configuration.
+        verbose: If True, print step-by-step execution logs.
+        logs: Logged signal values keyed by variable name.
     """
 
     def __init__(
@@ -57,7 +57,13 @@ class Simulator:
         sim_cfg: SimulationConfig,
         verbose: bool = False,
     ):
-
+        """Initialize and compile the simulator.
+ 
+        Args:
+            model: The block-diagram model to simulate.
+            sim_cfg: Simulation execution configuration.
+            verbose: If True, print execution logs.
+        """
         self.model = model
         self.sim_cfg = sim_cfg
         self.verbose = verbose
@@ -72,14 +78,21 @@ class Simulator:
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float = 0.0):
-        """Initialize all blocks and propagate initial outputs."""
+
+    def initialize(self, t0: float = 0.0) -> None:
+        """Initialize all blocks and propagate initial outputs.
+ 
+        Args:
+            t0: Initial simulation time in seconds.
+ 
+        Raises:
+            RuntimeError: If any block raises during initialization.
+        """
         self.t = float(t0)
         self.t_step = float(t0)
         self.logs = {"time": []}
         self._log_shapes: Dict[str, tuple[int, int]] = {}
 
-        # Initialisation bloc par bloc + propagation
         for block in self.output_order:
             try:
                 block.initialize(self.t)
@@ -91,14 +104,20 @@ class Simulator:
         for task in self.tasks:
             task.update_state_blocks()
 
-    # ------------------------------------------------------------------
     def step(self, dt_override: float | None = None) -> None:
-        """
-        Perform one simulation step.
-
-        If dt_override is provided, the simulator time advance is driven by this
-        external dt (real-time clock). Otherwise, dt is provided by the internal
-        time manager (fixed-step).
+        """Perform one simulation step.
+ 
+        With an internal clock, dt is provided by the time manager.
+        With an external clock, dt_override must be supplied by the caller.
+ 
+        Args:
+            dt_override: Time step in seconds, required when using an
+                external clock. Must not be provided for an internal clock.
+ 
+        Raises:
+            RuntimeError: If dt_override is missing for an external clock,
+                or provided for an internal clock.
+            ValueError: If dt_override is not strictly positive.
         """
         # 0) Choose dt for this tick
         if self.sim_cfg.clock == "external":
@@ -132,6 +151,7 @@ class Simulator:
             for block in task.state_blocks:
                 block.state_update(self.t, dt_task)
 
+        # PHASE 3 — commit states
         for task in active_tasks:
             for block in task.state_blocks:
                 block.commit_state()
@@ -142,17 +162,27 @@ class Simulator:
         self.t_step = self.t
         self.t += dt_scheduler
 
-    # ------------------------------------------------------------------
     def run(
         self,
         T: float | None = None,
         t0: float | None = None,
         logging: list[str] | None = None,
-    ):
+        ) -> Dict[str, List[np.ndarray]]:
         """Run the simulation from t0 to T.
-        If T, t0 or logging are not provided, use the simulator's config.
+ 
+        Falls back to sim_cfg values for any argument not provided.
+ 
+        Args:
+            T: Simulation end time in seconds.
+            t0: Simulation start time in seconds.
+            logging: List of variable names to log (e.g.
+                ``"BlockName.outputs.port"``).
+ 
         Returns:
-            logs (Dict[str, List[np.ndarray]]): Logged variables over time.
+            Dict mapping variable names to their logged values over time.
+ 
+        Raises:
+            RuntimeError: If called with an external clock configuration.
         """
         if self.sim_cfg.clock == "external":
             raise RuntimeError("Simulator.run() is not supported with external clock. Use step(dt_override=...)")
@@ -163,7 +193,6 @@ class Simulator:
 
         self.initialize(t0_run)
 
-        # Main loop (with a small epsilon to avoid floating-point issues)
         eps = 1e-12
         while self.t_step < sim_duration - eps:
             self.step()
@@ -174,26 +203,38 @@ class Simulator:
                 for variable in logging_run:
                     print(f"{variable}: {self.logs[variable][-1]}")
 
-
-
         for block in self.model.blocks.values():
             try:
                 block.finalize()
             except Exception as e:
                 print(f"[WARNING] finalize() failed for block {block.name}: {e}")
 
-
         return self.logs
 
-    # ------------------------------------------------------------------
     def get_data(self,
                  variable: str | None = None,
                  block:str | None = None,
                  port: str | None = None) -> np.ndarray:
-        """Retrieve logged data for a specific variable, block output, or state.
-        Provide either:
-            - variable: the full variable name as logged (e.g., "BlockName.outputs.Port)
-            - block and port: to specify an output variable (e.g., block="BlockName", port="Port")
+        """Retrieve logged data for a variable as a NumPy array.
+ 
+        Provide either variable or the (block, port) pair:
+ 
+        - ``variable``: full log key, e.g. ``"BlockName.outputs.port"``.
+        - ``block`` + ``port``: shorthand for ``"block.outputs.port"``.
+ 
+        Args:
+            variable: Full variable name as logged.
+            block: Block name (used with port).
+            port: Output port name (used with block).
+ 
+        Returns:
+            Array of shape ``(n_steps, *signal_shape)`` containing the
+            logged values.
+ 
+        Raises:
+            ValueError: If neither variable nor (block, port) is provided,
+                if the variable is not found in logs, or if the log is empty
+                or cannot be converted to a NumPy array.
         """
         if variable is not None:
             var_name = variable
@@ -222,18 +263,22 @@ class Simulator:
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
-    def _compile(self):
+
+    def _compile(self) -> None:
         """Prepare the simulator for execution.
-        - Build execution order.
-        - Group blocks into tasks by sample time.
-        - Initialize the scheduler and time manager.
+ 
+        Builds execution order, groups blocks into tasks by sample time,
+        and initializes the scheduler and time manager.
+ 
+        Raises:
+            NotImplementedError: If solver is ``"variable"``.
+            ValueError: If solver is unknown.
         """
         self.output_order = self.model.build_execution_order()
         self.model.resolve_sample_times(self.sim_cfg.dt)
         self.model._rebuild_downstream_map()
         sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
 
-        # regroup blocks by sample time
         tasks_by_ts = {}
         for b in self.model.blocks.values():
             sample_time = b._effective_sample_time
@@ -265,12 +310,8 @@ class Simulator:
                 "Supported modes are: 'fixed', 'variable'."
             )
 
-
-    # ------------------------------------------------------------------
-    def _propagate_from(self, block):
-        """
-        Propagate outputs of `block` to its direct downstream blocks.
-        """
+    def _propagate_from(self, block: Block) -> None:
+        """Forward outputs of block to its direct downstream inputs."""
         blocks = self.model.blocks
         for (src, dst) in self.model.downstream_of(block.name):
             _, src_port = src
@@ -279,13 +320,14 @@ class Simulator:
             if value is not None:
                 blocks[dst_block].inputs[dst_port] = value
 
-    # ------------------------------------------------------------------
-    def _log(self, variables_to_log):
-        """Log specified variables at the current time step.
-
-        Enforces:
-            - logged values must be 2D numpy arrays
-            - shape must stay constant over time for each logged variable
+    def _log(self, variables_to_log: List[str]) -> None:
+        """Log specified variables at the current timestep.
+ 
+        Raises:
+            ValueError: If a variable format is invalid or the container
+                is unknown.
+            RuntimeError: If a logged value is None, not 2D, or changes
+                shape across timesteps.
         """
         for var in variables_to_log:
             block_name, container, key = var.split(".")
@@ -311,7 +353,6 @@ class Simulator:
                     f"got ndim={arr.ndim} with shape {arr.shape}."
                 )
 
-            # Enforce constant shape over time for this variable
             if var not in self._log_shapes:
                 self._log_shapes[var] = arr.shape
             else:

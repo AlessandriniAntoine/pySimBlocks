@@ -26,8 +26,17 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class MuxMeta(BlockMeta):
+    """Describe the GUI metadata of the mux block."""
 
     def __init__(self):
+        """Initialize mux block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Mux"
         self.category = "operators"
         self.type = "mux"
@@ -76,11 +85,25 @@ class MuxMeta(BlockMeta):
             )
         ]
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def resolve_port_group(self, 
                            port_meta: PortMeta,
                            direction: Literal['input', 'output'], 
                            instance: "BlockInstance"
         ) -> list["PortInstance"]:
+        """Resolve mux input ports from the configured input count.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         if direction == "input" and port_meta.name == "in":
             num_inputs = instance.parameters.get("num_inputs", 0)

@@ -32,8 +32,17 @@ from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 
 class AlgebraicFunctionMeta(BlockMeta):
+    """Describe the GUI metadata of the user-defined algebraic function block."""
 
     def __init__(self):
+        """Initialize algebraic-function block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "AlgebraicFunction"
         self.category = "operators"
         self.type = "algebraic_function"
@@ -97,7 +106,7 @@ class AlgebraicFunctionMeta(BlockMeta):
 
 
     # --------------------------------------------------------------------------
-    # Port resolution
+    # Public Methods
     # --------------------------------------------------------------------------
     def resolve_port_group(
         self,
@@ -105,6 +114,16 @@ class AlgebraicFunctionMeta(BlockMeta):
         direction: Literal['input', 'output'],
         instance: "BlockInstance"
     ) -> list["PortInstance"]:
+        """Resolve dynamic input and output ports from configured key lists.
+
+        Args:
+            port_meta: Declared port metadata.
+            direction: Direction of the port group.
+            instance: Block instance whose ports are being built.
+
+        Returns:
+            Concrete ports for the requested port group.
+        """
 
         ports = []
         if direction == "input":
@@ -139,15 +158,19 @@ class AlgebraicFunctionMeta(BlockMeta):
 
         return super().resolve_port_group(port_meta, direction, instance)
 
-    # --------------------------------------------------------------------------
-    # Dialog methods
-    # --------------------------------------------------------------------------
     def build_param(
         self,
         session,
         form: QFormLayout,
         readonly: bool = False,
     ):
+        """Build the algebraic-function parameter editor.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         # --- Block name ---
         name_edit = QLineEdit(session.instance.name)
         name_edit.textChanged.connect(
@@ -180,21 +203,34 @@ class AlgebraicFunctionMeta(BlockMeta):
             session.param_widgets[pmeta.name] = widget
             session.param_labels[pmeta.name] = label
 
-    # ------------------------------------------------------
     def build_post_param(self, session, form: QFormLayout, readonly: bool = False):
+        """Build the post-parameter section with the open-file action.
+
+        Args:
+            session: Active dialog session.
+            form: Form layout receiving the widgets.
+            readonly: Whether the dialog is read-only.
+        """
         open_btn = QPushButton("Open file")
         open_btn.clicked.connect(lambda: self._open_file_from_session(session))
         form.addRow(QLabel(""), open_btn)
         session.open_file_btn = open_btn
         self._refresh_open_button_state(session)
 
-    # ------------------------------------------------------
     def refresh_form(self, session):
+        """Refresh widget visibility and the file-open button state.
+
+        Args:
+            session: Active dialog session.
+        """
         super().refresh_form(session)
         self._refresh_open_button_state(session)
 
-    # ------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
     def _resolve_file_path(self, session) -> Path | None:
+        """Resolve the configured Python file path for the current session."""
         raw = session.local_params.get("file_path")
         if not raw:
             return None
@@ -204,8 +240,8 @@ class AlgebraicFunctionMeta(BlockMeta):
             path = (session.project_dir / path).resolve()
         return path
 
-    # ------------------------------------------------------
     def _refresh_open_button_state(self, session) -> None:
+        """Enable or disable the open-file button from the resolved path."""
         btn = getattr(session, "open_file_btn", None)
         if btn is None:
             return
@@ -218,8 +254,8 @@ class AlgebraicFunctionMeta(BlockMeta):
         else:
             btn.setToolTip("Set a valid existing file_path to open the file.")
 
-    # ------------------------------------------------------
     def _open_file_from_session(self, session) -> None:
+        """Open the configured source file with the platform default app."""
         target = self._resolve_file_path(session)
         if target is None or not target.is_file():
             return

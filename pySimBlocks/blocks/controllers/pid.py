@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
@@ -27,43 +29,26 @@ from pySimBlocks.core.block import Block
 
 
 class Pid(Block):
-    """
-    Discrete-time PID controller block.
+    """Discrete-time PID controller block.
 
-    Summary:
-        Implements a single-input single-output discrete PID controller,
-        similar to the Simulink PID block. The controller computes a control
-        command from an error signal using proportional, integral and/or
-        derivative actions, depending on the selected control mode.
+    Implements a single-input single-output discrete PID controller,
+    similar to the Simulink PID block. The controller computes a control
+    command from an error signal ``e`` using proportional, integral, and/or
+    derivative actions depending on the selected control mode.
 
-    Parameters (overview):
-        controller : str
-            Control mode. One of {"P", "PI", "PD", "PID"}.
-        Kp : float
-            Proportional gain.
-        Ki : float
-            Integral gain.
-        Kd : float
-            Derivative gain.
-        u_min : float, optional
-            Minimum output saturation.
-        u_max : float, optional
-            Maximum output saturation.
-        sample_time : float, optional
-            Controller sampling period.
+    Output saturation is applied only if ``u_min`` and/or ``u_max`` are set.
+    Anti-windup clamps the integrator state to the saturation bounds.
 
-    I/O:
-        Inputs:
-            e : error signal.
-        Outputs:
-            u : control command.
-
-    Notes:
-        - The block is strictly SISO.
-        - Integral action introduces internal state.
-        - If a parameter is not provided, the block falls back to its
-          internal default value.
-        - Output saturation is applied only if u_min and/or u_max are defined.
+    Attributes:
+        controller: Active control mode (``"P"``, ``"I"``, ``"PI"``,
+            ``"PD"``, or ``"PID"``).
+        integration_method: Integration scheme for the I term
+            (``"euler forward"`` or ``"euler backward"``).
+        Kp: Proportional gain as a (1,1) array.
+        Ki: Integral gain as a (1,1) array.
+        Kd: Derivative gain as a (1,1) array.
+        u_min: Lower saturation bound as a (1,1) array, or None.
+        u_max: Upper saturation bound as a (1,1) array, or None.
     """
 
     def __init__(
@@ -78,6 +63,27 @@ class Pid(Block):
         integration_method: str = "euler forward",
         sample_time: float | None = None,
     ):
+        """Initialize a PID controller block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            controller: Control mode. Must be one of ``{"P", "I", "PI",
+                "PD", "PID"}``.
+            Kp: Proportional gain. Must be scalar-like.
+            Ki: Integral gain. Must be scalar-like.
+            Kd: Derivative gain. Must be scalar-like.
+            u_min: Minimum output saturation bound. None to disable.
+            u_max: Maximum output saturation bound. None to disable.
+            integration_method: Integration scheme for the I term.
+                Must be ``"euler forward"`` or ``"euler backward"``.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If ``controller`` or ``integration_method`` is
+                invalid, if any gain is not scalar-like, or if
+                ``u_min > u_max``.
+        """
         super().__init__(name, sample_time)
 
         controller = controller.upper()
@@ -95,7 +101,6 @@ class Pid(Block):
                 f"[{self.name}] Unsupported method '{self.integration_method}'. Allowed: {allowed}"
             )
 
-        # Gains (SISO, (1,1))
         self.Kp = self._to_siso("Kp", Kp)
         self.Ki = self._to_siso("Ki", Ki)
         self.Kd = self._to_siso("Kd", Kd)
@@ -109,13 +114,10 @@ class Pid(Block):
                     f"[{self.name}] u_min ({self.u_min.item()}) must be <= u_max ({self.u_max.item()})."
                 )
 
-        # Warnings
         self._validate_gains()
 
-        # Direct feedthrough policy
         has_p = "P" in self.controller
         has_d = "D" in self.controller
-        has_i = "I" in self.controller
 
         if has_p or has_d:
             self.direct_feedthrough = True
@@ -123,11 +125,9 @@ class Pid(Block):
             # I-only
             self.direct_feedthrough = (self.integration_method == "euler backward")
 
-        # Ports
         self.inputs["e"] = None
         self.outputs["u"] = None
 
-        # State (SISO)
         self.state["x_i"] = np.zeros((1, 1), dtype=float)
         self.state["e_prev"] = np.zeros((1, 1), dtype=float)
         self.next_state["x_i"] = np.zeros((1, 1), dtype=float)
@@ -137,12 +137,25 @@ class Pid(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
-        # Start at zero command, keep internal states at zero.
+
+    def initialize(self, t0: float) -> None:
+        """Set the output to zero and keep internal states at zero.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self.outputs["u"] = np.zeros((1, 1), dtype=float)
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def output_update(self, t: float, dt: float) -> None:
+        """Compute the PID control command from the current error input.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``e`` is not connected.
+        """
         e_in = self.inputs["e"]
         if e_in is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
@@ -170,7 +183,6 @@ class Pid(Block):
 
         u = P + I + D
 
-        # Saturation
         if self.u_min is not None:
             u = np.maximum(u, self.u_min)
         if self.u_max is not None:
@@ -178,8 +190,16 @@ class Pid(Block):
 
         self.outputs["u"] = u
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
+    def state_update(self, t: float, dt: float) -> None:
+        """Update the integrator state and store the previous error.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``e`` is not connected.
+        """
         e_in = self.inputs["e"]
         if e_in is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
@@ -188,13 +208,12 @@ class Pid(Block):
 
         has_i = "I" in self.controller
 
-        # Integrator update only if I term is enabled
         if has_i:
             x_i_next = self.state["x_i"] + self.Ki * e * dt
         else:
             x_i_next = self.state["x_i"].copy()
 
-        # Anti-windup (clamp integral state if saturation is defined)
+        # Anti-windup: clamp integral state to saturation bounds
         if self.u_min is not None:
             x_i_next = np.maximum(x_i_next, self.u_min)
         if self.u_max is not None:
@@ -207,10 +226,9 @@ class Pid(Block):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_siso(self, name: str, value: ArrayLike) -> np.ndarray:
-        """
-        Normalize scalar-like into (1,1). Reject anything else (strict SISO).
-        """
+        """Normalize a scalar-like value to a (1,1) array; reject anything else."""
         if np.isscalar(value):
             return np.array([[float(value)]], dtype=float)
 
@@ -227,8 +245,8 @@ class Pid(Block):
             f"[{self.name}] '{name}' must be scalar-like ((), (1,), or (1,1)). Got shape {arr.shape}."
         )
 
-    # ------------------------------------------------------------------
     def _validate_gains(self) -> None:
+        """Warn if a gain is zero for a mode that requires it."""
         kp = float(self.Kp[0, 0])
         ki = float(self.Ki[0, 0])
         kd = float(self.Kd[0, 0])

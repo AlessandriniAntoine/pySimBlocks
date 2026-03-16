@@ -25,19 +25,56 @@ if TYPE_CHECKING:
     from pySimBlocks.gui.project_controller import BlockInstance
 
 class ConnectionInstance:
+    """Represent a connection between two GUI ports.
+
+    Attributes:
+        src_port: Source port of the connection.
+        dst_port: Destination port of the connection.
+    """
+
     def __init__(
         self,
         src_port: "PortInstance",
         dst_port: "PortInstance",
     ):
+        """Initialize a connection instance.
+
+        Args:
+            src_port: Source port of the connection.
+            dst_port: Destination port of the connection.
+
+        Raises:
+            None.
+        """
         self.src_port = src_port
         self.dst_port = dst_port
 
+
+    # --- Public methods ---
+
     def src_block(self) -> "BlockInstance":
+        """Return the source block of the connection.
+
+        Returns:
+            Block owning the source port.
+        """
         return self.src_port.block
 
     def dst_block(self) -> "BlockInstance":
+        """Return the destination block of the connection.
+
+        Returns:
+            Block owning the destination port.
+        """
         return self.dst_port.block
 
     def is_block_involved(self, block: "BlockInstance") -> bool:
+        """Return whether the given block participates in the connection.
+
+        Args:
+            block: Block instance to test.
+
+        Returns:
+            True if the block owns either connection endpoint.
+        """
         return block in (self.src_port.block, self.dst_port.block)

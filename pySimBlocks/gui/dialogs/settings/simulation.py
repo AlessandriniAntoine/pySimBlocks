@@ -29,7 +29,23 @@ from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SimulationSettingsWidget(QWidget):
+    """Edit simulation parameters and logged signals for the project.
+
+    Attributes:
+        project_state: Project state edited by the widget.
+        project_controller: Controller applying simulation changes.
+    """
+
     def __init__(self, project_state: ProjectState, project_controller: ProjectController):
+        """Initialize the simulation settings widget.
+
+        Args:
+            project_state: Project state edited by the widget.
+            project_controller: Controller applying simulation changes.
+
+        Raises:
+            None.
+        """
         super().__init__()
         self.project_state = project_state
         self.project_controller = project_controller
@@ -64,7 +80,12 @@ class SimulationSettingsWidget(QWidget):
         self._define_log_list()
         layout.addRow("Signals logged:", self.logs_list)
 
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def apply(self):
+        """Apply the edited simulation parameters and logging selection."""
 
         params = {}
         try:
@@ -90,10 +111,7 @@ class SimulationSettingsWidget(QWidget):
             self._logs_dirty = False
 
     def refresh_from_project(self):
-        """
-        Synchronize the log checkbox list with project_state.logging.
-        Called when the Simulation tab becomes active.
-        """
+        """Synchronize the widget from the current project state."""
         self._define_log_list()
         selected = set(self.project_state.logging)
         self.logs_list.blockSignals(True)
@@ -108,7 +126,12 @@ class SimulationSettingsWidget(QWidget):
         self.logs_list.blockSignals(False)
         self._logs_dirty = False
 
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _define_log_list(self):
+        """Populate the log list from the current project outputs."""
         self.logs_list.blockSignals(True)
         self.logs_list.clear()
         available = self.project_state.get_output_signals()
@@ -122,6 +145,7 @@ class SimulationSettingsWidget(QWidget):
         self._logs_dirty = False
 
     def _on_log_changed(self, item: QListWidgetItem):
+        """Track logging changes and prevent removing signals used by plots."""
         self._logs_dirty = True
         if item.checkState() == Qt.Unchecked:
             used = any(

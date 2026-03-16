@@ -28,18 +28,34 @@ from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.models.block_instance import BlockInstance
 
 class _PreviewBlock:
+    """Minimal preview wrapper used by the block dialog."""
+
     def __init__(self, instance):
+        """Initialize the preview wrapper."""
         self.instance = instance
 
     def refresh_ports(self):
+        """No-op refresh hook for the preview block."""
         pass
 
 
 class _BlockTree(QTreeWidget):
+    """Tree widget listing block categories and block types."""
+
     def __init__(self,
                  get_categories: Callable[[], list[str]],
                  get_blocks: Callable[[str], list[str]],
                  resolve_block_meta: Callable[[str, str], BlockMeta]):
+        """Initialize the block tree.
+
+        Args:
+            get_categories: Callable returning available block categories.
+            get_blocks: Callable returning block types for a category.
+            resolve_block_meta: Callable resolving block metadata from names.
+
+        Raises:
+            None.
+        """
         super().__init__()
         self.setHeaderHidden(True)
         self.setDragEnabled(True)
@@ -57,7 +73,13 @@ class _BlockTree(QTreeWidget):
 
         self.itemDoubleClicked.connect(self.on_item_double_clicked)
 
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def startDrag(self, supportedActions):
+        """Start a drag operation for the currently selected block item."""
         item = self.currentItem()
         if not item or item.childCount() > 0:
             return
@@ -71,6 +93,7 @@ class _BlockTree(QTreeWidget):
 
 
     def on_item_double_clicked(self, item, column):
+        """Open a read-only preview dialog for a leaf block item."""
         if item.childCount() > 0:
             return
 
@@ -89,10 +112,27 @@ class _BlockTree(QTreeWidget):
 
 
 class BlockList(QWidget):
+    """Sidebar widget listing blocks and filtering them by search text.
+
+    Attributes:
+        search: Search field used to filter categories and block names.
+        tree: Tree widget showing available blocks grouped by category.
+    """
+
     def __init__(self,
                  get_categories: Callable[[], list[str]],
                  get_blocks: Callable[[str], list[str]],
                  resolve_block_meta: Callable[[str, str], BlockMeta]):
+        """Initialize the block list widget.
+
+        Args:
+            get_categories: Callable returning available block categories.
+            get_blocks: Callable returning block types for a category.
+            resolve_block_meta: Callable resolving block metadata from names.
+
+        Raises:
+            None.
+        """
         super().__init__()
 
         self.search = QLineEdit(self)
@@ -108,7 +148,13 @@ class BlockList(QWidget):
 
         self.search.textChanged.connect(self._apply_filter)
 
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
     def _apply_filter(self, text: str):
+        """Filter visible categories and blocks using the search text."""
         query = text.strip().lower()
 
         for i in range(self.tree.topLevelItemCount()):

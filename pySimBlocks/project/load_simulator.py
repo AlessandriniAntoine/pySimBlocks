@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Tuple
 
@@ -31,8 +33,23 @@ from pySimBlocks.project.load_project_config import load_project_config
 def load_simulator_from_project(
     project_yaml: str | Path,
 ) -> Tuple[Simulator, PlotConfig | None]:
-    """
-    Build and return a ready-to-run Simulator from a unified project.yaml.
+    """Build and return a ready-to-run Simulator from a unified project.yaml.
+
+    Loads the project configuration, constructs the model, and initializes a
+    :class:`Simulator` ready to call :meth:`~Simulator.run`.
+
+    Args:
+        project_yaml: Path to the unified ``project.yaml`` file.
+
+    Returns:
+        A tuple ``(sim, plot_cfg)`` where ``sim`` is the initialized
+        :class:`Simulator` and ``plot_cfg`` is the :class:`PlotConfig` or
+        None if no plots are configured.
+
+    Raises:
+        FileNotFoundError: If the project file does not exist.
+        ValueError: If the project file is malformed or required fields are
+            missing.
     """
     sim_cfg, model_dict, plot_cfg, project_name, params_dir = load_project_config(
         project_yaml

@@ -26,11 +26,22 @@ from PySide6.QtCore import Qt
 
 
 class UnsavedChangesDialog(QDialog):
+    """Prompt the user about unsaved changes before a disruptive action."""
+
     SAVE = 1
     DISCARD = 2
     CANCEL = 3
 
     def __init__(self, action_name: str, parent=None):
+        """Initialize the unsaved-changes dialog.
+
+        Args:
+            action_name: Action the user is about to perform.
+            parent: Optional parent widget.
+
+        Raises:
+            None.
+        """
         super().__init__(parent)
 
         self.setWindowTitle("Unsaved changes")
@@ -83,10 +94,18 @@ class UnsavedChangesDialog(QDialog):
         layout.addSpacing(12)
         layout.addLayout(buttons_layout)
 
-    # ❌ Esc does nothing
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
     def reject(self):
+        """Ignore Escape-based dialog rejection to force an explicit choice."""
         pass
 
-    # ❌ Close button (X) does nothing
     def closeEvent(self, event):
+        """Ignore window-close events to force an explicit choice.
+
+        Args:
+            event: Qt close event.
+        """
         event.ignore()

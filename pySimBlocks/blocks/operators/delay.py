@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -25,46 +27,20 @@ from pySimBlocks.core.block import Block
 
 
 class Delay(Block):
-    """
-    N-step discrete delay block.
+    """N-step discrete delay block.
 
-    Summary:
-        Outputs a delayed version of the input signal by a fixed number of
-        discrete time steps.
+    Outputs a delayed version of the input signal by a fixed number of discrete
+    time steps. The output at time k is the input at time k − N:
 
-    Parameters (overview):
-        num_delays : int
-            Number of discrete delays N (N >= 1).
-        initial_output : scalar or array-like, optional
-            Initial value used to fill the delay buffer.
-            Accepted: scalar -> (1,1), 1D -> (k,1), 2D -> (m,n).
-            Scalar (1,1) can be broadcast to match the input shape when the
-            first input becomes available.
-        sample_time : float, optional
-            Block execution period.
+        y[k] = u[k - N]
 
-    I/O:
-        Inputs:
-            in : Input signal (must be 2D).
-            reset: Optional reset signal.
-        Outputs:
-            out : Delayed output signal (2D).
+    The buffer shape is inferred from the first non-None input unless an
+    explicit ``initial_output`` of non-scalar shape is provided. A scalar (1,1)
+    initial value is broadcast to match the first input. Once the shape is
+    fixed, any mismatch raises an error.
 
-    Notes:
-        - Stateful block.
-        - No direct feedthrough.
-        - Output at time k is the input at time k − N.
-        - Buffer shape is inferred from the first available input if not
-          explicitly initialized.
-        - Policy:
-            + Signals are 2D arrays.
-            + Buffer always exists (never None).
-            + Shape is fixed either:
-                * immediately if initial_output is non-scalar 2D (shape != (1,1))
-                * otherwise at the first non-None input seen by the block
-            + If buffer is still "unfixed" and currently scalar (1,1), it can be
-              broadcast ONCE to match the first input shape.
-            + After shape is fixed, any shape mismatch raises.
+    Attributes:
+        num_delays: Number of discrete steps N (>= 1).
     """
 
     direct_feedthrough = False
@@ -76,6 +52,21 @@ class Delay(Block):
         initial_output: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
+        """Initialize a Delay block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            num_delays: Number of discrete steps to delay the input. Must be
+                >= 1.
+            initial_output: Initial value used to fill the delay buffer.
+                Accepted shapes: scalar, 1D, or 2D. A non-scalar 2D value
+                fixes the buffer shape immediately.
+            sample_time: Sampling period in seconds, or None to use the global
+                simulation dt.
+
+        Raises:
+            ValueError: If ``num_delays`` is not a positive integer.
+        """
         super().__init__(name, sample_time)
 
         if not isinstance(num_delays, int) or num_delays < 1:
@@ -89,11 +80,9 @@ class Delay(Block):
         self.state["buffer"] = None
         self.next_state["buffer"] = None
 
-        # Shape management
         self._shape_fixed: bool = False
         self._buffer_shape: tuple[int, int] | None = None
 
-        # Initialize buffer as (1,1) by default, but NOT fixed yet.
         self._initial_output = initial_output
         init = np.zeros((1, 1), dtype=float)
 
@@ -101,12 +90,10 @@ class Delay(Block):
             arr = self._to_2d_array("initial_output", initial_output)
             init = arr.astype(float, copy=False)
 
-            # If user provides a non-scalar 2D initial_output, shape is fixed now.
             if not self._is_scalar_2d(init):
                 self._shape_fixed = True
                 self._buffer_shape = init.shape
 
-        # Buffer always exists (never None)
         self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
         self.next_state["buffer"] = None
 
@@ -114,7 +101,17 @@ class Delay(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Set the initial output from the buffer, resolving shape if input is available.
+
+        Args:
+            t0: Initial simulation time in seconds.
+
+        Raises:
+            ValueError: If the initial output shape is inconsistent with the
+                resolved buffer shape.
+        """
         out = self.state["buffer"][0]
 
         u = self.inputs["in"]
@@ -132,8 +129,13 @@ class Delay(Block):
 
         self.outputs["out"] = out
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Output the oldest buffer entry.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         if not self._shape_fixed:
             u = self.inputs["in"]
             if u is not None:
@@ -142,8 +144,18 @@ class Delay(Block):
 
         self.outputs["out"] = self.state["buffer"][0].copy()
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
+        """Shift the buffer left and append the current input.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``'in'`` is not connected.
+            ValueError: If the input is not 2D or its shape is inconsistent
+                with the buffer.
+        """
         if self._is_reset_active():
             self._apply_reset()
             return
@@ -158,7 +170,6 @@ class Delay(Block):
 
         buffer = self.state["buffer"]
 
-        # Shift left and append u
         new_buffer = []
         for i in range(self.num_delays - 1):
             new_buffer.append(buffer[i + 1].copy())
@@ -166,17 +177,13 @@ class Delay(Block):
 
         self.next_state["buffer"] = new_buffer
 
+
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _ensure_shape_and_buffer(self, u: np.ndarray) -> None:
-        """
-        Ensure:
-            - u is 2D
-            - buffer exists
-            - shape is fixed at the right time
-            - after shape is fixed, input must match buffer shape
-        """
+        """Validate input shape and fix the buffer shape on the first non-None input."""
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
@@ -185,7 +192,6 @@ class Delay(Block):
         buf0 = self.state["buffer"][0]
         assert buf0 is not None
 
-        # If already fixed, enforce strict match
         if self._shape_fixed:
             expected = buf0.shape
             if u.shape != expected:
@@ -194,11 +200,8 @@ class Delay(Block):
                 )
             return
 
-        # Not fixed yet: decide whether we can/should fix now
-        # We fix the shape the first time we see a non-None input (whatever its shape is).
         target_shape = u.shape
 
-        # If buffer is scalar placeholder, broadcast it to target shape (one-time)
         if self._is_scalar_2d(buf0) and target_shape != (1, 1):
             scalar = float(buf0[0, 0])
             self.state["buffer"] = [
@@ -206,20 +209,17 @@ class Delay(Block):
             ]
             buf0 = self.state["buffer"][0]
 
-        # If buffer is not scalar but we are not fixed yet, it must already match target shape
-        # (This can happen if you later decide to relax some init logic; keep strict.)
         if buf0.shape != target_shape:
             raise ValueError(
                 f"[{self.name}] Cannot infer a consistent delay shape: "
                 f"buffer currently {buf0.shape} but first input is {target_shape}."
             )
 
-        # Now we can fix shape (including (1,1))
         self._shape_fixed = True
         self._buffer_shape = target_shape
 
-    # ------------------------------------------------------------------
     def _is_reset_active(self) -> bool:
+        """Return True if the reset signal is active (truthy scalar)."""
         reset_signal = self.inputs.get("reset", None)
         if reset_signal is None:
             return False
@@ -236,6 +236,7 @@ class Delay(Block):
             )
 
     def _apply_reset(self) -> None:
+        """Reset the buffer to the initial output or zeros."""
         if self._initial_output is not None:
             arr = self._to_2d_array("initial_output", self._initial_output)
             init = arr.astype(float, copy=False)

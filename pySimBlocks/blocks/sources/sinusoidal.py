@@ -18,46 +18,29 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import ArrayLike
 from pySimBlocks.core.block_source import BlockSource
 
 
 class Sinusoidal(BlockSource):
-    """
-    Multi-dimensional sinusoidal signal source block (Option B).
+    """Multi-dimensional sinusoidal signal source block.
 
-    Summary:
-        Generates sinusoidal signals element-wise on a 2D output array:
-            y(t) = amplitude * sin(2*pi*frequency*t + phase) + offset
+    Generates sinusoidal signals element-wise on a 2D output array:
 
-        Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
-        broadcasting is allowed; all non-scalar parameters must share the same
-        shape.
+        y(t) = amplitude * sin(2*pi*frequency*t + phase) + offset
 
-    Parameters (overview):
-        amplitude : float or array-like
-            Sinusoidal amplitude.
-        frequency : float or array-like
-            Sinusoidal frequency in Hertz.
-        phase : float or array-like, optional
-            Phase shift in radians.
-        offset : float or array-like, optional
-            Constant offset added to the signal.
-        sample_time : float, optional
-            Block execution period.
+    Parameters may be scalars, vectors, or matrices. Only scalar-to-shape
+    broadcasting is allowed; all non-scalar parameters must share the same
+    shape.
 
-    Outputs:
-        out : sinusoidal output signal (2D ndarray)
-
-    Notes:
-        - Stateless.
-        - Normalization:
-            scalar -> (1,1), 1D -> (n,1), 2D -> (m,n)
-        - Broadcasting:
-            Only (1,1) scalars are broadcast to the common shape.
-            No NumPy broadcasting beyond that.
-        - No implicit flattening is performed.
+    Attributes:
+        amplitude: Sinusoidal amplitude, as a 2D array.
+        frequency: Frequency in Hz, as a 2D array.
+        offset: DC offset added to the signal, as a 2D array.
+        phase: Phase shift in radians, as a 2D array.
     """
 
     def __init__(
@@ -69,6 +52,21 @@ class Sinusoidal(BlockSource):
         phase: ArrayLike = 0.0,
         sample_time: float | None = None,
     ):
+        """Initialize a Sinusoidal block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            amplitude: Sinusoidal amplitude. Can be scalar, vector, or matrix.
+            frequency: Frequency in Hz. Can be scalar, vector, or matrix.
+            offset: DC offset added to the signal. Can be scalar, vector,
+                or matrix.
+            phase: Phase shift in radians. Can be scalar, vector, or matrix.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If non-scalar parameters have incompatible shapes.
+        """
         super().__init__(name, sample_time)
 
         A = self._to_2d_array("amplitude", amplitude, dtype=float)
@@ -94,18 +92,31 @@ class Sinusoidal(BlockSource):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Compute and set the output at the initial time t0.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         self._compute_output(t0)
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Compute and write the sinusoidal value to the output port.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+        """
         self._compute_output(t)
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _compute_output(self, t: float) -> None:
+        """Evaluate the sinusoidal formula at time t and write to outputs."""
         self.outputs["out"] = (
             self.amplitude
             * np.sin(2.0 * np.pi * self.frequency * t + self.phase)

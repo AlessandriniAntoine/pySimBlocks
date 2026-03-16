@@ -19,6 +19,14 @@
 # ******************************************************************************
 
 class ProjectSimulationParams:
+    """Store simulation parameters for a GUI project.
+
+    Attributes:
+        dt: Simulation timestep in seconds.
+        T: Simulation duration in seconds.
+        solver: Solver identifier.
+        clock: Clock mode identifier.
+    """
 
     DEFAULT_DT = 0.1
     DEFAULT_T = 10.
@@ -32,18 +40,38 @@ class ProjectSimulationParams:
             solver: str = DEFAULT_SOLVER,
             clock: str = DEFAULT_CLOCK
     ):
+        """Initialize project simulation parameters.
+
+        Args:
+            dt: Simulation timestep in seconds.
+            T: Simulation duration in seconds.
+            solver: Solver identifier.
+            clock: Clock mode identifier.
+
+        Raises:
+            None.
+        """
         self.dt = dt
         self.T = T
         self.solver = solver
         self.clock = clock
 
+
+    # --- Public methods ---
+
     def load_from_dict(self, params: dict) -> None:
+        """Load simulation parameters from a mapping.
+
+        Args:
+            params: Mapping containing simulation parameter overrides.
+        """
         self.dt = params.get("dt", self.dt)
         self.T = params.get("T", self.T)
         self.solver = params.get("solver", self.solver)
         self.clock = params.get("clock", self.clock)
 
     def clear(self) -> None:
+        """Reset all simulation parameters to their defaults."""
         self.dt = self.DEFAULT_DT
         self.T = self.DEFAULT_T
         self.solver = self.DEFAULT_SOLVER

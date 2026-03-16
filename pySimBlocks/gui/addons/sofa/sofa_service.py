@@ -35,7 +35,26 @@ from pySimBlocks.project.generate_sofa_controller import generate_sofa_controlle
 
 
 class SofaService:
+    """Manage SOFA-specific validation, export, and execution workflows.
+
+    Attributes:
+        project_state: Project state used to resolve blocks and files.
+        project_controller: Controller used to access current view state.
+        sofa_path: Path to the ``runSofa`` executable.
+        gui: Selected SOFA GUI backend.
+        scene_file: Resolved SOFA scene file path.
+    """
+
     def __init__(self, project_state: ProjectState, project_controller: ProjectController):
+        """Initialize the SOFA service.
+
+        Args:
+            project_state: Project state used to resolve blocks and files.
+            project_controller: Controller used to access current view state.
+
+        Raises:
+            None.
+        """
         self.project_state = project_state
         self.project_controller = project_controller
 
@@ -47,9 +66,14 @@ class SofaService:
 
 
     # --------------------------------------------------------------------------
-    # Public methods
+    # Public Methods
     # --------------------------------------------------------------------------
     def get_scene_file(self):
+        """Resolve and cache the scene file used by the SOFA block.
+
+        Returns:
+            Tuple containing success flag, title, and details message.
+        """
         flag, msg, details = self.can_use_sofa()
         if flag:
             sofa_block =  [b for b in self.project_state.blocks if b.meta.type in ["sofa_plant", "sofa_exchange_i_o"]]
@@ -70,8 +94,12 @@ class SofaService:
         else:
             return flag, msg, details
 
-    # ------------------------------------------------------------------
     def can_use_sofa(self):
+        """Check whether the current project can be driven by SOFA.
+
+        Returns:
+            Tuple containing success flag, title, and details message.
+        """
         sofa_block =  [b for b in self.project_state.blocks if b.meta.type in ["sofa_plant", "sofa_exchange_i_o"]]
         if len(sofa_block) == 0:
             return False, "No SOFA block", "Please Add at least one sofa system."
@@ -80,16 +108,28 @@ class SofaService:
         else:
             return True, "Sofa can be master", "Only one system found. Diagram can be used from controller."
 
-    # ------------------------------------------------------------------
     def export_controller(self, window, saver):
+        """Export the generated SOFA controller for the current project.
+
+        Args:
+            window: Main window used for save confirmation.
+            saver: Project saver used to persist the project before export.
+
+        Raises:
+            ValueError: If the project directory is not defined.
+        """
         if window.confirm_discard_or_save("exporting sofa"):
             saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
         if self.project_state.directory_path is None:
             raise ValueError("Project directory is not set.\nPlease define it in settings.")
         generate_sofa_controller(self.project_state.directory_path)
 
-    # ------------------------------------------------------------------
     def run(self):
+        """Run the configured SOFA scene and collect its execution output.
+
+        Returns:
+            Tuple containing success flag, title, and details message.
+        """
         env_ok, msg = self._check_sofa_environnment()
         if not env_ok:
             return False, "Environment error", msg
@@ -160,23 +200,24 @@ class SofaService:
             cleanup_runtime_project_yaml(project_dir)
 
     # --------------------------------------------------------------------------
-    # Internal methods
+    # Private Methods
     # --------------------------------------------------------------------------
     def _accumulate_output(self):
+        """Append the latest process output chunk to the accumulated log."""
         chunk = self.process.readAllStandardOutput().data().decode()
         print(chunk, end="")
         self._full_log += chunk
 
-    # ------------------------------------------------------------------
     def _check_sofa_environnment(self):
+        """Validate the environment variables required to run SOFA."""
         sofa_root = os.environ.get("SOFA_ROOT")
         if not sofa_root:
             return False, "SOFA_ROOT is not set."
 
         return True, "OK"
 
-    # ------------------------------------------------------------------
     def _detect_sofa(self):
+        """Detect the ``runSofa`` executable from environment or PATH."""
         detected = None
         sofa_root = os.environ.get("SOFA_ROOT")
         if sofa_root:
@@ -196,8 +237,8 @@ class SofaService:
         if detected:
             self.sofa_path = detected
 
-    # ------------------------------------------------------------------
     def _resolve_scene_file(self, scene_file: str) -> Path:
+        """Resolve a scene file path relative to the project directory."""
         project_dir = self.project_state.directory_path
         if project_dir is None:
             raise RuntimeError("Project directory is not set")

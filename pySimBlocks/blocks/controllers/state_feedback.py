@@ -18,45 +18,44 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import ArrayLike
+
 from pySimBlocks.core.block import Block
 
 
 class StateFeedback(Block):
-    """
-    Discrete-time state-feedback controller block.
+    """Discrete-time state-feedback controller block.
 
-    Summary:
-        Implements a static discrete-time state-feedback control law:
-            u = G @ r - K @ x
+    Implements a static discrete-time state-feedback control law:
 
-    Parameters:
-        K : array-like, shape (m, n)
-            State feedback gain matrix.
-        G : array-like, shape (m, p)
-            Reference feedforward gain matrix.
-        sample_time : float, optional
-            Block execution period.
+        u = G @ r - K @ x
 
-    Inputs:
-        r : array (p, 1)
-            Reference vector.
-        x : array (n, 1)
-            State vector.
+    Both inputs must be column vectors. No implicit flattening is performed.
 
-    Outputs:
-        u : array (m, 1)
-            Control vector.
-
-    Notes:
-        - Stateless block.
-        - This block intentionally enforces column-vector inputs.
-        - No implicit flattening is performed.
+    Attributes:
+        K: State feedback gain matrix of shape (m, n).
+        G: Reference feedforward gain matrix of shape (m, p).
     """
 
     direct_feedthrough = True
 
-    def __init__(self, name: str, K, G, sample_time: float | None = None):
+    def __init__(self, name: str, K: ArrayLike, G: ArrayLike, sample_time: float | None = None):
+        """Initialize a StateFeedback block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            K: State feedback gain matrix, array-like of shape (m, n).
+            G: Reference feedforward gain matrix, array-like of shape (m, p).
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+
+        Raises:
+            ValueError: If K or G are not 2D, or if their first dimensions
+                do not match.
+        """
         super().__init__(name, sample_time)
 
         self.K = np.asarray(K, dtype=float)
@@ -76,23 +75,27 @@ class StateFeedback(Block):
                 f"K is {self.K.shape} while G is {self.G.shape} (first dimension must match)."
             )
 
-        # cached expected sizes for input validation
         self._m = m
         self._n = n
         self._p = p
 
-        # Ports
         self.inputs["r"] = None
         self.inputs["x"] = None
         self.outputs["u"] = None
 
-        # freeze input shapes once seen (optional but consistent)
         self._input_shapes = {}
+
 
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
-    def initialize(self, t0: float):
+
+    def initialize(self, t0: float) -> None:
+        """Set the output to zero, or compute u if inputs are already available.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         r = self.inputs["r"]
         x = self.inputs["x"]
         if r is None or x is None:
@@ -106,22 +109,45 @@ class StateFeedback(Block):
         except Exception as _:
             self.outputs["u"] = np.zeros((self._m, 1))
 
-    # ------------------------------------------------------------------
-    def output_update(self, t: float, dt: float):
+    def output_update(self, t: float, dt: float) -> None:
+        """Compute the control output u = G @ r - K @ x.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``r`` or ``x`` is not connected.
+            ValueError: If input shapes do not match the gain matrices.
+        """
         r = self._require_col_vector("r", self._p)
         x = self._require_col_vector("x", self._n)
 
         self.outputs["u"] = self.G @ r - self.K @ x
 
-    # ------------------------------------------------------------------
-    def state_update(self, t: float, dt: float):
-        pass
+    def state_update(self, t: float, dt: float) -> None:
+        """No-op: StateFeedback carries no internal state."""
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _require_col_vector(self, port: str, expected_rows: int) -> np.ndarray:
+        """Validate and return an input port value as a column vector.
+
+        Args:
+            port: Name of the input port to read.
+            expected_rows: Expected number of rows in the column vector.
+
+        Returns:
+            The input value as a 2D (n, 1) float array.
+
+        Raises:
+            RuntimeError: If the port value is None.
+            ValueError: If the array is not a column vector or has the
+                wrong number of rows.
+        """
         u = self.inputs[port]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")

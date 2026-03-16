@@ -27,19 +27,39 @@ from typing import Dict, Optional
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
 
+# Mapping: category -> block_type -> BlockMeta instance.
 BlockRegistry = Dict[str, Dict[str, BlockMeta]]
+
 
 def load_block_registry(
     metadata_root: Path | str | None = None,    
 ) -> BlockRegistry:
-    
+    """Load all BlockMeta subclasses from the GUI blocks directory.
+ 
+    Recursively scans metadata_root for Python files and registers every
+    BlockMeta subclass found. Defaults to ``pySimBlocks/gui/blocks/``.
+ 
+    Args:
+        metadata_root: Root directory to scan. Defaults to the package's
+            ``gui/blocks/`` directory.
+ 
+    Returns:
+        Registry mapping category names to dicts of block_type -> BlockMeta.
+ 
+    Raises:
+        FileNotFoundError: If metadata_root does not exist.
+        ValueError: If two files define a BlockMeta with the same type
+            within the same category.
+    """
     if metadata_root is None:
         metadata_root = Path(__file__).parents[1] / "gui" / "blocks"
     else:
         metadata_root = Path(metadata_root).resolve()
     
     if not metadata_root.exists():
-        raise FileNotFoundError(f"blocks_metadata directory not found: {metadata_root}")
+        raise FileNotFoundError(
+                f"blocks_metadata directory not found: {metadata_root}"
+                )
     
     registry: BlockRegistry = {}
 
@@ -48,28 +68,25 @@ def load_block_registry(
 
     return registry
 
+
+# --------------------------------------------------------------------------
+# Private helpers
+# --------------------------------------------------------------------------
+ 
 def _register_block_from_py(
         py_path: Path,
         registry: BlockRegistry,
 ) -> None:
-    """
-    Import a *.py file and register all BlockMeta subclasses inside.
-    """
-
+    """Import a .py file and register all BlockMeta subclasses it contains."""
     module_name = _path_to_module(py_path)
-
     module = importlib.import_module(module_name)
-
     doc_path = _resolve_doc_path(py_path)
 
     for _, obj in inspect.getmembers(module, inspect.isclass):
-        if not issubclass(obj, BlockMeta):
-            continue
-        if obj is BlockMeta:
+        if not issubclass(obj, BlockMeta) or obj is BlockMeta:
             continue
 
         meta: BlockMeta = obj()
-
         meta.doc_path = doc_path
 
         category = meta.category
@@ -85,17 +102,24 @@ def _register_block_from_py(
         
         registry[category][block_type] = meta
 
+
 def _path_to_module(py_path: Path) -> str:
-    """
-    Convert a file path to a Python module path.
-
+    """Convert a file path to a dotted Python module name.
+ 
     Example:
-      pySimBlocks/blocks_metadata/operators/sum_meta.py
-      -> pySimBlocks.blocks_metadata.operators.sum_meta
-    """
-
+        ``pySimBlocks/gui/blocks/operators/sum.py``
+        -> ``pySimBlocks.gui.blocks.operators.sum``
+ 
+    Args:
+        py_path: Absolute path to a Python source file.
+ 
+    Returns:
+        Dotted module name relative to the package root.
+ 
+    Raises:
+        RuntimeError: If py_path is not inside the package root.
+    """    
     py_path = py_path.with_suffix("")
-
     package_root = Path(__file__).parents[1]  # pySimBlocks/
 
     try:
@@ -105,23 +129,22 @@ def _path_to_module(py_path: Path) -> str:
             f"File {py_path} is not inside package root {package_root}"
         )
 
-    module_name = (
-        package_root.name
-        + "."
-        + rel_path.as_posix().replace("/", ".")
-    )
+    return package_root.name + "." + rel_path.as_posix().replace("/", ".")
 
-    return module_name
 
 def _resolve_doc_path(py_path: Path) -> Optional[Path]:
-    """
-    Resolve the documentation markdown file corresponding to a YAML metadata file.
-
+    """Resolve the Markdown documentation file for a GUI block module.
+ 
     Example:
-        blocks_metadata/systems/sofa/sofa_plant.yaml
-        -> docs/blocks_metadata/systems/sofa/sofa_plant.md
+        ``gui/blocks/systems/sofa/sofa_plant.py``
+        -> ``docs/blocks/systems/sofa/sofa_plant.md``
+ 
+    Args:
+        py_path: Path to the GUI block Python file.
+ 
+    Returns:
+        Path to the corresponding .md file if it exists, else None.
     """
-
     try:
         parts = list(py_path.parts)
         idx = parts.index("gui")
@@ -129,9 +152,7 @@ def _resolve_doc_path(py_path: Path) -> Optional[Path]:
         return None
 
     doc_root = Path(*parts[:idx]) / "docs"
-
     rel = Path(*parts[idx + 1 :]).with_suffix(".md")
-
     doc_path = doc_root / rel
 
     return doc_path if doc_path.exists() else None

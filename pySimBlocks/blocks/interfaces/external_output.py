@@ -23,33 +23,24 @@ from pySimBlocks.core.block import Block
 
 
 class ExternalOutput(Block):
+    """External output interface block.
+
+    Pass-through block for exposing model signals to the real-time external
+    side. Accepts scalar, (n,) or (n,1) inputs and forwards them as a strict
+    (n,1) column vector. The output shape is frozen after the first non-None
+    input and cannot change during the simulation.
     """
-    External output interface block.
 
-    Summary:
-        Pass-through block for external real-time commands/values.
-
-    Parameters:
-        sample_time: float, optional
-            Execution period of the block. If not specified, the simulator time
-            step is used.
-
-    I/O:
-        Input:
-            in: array (n,1)
-                Value produced by the model. Scalar, (n,), (n,1) accepted.
-        Output:
-            out: array (n,1)
-                Value forwarded to the external side as a column vector (n,1).
-
-    Policy:
-        - Accepts scalar, (n,), (n,1)
-        - Outputs strict (n,1)
-        - Once shape is known, it is frozen (cannot change)
-    """
     direct_feedthrough = True
 
     def __init__(self, name: str, sample_time: float | None = None):
+        """Initialize an ExternalOutput block.
+
+        Args:
+            name: Unique identifier for this block instance.
+            sample_time: Sampling period in seconds, or None to use the
+                global simulation dt.
+        """
         super().__init__(name, sample_time)
         self.inputs["in"] = None
         self.outputs["out"] = None
@@ -59,7 +50,13 @@ class ExternalOutput(Block):
     # --------------------------------------------------------------------------
     # Public methods
     # --------------------------------------------------------------------------
+
     def initialize(self, t0: float) -> None:
+        """Set the output to None if no input is available, or forward the input.
+
+        Args:
+            t0: Initial simulation time in seconds.
+        """
         u = self.inputs["in"]
         if u is None:
             self.outputs["out"] = None
@@ -67,42 +64,45 @@ class ExternalOutput(Block):
 
         self.outputs["out"] = self._to_col_vec(u)
 
-    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
+        """Forward the input to the output as a column vector.
+
+        Args:
+            t: Current simulation time in seconds.
+            dt: Current time step in seconds.
+
+        Raises:
+            RuntimeError: If input ``in`` is not set.
+            ValueError: If the input shape is incompatible or has changed.
+        """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Missing input 'in'.")
         self.outputs["out"] = self._to_col_vec(u)
 
-    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        pass
+        """No-op: ExternalOutput carries no internal state."""
 
 
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
     def _to_col_vec(self, value) -> np.ndarray:
+        """Normalize value to a (n,1) column vector and enforce frozen shape."""
         arr = np.asarray(value, dtype=float)
 
-        # scalar
         if arr.ndim == 0:
             arr = arr.reshape(1, 1)
-
-        # vector (n,)
         elif arr.ndim == 1:
             arr = arr.reshape(-1, 1)
-
-        # column (n,1)
         elif arr.ndim == 2 and arr.shape[1] == 1:
             pass
-
         else:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be scalar, (n,), or (n,1). Got shape {arr.shape}."
             )
 
-        # Freeze shape
         if self._resolved_shape is None:
             self._resolved_shape = arr.shape
         elif arr.shape != self._resolved_shape:

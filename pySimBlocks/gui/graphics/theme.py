@@ -25,6 +25,7 @@ from PySide6.QtWidgets import QApplication
 
 
 def _luma(c: QColor) -> float:
+    """Return the perceived luminance of a color."""
     r, g, b, _ = c.getRgb()
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
@@ -58,23 +59,39 @@ def _separate_bg(block: QColor, scene: QColor, delta: float = 35.0) -> QColor:
 
 @dataclass(frozen=True)
 class Theme:
+    """Store the GUI color palette used by the graphics layer."""
+    #: Scene background color.
     scene_bg: QColor
 
+    #: Default block background color.
     block_bg: QColor
+    #: Selected block background color.
     block_bg_selected: QColor
+    #: Default block border color.
     block_border: QColor
+    #: Selected block border color.
     block_border_selected: QColor
 
+    #: Default text color.
     text: QColor
+    #: Selected text color.
     text_selected: QColor
 
+    #: Connection wire color.
     wire: QColor
 
+    #: Input port color.
     port_in: QColor
+    #: Output port color.
     port_out: QColor
 
 
 def make_theme() -> Theme:
+    """Build a theme derived from the current Qt application palette.
+
+    Returns:
+        Theme adapted to the current light or dark palette.
+    """
     pal = QApplication.palette()
 
     scene_bg = pal.color(QPalette.Window)

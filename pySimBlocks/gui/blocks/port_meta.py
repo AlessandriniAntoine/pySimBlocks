@@ -25,7 +25,16 @@ from typing import Any
 
 @dataclass(frozen=True)
 class PortMeta:
+    """Describe one declared input or output port of a GUI block."""
+    
+    #: Internal port name.
     name: str
+    
+    #: User-facing port label.
     display_as: str
+    
+    #: Symbolic shape description shown in metadata.
     shape: list[Any]
+    
+    #: Optional help text displayed in the GUI.
     description: str = ""

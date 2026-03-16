@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import importlib.util
 from pathlib import Path
 from typing import Dict, Any, Tuple
@@ -26,10 +28,9 @@ import numpy as np
 import re
 from pySimBlocks.core.config import SimulationConfig
 
-# ---------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------
+
 def _load_yaml(path: Path) -> Dict[str, Any]:
+    """Load and return a YAML file as a dict."""
     if not path.exists():
         raise FileNotFoundError(f"Project file not found: {path}")
 
@@ -42,11 +43,8 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
     return data
 
 
-
-############################################################
-# External variables
-############################################################
 def _load_external_module(path: Path):
+    """Load a Python file as a module and return (module, module.__dict__)."""
     if not path.exists():
         raise FileNotFoundError(f"External parameters module not found: {path}")
 
@@ -60,18 +58,22 @@ def _load_external_module(path: Path):
 
 
 _EXTERNAL_REF_PATTERN = re.compile(r"#([A-Za-z_][A-Za-z0-9_]*)")
+
+
 def extract_external_refs(expr: str) -> set[str]:
-    """
-    Extract all external references (#var) from an expression string.
+    """Extract all external reference names (``#var`` syntax) from an expression string.
+
+    Args:
+        expr: A YAML value string potentially containing ``#name`` references.
+
+    Returns:
+        Set of referenced variable names with the ``#`` prefix stripped.
     """
     return set(_EXTERNAL_REF_PATTERN.findall(expr))
 
 
 def _resolve_external_refs(obj: Any, external_module) -> Any:
-    """
-    Recursively validate #var references using the external module.
-    Does NOT replace anything.
-    """
+    """Recursively validate that all ``#var`` references exist in the external module."""
     if isinstance(obj, str):
         refs = extract_external_refs(obj)
         for name in refs:
@@ -93,7 +95,9 @@ def _resolve_external_refs(obj: Any, external_module) -> Any:
 
     return obj
 
-def _check_no_external_refs(obj):
+
+def _check_no_external_refs(obj) -> None:
+    """Raise if any ``#var`` references are found when no external module is defined."""
     if isinstance(obj, str):
         refs = extract_external_refs(obj)
         if refs:
@@ -111,22 +115,22 @@ def _check_no_external_refs(obj):
             _check_no_external_refs(v)
 
 
+def eval_value(value: Any, scope: dict) -> Any:
+    """Evaluate a single YAML value as a Python expression.
 
-############################################################
-# EVAL
-############################################################
-def eval_value(value: Any, scope: dict):
+    The value is converted to string, ``#`` prefixes are stripped, bare list
+    literals are wrapped in ``np.array()``, and the result is evaluated using
+    ``eval`` with a restricted namespace containing only ``np`` and ``scope``.
+    If evaluation fails the original value is returned unchanged.
+
+    Args:
+        value: Raw YAML value (string, number, list, etc.).
+        scope: Variable scope for expression evaluation (from the external
+            parameters module).
+
+    Returns:
+        Evaluated Python object, or ``value`` unchanged if evaluation fails.
     """
-    Try to evaluate ANY value as a Python expression.
-
-    Rules:
-    - value is first converted to string
-    - '#' is stripped (used as internal keyword)
-    - lists are wrapped into np.array
-    - eval is attempted with a restricted namespace
-    - if eval fails -> return original value
-    """
-
     try:
         expr = str(value)
         expr = expr.replace("#", "")
@@ -137,7 +141,17 @@ def eval_value(value: Any, scope: dict):
         return value
 
 
-def eval_recursive(obj: Any, scope: dict):
+def eval_recursive(obj: Any, scope: dict) -> Any:
+    """Recursively evaluate all values in a nested dict/list using :func:`eval_value`.
+
+    Args:
+        obj: A nested dict, list, or scalar YAML value.
+        scope: Variable scope for expression evaluation.
+
+    Returns:
+        The same structure with all leaf values passed through
+        :func:`eval_value`.
+    """
     if isinstance(obj, dict):
         return {k: eval_recursive(v, scope) for k, v in obj.items()}
 
@@ -146,17 +160,22 @@ def eval_recursive(obj: Any, scope: dict):
 
     return eval_value(obj, scope)
 
-# ---------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------
+
 def load_simulation_config(
     project_yaml: str | Path,
 ) -> Tuple[SimulationConfig, Dict[str, Any], Path]:
-    """
-    Load simulation and diagram configuration from unified project.yaml.
+    """Load simulation and diagram configuration from a unified project.yaml.
+
+    Args:
+        project_yaml: Path to the unified ``project.yaml`` file.
 
     Returns:
-        (SimulationConfig, model_dict, params_dir)
+        A tuple ``(SimulationConfig, model_dict, params_dir)`` where
+        ``params_dir`` is the directory of the project file.
+
+    Raises:
+        FileNotFoundError: If the project file does not exist.
+        ValueError: If the file is malformed or required fields are missing.
     """
     from pySimBlocks.project.load_project_config import load_project_config
 

@@ -24,8 +24,17 @@ from pySimBlocks.gui.blocks.port_meta import PortMeta
 
 
 class SinusoidalMeta(BlockMeta):
+    """Describe the GUI metadata of the sinusoidal source block."""
 
     def __init__(self):
+        """Initialize sinusoidal-source block metadata.
+
+        Args:
+            None.
+
+        Raises:
+            None.
+        """
         self.name = "Sinusoidal"
         self.category = "sources"
         self.type = "sinusoidal"
