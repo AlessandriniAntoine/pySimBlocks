@@ -116,7 +116,7 @@ It must implement:
 The tutorial example uses the following controller:
 ```{literalinclude} ../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py
 :language: python
-:caption: examples/tutorials/tutorial_2_sofa/finger/FingerController.py
+:caption: examples/tutorials/tutorial_3_sofa/finger/FingerController.py
 ```
 
 The scene must instantiate that controller and return it from `createScene(...)`
