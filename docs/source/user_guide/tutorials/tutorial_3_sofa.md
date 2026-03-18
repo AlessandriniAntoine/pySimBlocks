@@ -16,21 +16,24 @@ The objective is to:
 By the end of this tutorial, you will be able to connect a `pySimBlocks`
 control loop to a SOFA simulation.
 
-## Example Files
+## Required Files
 
-You can download or view the main project files here:
+This tutorial uses a SOFA scene and mesh files that are provided for you.
+Download the archive below — it contains everything you need:
 
-- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py): SOFA scene
-- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py): SOFA controller
-- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml): GUI project file
-
-To run the scene you also need the mesh files and additional assets bundled in
-the complete archive:
+- `finger/Finger.py` — the SOFA scene
+- `finger/mesh/` — mesh assets required by the scene
+- `finger/FingerController.py` — the SOFA controller (also shown in full below)
+- `project.yaml` — the tutorial 2 project as a starting point
+- `project_solution.yaml` — the completed reference to compare against
 
 {download}`Download tutorial_3_sofa.zip <../../_static/downloads/tutorial_3_sofa.zip>`
 
-If you have cloned the repository, the full example lives in
+If you have cloned the repository, the files are already in
 `examples/tutorials/tutorial_3_sofa/`.
+
+Extract the archive so that `finger/` and `project.yaml` sit in the same
+folder.
 
 ## System Description
 
@@ -94,6 +97,7 @@ Then verify that `runSofa` is available:
 
 - Linux and macOS: `$SOFA_ROOT/bin/runSofa`
 - Windows: `$env:SOFA_ROOT\bin\runSofa.exe`
+
 
 ## SOFA Controller Contract
 
@@ -186,3 +190,4 @@ Experiment with the coupled model to better understand the workflow:
 - Change the reference and observe the fingertip response
 - Run the same project with both execution modes
 - If available, use the live SOFA sliders and plots for real-time tuning
+
