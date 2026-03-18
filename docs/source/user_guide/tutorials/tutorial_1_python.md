@@ -12,17 +12,14 @@ This tutorial introduces the core concepts of `pySimBlocks`:
 By the end of this tutorial, you will be able to build and simulate your own
 block-based model in Python.
 
-## Example Files
+## Example File
 
-The full example lives in `examples/tutorials/tutorial_1_python/`.
-The main file is:
+You can download or view the main example file here:
 
 - [`main.py`](../../../../examples/tutorials/tutorial_1_python/main.py)
 
-If you are reading the published documentation, you can download the example
-file directly:
-
-{download}`Download main.py <../../../../examples/tutorials/tutorial_1_python/main.py>`
+If you have cloned the repository, the full example lives in
+`examples/tutorials/tutorial_1_python/`.
 
 ## System Description
 

@@ -16,20 +16,21 @@ The objective is to:
 By the end of this tutorial, you will be able to connect a `pySimBlocks`
 control loop to a SOFA simulation.
 
-## Required Files
+## Example Files
 
-The full example lives in `examples/tutorials/tutorial_3_sofa/`.
-The main files are:
+You can download or view the main project files here:
 
-- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py): the SOFA scene file
-- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py): Completed SOFA controller
-- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml): Completed GUI project file.
+- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py): SOFA scene
+- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py): SOFA controller
+- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml): GUI project file
 
-If you are reading the published documentation, you can download the complete
-working example as an archive. It includes the GUI project, the SOFA scene, the
-controller, and the additional files required by the scene:
+To run the scene you also need the mesh files and additional assets bundled in
+the complete archive:
 
 {download}`Download tutorial_3_sofa.zip <../../_static/downloads/tutorial_3_sofa.zip>`
+
+If you have cloned the repository, the full example lives in
+`examples/tutorials/tutorial_3_sofa/`.
 
 ## System Description
 
