@@ -306,10 +306,6 @@ def build_project_yaml(
         "schema_version": 1,
         "project": {
             "name": project_name,
-            "metadata": {
-                "created_by": "pySimBlocks",
-                "created_at": "2026-02-18T00:00:00Z",
-            },
         },
         "simulation": _build_simulation_section(project_state),
         "diagram": {
