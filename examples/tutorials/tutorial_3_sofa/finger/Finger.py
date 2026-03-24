@@ -114,7 +114,7 @@ def createScene(rootNode):
     # --------------------------------------------------------------------------
     # Controller
     # --------------------------------------------------------------------------
-    controller = FingerController(rootNode, cable.aCableActuator, finger.tetras)
+    controller = FingerController(cable.aCableActuator, finger.tetras)
     finger.addObject(controller)
 
     return rootNode, controller

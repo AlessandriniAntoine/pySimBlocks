@@ -106,15 +106,14 @@ To exchange data between the diagram and the SOFA scene, subclass
 
 Your controller must define:
 
-- `self.project_yaml`
-- `self.dt`
-- `self.inputs`
-- `self.outputs`
+- `self.project_yaml` — path to the `project.yaml` file
+- `self.inputs` — dict of signals received from pySimBlocks (keys must match `input_keys` on the block)
+- `self.outputs` — dict of signals sent back to pySimBlocks (keys must match `output_keys` on the block)
 
 It must implement:
 
-- `set_inputs()`
-- `get_outputs()`
+- `set_inputs()` — apply `self.inputs` values to the SOFA scene
+- `get_outputs()` — read SOFA state and write results into `self.outputs`
 
 ### Example Controller
 
@@ -144,6 +143,12 @@ Set the block parameters as follows:
 | `slider_params` | `{"ref.value": [-10.0, 50.0], "PID.Kp": [0.01, 3.0], "PID.Ki": [0.01, 3.0]}` |
 
 The key names must match the dictionaries declared in the SOFA controller.
+
+> **Note:**: Time step constraint  
+> The SOFA scene dt (set in createScene via rootNode.dt) must be a positive integer divisor of the SofaPlant sample time. If no sample_time is set on the block, the global simulation dt is used.
+> pySimBlocks enforces this at startup and raises an error if the constraint is not satisfied.
+> Example: if rootNode.dt = 0.01 in your scene, valid block sample times are 0.01, 0.02, 0.05, etc.
+
 
 ## Execution Modes
 
