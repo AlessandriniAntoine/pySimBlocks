@@ -29,7 +29,7 @@ import numpy as np
 from pySimBlocks.core.block import Block
 
 
-def sofa_worker(conn, scene_file, input_keys, output_keys):
+def sofa_worker(conn, scene_file, input_keys, output_keys, sample_time, block_name):
     """Worker function executed in a subprocess to run the SOFA simulation."""
     import os
     import sys
@@ -75,10 +75,24 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
         conn.close()
         return
 
-    controller.SOFA_MASTER = False
-    Sofa.Simulation.initRoot(root)
 
     dt = float(root.dt.value)
+    ratio = sample_time / dt
+    if abs(ratio - round(ratio)) > 1e-9 or round(ratio) < 1:
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"[pySimBlocks] ERROR [{block_name}]: SofaPlant sample_time={sample_time}s "
+                f"is not a positive integer multiple of SOFA scene dt={dt}s "
+                f"(ratio={ratio:.6g})."
+            )
+        })
+        conn.close()
+        return
+    ratio = int(round(ratio))
+
+    controller.SOFA_MASTER = False
+    Sofa.Simulation.initRoot(root)
 
     while not controller.IS_READY:
         controller.prepare_scene()
@@ -107,7 +121,8 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
                     controller.inputs[key] = val
 
                 controller.set_inputs()
-                Sofa.Simulation.animate(root, dt)
+                for _ in range(ratio):
+                    Sofa.Simulation.animate(root, dt)
                 controller.get_outputs()
 
                 outputs = {k: np.asarray(controller.outputs[k]).reshape(-1, 1)
@@ -177,7 +192,7 @@ class SofaPlant(Block):
 
         for k in input_keys:
             self.inputs[k] = None
-            self.next_outputs = {}
+        self.next_outputs = {}
         for k in output_keys:
             self.outputs[k] = None
             self.state[k] = None
@@ -246,7 +261,8 @@ class SofaPlant(Block):
 
         self.process = Process(
             target=sofa_worker,
-            args=(child_conn, self.scene_file, self.input_keys, self.output_keys)
+            args=(child_conn, self.scene_file, self.input_keys, self.output_keys,
+                  self._effective_sample_time, self.name)
         )
         self.process.start()
 
