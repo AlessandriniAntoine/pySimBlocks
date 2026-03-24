@@ -250,10 +250,7 @@ class SofaPlant(Block):
         )
         self.process.start()
 
-        initial_outputs = self.conn.recv()
-
-        if isinstance(initial_outputs, dict) and initial_outputs.get("cmd") == "error":
-            raise RuntimeError(initial_outputs["message"])
+        initial_outputs = self._recv_or_raise()
 
         for k in self.output_keys:
             self.outputs[k] = initial_outputs[k]
@@ -292,9 +289,7 @@ class SofaPlant(Block):
 
         self.conn.send(msg)
 
-        outputs = self.conn.recv()
-        if isinstance(outputs, dict) and outputs.get("cmd") == "error":
-            raise RuntimeError(outputs["message"])
+        outputs = self._recv_or_raise(timeout=5.)
 
         for k in self.output_keys:
             self.next_state[k] = outputs[k]
@@ -320,6 +315,31 @@ class SofaPlant(Block):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
+    def _recv_or_raise(self, timeout: float = 30.0) -> Any:
+        """Receive a message from the SOFA worker with timeout and crash detection.
+
+        Args:
+            timeout: Maximum seconds to wait for a response.
+
+        Returns:
+            The message received from the worker.
+
+        Raises:
+            RuntimeError: If the worker times out, has died, or reports an error.
+        """
+        if not self.conn.poll(timeout):
+            if not self.process.is_alive():
+                raise RuntimeError(
+                    f"[{self.name}] SOFA worker process died unexpectedly."
+                )
+            raise RuntimeError(
+                f"[{self.name}] SOFA worker timed out after {timeout}s."
+            )
+        result = self.conn.recv()
+        if isinstance(result, dict) and result.get("cmd") == "error":
+            raise RuntimeError(result["message"])
+        return result
 
     def __del__(self) -> None:
         """Attempt to stop the worker process on garbage collection."""
