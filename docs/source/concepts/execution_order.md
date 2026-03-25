@@ -11,7 +11,8 @@ its upstream blocks with direct feedthrough already computed their output at
 this step? If not, the block would read a stale input — which is incorrect.
 
 A block has direct feedthrough if its output at step `k` depends on its input at 
-the same step `k` — i.e. `u[k]` appears in `output_update()`.
+the same step `k` — i.e. `u[k]` appears in `output_update()`. See 
+{doc}`block_model` for how `direct_feedthrough` is declared in practice.
 
 If a dependency cycle exists between blocks with direct feedthrough and no
 stateful block breaks it, the order cannot be resolved. This is an
