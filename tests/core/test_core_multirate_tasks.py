@@ -33,21 +33,30 @@ class RateCounter(Block):
 
 def test_task_get_dt_semantics(capsys):
     """
-    Contract test for Task.get_dt():
-      - first activation returns Ts
-      - subsequent calls return (t - last_activation)
+    Contract test for tick-based Task scheduling:
+      - task starts with ticks_until_next == 0 (should run at t=0)
+      - accumulated_dt tracks elapsed time since last activation
+      - advance() decrements ticks_until_next (or resets to period_ticks-1)
+      - reset_accumulated_dt() clears the accumulator after activation
 
     This test is isolated from Simulator (unit test of Task).
     """
-    task = Task(sample_time=0.1, blocks=[], global_output_order=[])
+    task = Task(sample_time=0.1, period_ticks=2, blocks=[], global_output_order=[])
 
-    assert task.get_dt(0.0) == pytest.approx(0.1)
+    assert task.should_run()  # starts ready at t=0
 
-    # Emulate one advance cycle (as Simulator would do)
-    task.advance()  # last_activation becomes 0.0
-    assert task.last_activation == pytest.approx(0.0)
+    # Emulate one activation cycle (as Simulator would do)
+    task.accumulate(0.1)
+    assert task.accumulated_dt == pytest.approx(0.1)
+    task.advance()            # ticks_until_next -> period_ticks - 1 = 1
+    task.reset_accumulated_dt()
 
-    assert task.get_dt(0.3) == pytest.approx(0.3 - 0.0)
+    assert not task.should_run()  # ticks_until_next == 1
+    task.accumulate(0.1)
+    task.advance()            # ticks_until_next -> 0
+
+    assert task.should_run()  # due again
+    assert task.accumulated_dt == pytest.approx(0.1)
 
 
 def test_multirate_activation_and_hold(capsys):
