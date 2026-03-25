@@ -40,13 +40,19 @@ class Scheduler:
     # Public methods
     # --------------------------------------------------------------------------
 
-    def active_tasks(self, t: float) -> list[Task]:
-        """Return all tasks due to run at time t.
-
-        Args:
-            t: Current simulation time in seconds.
+    def active_tasks(self) -> list[Task]:
+        """Return all tasks due to run at the current tick.
 
         Returns:
-            List of tasks whose should_run(t) returns True.
+            List of tasks whose should_run() returns True.
         """
-        return [task for task in self.tasks if task.should_run(t)]
+        return [task for task in self.tasks if task.should_run()]
+
+    def tick(self) -> None:
+        """Advance all task countdowns by one tick.
+
+        Must be called once per simulator tick, regardless of which tasks
+        were active.
+        """
+        for task in self.tasks:
+            task.advance()

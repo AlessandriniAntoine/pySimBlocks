@@ -125,29 +125,32 @@ class Simulator:
                 raise RuntimeError(
                     "[Simulator] dt_override must be provided when using external clock."
                 )
-            else:
-                dt_scheduler = float(dt_override)
-                if dt_scheduler <= 0.0:
-                    raise ValueError(f"[Simulator] dt_override must be > 0. Got {dt_scheduler}")
-        else:  # internal clock
+            dt_scheduler = float(dt_override)
+            if dt_scheduler <= 0.0:
+                raise ValueError(f"[Simulator] dt_override must be > 0. Got {dt_scheduler}")
+        else:
             if dt_override is not None:
                 raise RuntimeError(
                     "[Simulator] dt_override should not be provided when using internal clock."
                 )
             dt_scheduler = self.time_manager.next_dt(self.t)
 
-        active_tasks = self.scheduler.active_tasks(self.t)
+        # 1) Accumulate dt for all tasks
+        for task in self.tasks:
+            task.accumulate(dt_scheduler)
+
+        active_tasks = self.scheduler.active_tasks()
 
         # PHASE 1 — outputs
         for task in active_tasks:
-            dt_task = task.get_dt(self.t)
+            dt_task = task.accumulated_dt 
             for block in task.output_blocks:
                 block.output_update(self.t, dt_task)
                 self._propagate_from(block)
 
         # PHASE 2 — states
         for task in active_tasks:
-            dt_task = task.get_dt(self.t)
+            dt_task = task.accumulated_dt
             for block in task.state_blocks:
                 block.state_update(self.t, dt_task)
 
@@ -156,8 +159,10 @@ class Simulator:
             for block in task.state_blocks:
                 block.commit_state()
 
+        # 4) Advance all countdowns and reset accumulated dt for active tasks
+        self.scheduler.tick()
         for task in active_tasks:
-            task.advance()
+            task.reset_accumulated_dt()
 
         self.t_step = self.t
         self.t += dt_scheduler
@@ -285,13 +290,12 @@ class Simulator:
             tasks_by_ts.setdefault(sample_time, []).append(b)
 
         self.tasks = [
-            Task(sample_time, blocks, self.output_order)
+            Task(sample_time, 
+                 period_ticks=round(sample_time / self.sim_cfg.dt),
+                 blocks=blocks, 
+                 global_output_order=self.output_order)
             for sample_time, blocks in tasks_by_ts.items()
         ]
-
-        self._single_task = (len(self.tasks) == 1)
-        if self._single_task:
-            self._task0 = self.tasks[0]
 
         self.scheduler = Scheduler(self.tasks)
 
