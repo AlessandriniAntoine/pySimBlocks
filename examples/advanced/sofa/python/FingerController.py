@@ -1,18 +1,15 @@
 import numpy as np
 from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
-import Sofa
-
 
 class FingerController(SofaPysimBlocksController):
 
-    def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(root, name=name)
+    def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
+        super().__init__(name=name)
 
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
-        self.dt = root.dt.value
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }
