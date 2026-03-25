@@ -35,7 +35,9 @@ pysimblocks gui examples/quick_start/gui
 
 ## Downloads
 
-You can download the quick-start example files here:
+You can download or view the quick-start example files here:
 
-- {download}`filter.py <../../../examples/quick_start/filter.py>`
-- {download}`project.yaml <../../../examples/quick_start/gui/project.yaml>`
+- [`filter.py`](../../../examples/quick_start/filter.py)
+- [`project.yaml`](../../../examples/quick_start/gui/project.yaml)
+
+If you have cloned the repository, the files are in `examples/quick_start/`.

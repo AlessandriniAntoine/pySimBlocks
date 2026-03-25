@@ -29,20 +29,27 @@ class Task:
     Manages the scheduling and execution of output updates, state updates,
     and state commits for all blocks in the group.
  
+    Scheduling is tick-based: the task maintains an integer countdown reset
+    to ``period_ticks - 1`` after each activation. This avoids floating-point
+    time comparisons and works correctly with both fixed and external clocks.
+
     Attributes:
         sample_time: Sampling period of this task in seconds.
-        next_activation: Simulation time of the next scheduled execution.
-        last_activation: Simulation time of the last execution, or None if
-            the task has never run.
+        period_ticks: Number of base ticks between two activations.
+        ticks_until_next: Countdown to the next activation.
+        accumulated_dt: Accumulated time since the last activation.
         output_blocks: Blocks ordered for output computation, filtered from
             the global output order.
         state_blocks: Subset of output_blocks that carry internal state.
     """
 
-    def __init__(self,
-                 sample_time: float,
-                 blocks: List[Block],
-                 global_output_order: List[Block]):
+    def __init__(
+        self,
+        sample_time: float,
+        period_ticks: int,
+        blocks: List[Block],
+        global_output_order: List[Block],
+    ):
         """Initialize a task.
  
         Args:
@@ -52,14 +59,13 @@ class Task:
                 used to filter and preserve execution order within the task.
         """
         self.sample_time = sample_time
-        self.next_activation = 0.0
-        self.last_activation = None
+        self.period_ticks = period_ticks
+        self.ticks_until_next = 0
+        self.accumulated_dt: float = 0.0
 
-        self.output_blocks = [
-            b for b in global_output_order
-            if b in blocks
-        ]
+        self.output_blocks = [b for b in global_output_order if b in blocks]
         self.state_blocks = []
+
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -67,39 +73,31 @@ class Task:
  
     def update_state_blocks(self) -> None:
         """Refresh the list of stateful blocks from output_blocks."""
-        self.state_blocks = [
-            b for b in self.output_blocks
-            if b.has_state
-        ]
+        self.state_blocks = [b for b in self.output_blocks if b.has_state]
 
-    def should_run(self, t: float, eps: float = 1e-12) -> bool:
+    def should_run(self) -> bool:
         """Return True if the task is due to run at time t.
  
-        Args:
-            t: Current simulation time in seconds.
-            eps: Tolerance for floating-point time comparison.
- 
         Returns:
-            True if t >= next_activation (within eps).
+            True if ticks_until_next is zero, indicating that the task should run at the current time step.
         """
-        return t + eps >= self.next_activation
-
-    def get_dt(self, t: float) -> float:
-        """Return the elapsed time since the last activation.
- 
-        Returns sample_time on the first call (before any activation).
- 
-        Args:
-            t: Current simulation time in seconds.
- 
-        Returns:
-            Elapsed time since last_activation, or sample_time if never run.
-        """
-        if self.last_activation is None:
-            return self.sample_time
-        return t - self.last_activation
+        return self.ticks_until_next == 0
 
     def advance(self) -> None:
-        """Advance activation timestamps by one sample period."""
-        self.last_activation = self.next_activation
-        self.next_activation += self.sample_time
+        """Advance the countdown by one tick."""
+        if self.ticks_until_next == 0:
+            self.ticks_until_next = self.period_ticks - 1
+        else:
+            self.ticks_until_next -= 1
+
+    def accumulate(self, dt: float) -> None:
+        """Accumulate the time step dt since the last activation.
+
+        Args:
+            dt: Time step in seconds to accumulate.
+        """
+        self.accumulated_dt += dt
+
+    def reset_accumulated_dt(self) -> None:
+        """Reset the accumulated time to zero after an activation."""
+        self.accumulated_dt = 0.0

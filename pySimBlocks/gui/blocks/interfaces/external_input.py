@@ -54,15 +54,6 @@ class ExternalInputMeta(BlockMeta):
             )
         ]
 
-        self.inputs = [
-            PortMeta(
-                name="in",
-                display_as="in",
-                shape=["n", 1],
-                description="External input signal."
-            )
-        ]
-
         self.outputs = [
             PortMeta(
                 name="out",

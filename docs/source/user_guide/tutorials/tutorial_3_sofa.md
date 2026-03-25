@@ -18,18 +18,22 @@ control loop to a SOFA simulation.
 
 ## Required Files
 
-The full example lives in `examples/tutorials/tutorial_3_sofa/`.
-The main files are:
+This tutorial uses a SOFA scene and mesh files that are provided for you.
+Download the archive below — it contains everything you need:
 
-- [`finger/Finger.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/Finger.py): the SOFA scene file
-- [`finger/FingerController.py`](../../../../examples/tutorials/tutorial_3_sofa/finger/FingerController.py): Completed SOFA controller
-- [`project.yaml`](../../../../examples/tutorials/tutorial_3_sofa/project.yaml): Completed GUI project file.
-
-If you are reading the published documentation, you can download the complete
-working example as an archive. It includes the GUI project, the SOFA scene, the
-controller, and the additional files required by the scene:
+- `finger/Finger.py` — the SOFA scene
+- `finger/mesh/` — mesh assets required by the scene
+- `finger/FingerController.py` — the SOFA controller (also shown in full below)
+- `project.yaml` — the tutorial 2 project as a starting point
+- `project_solution.yaml` — the completed reference to compare against
 
 {download}`Download tutorial_3_sofa.zip <../../_static/downloads/tutorial_3_sofa.zip>`
+
+If you have cloned the repository, the files are already in
+`examples/tutorials/tutorial_3_sofa/`.
+
+Extract the archive so that `finger/` and `project.yaml` sit in the same
+folder.
 
 ## System Description
 
@@ -94,6 +98,7 @@ Then verify that `runSofa` is available:
 - Linux and macOS: `$SOFA_ROOT/bin/runSofa`
 - Windows: `$env:SOFA_ROOT\bin\runSofa.exe`
 
+
 ## SOFA Controller Contract
 
 To exchange data between the diagram and the SOFA scene, subclass
@@ -101,15 +106,14 @@ To exchange data between the diagram and the SOFA scene, subclass
 
 Your controller must define:
 
-- `self.project_yaml`
-- `self.dt`
-- `self.inputs`
-- `self.outputs`
+- `self.project_yaml` — path to the `project.yaml` file
+- `self.inputs` — dict of signals received from pySimBlocks (keys must match `input_keys` on the block)
+- `self.outputs` — dict of signals sent back to pySimBlocks (keys must match `output_keys` on the block)
 
 It must implement:
 
-- `set_inputs()`
-- `get_outputs()`
+- `set_inputs()` — apply `self.inputs` values to the SOFA scene
+- `get_outputs()` — read SOFA state and write results into `self.outputs`
 
 ### Example Controller
 
@@ -139,6 +143,12 @@ Set the block parameters as follows:
 | `slider_params` | `{"ref.value": [-10.0, 50.0], "PID.Kp": [0.01, 3.0], "PID.Ki": [0.01, 3.0]}` |
 
 The key names must match the dictionaries declared in the SOFA controller.
+
+> **Note:**: Time step constraint  
+> The SOFA scene dt (set in createScene via rootNode.dt) must be a positive integer divisor of the SofaPlant sample time. If no sample_time is set on the block, the global simulation dt is used.
+> pySimBlocks enforces this at startup and raises an error if the constraint is not satisfied.
+> Example: if rootNode.dt = 0.01 in your scene, valid block sample times are 0.01, 0.02, 0.05, etc.
+
 
 ## Execution Modes
 
@@ -185,3 +195,4 @@ Experiment with the coupled model to better understand the workflow:
 - Change the reference and observe the fingertip response
 - Run the same project with both execution modes
 - If available, use the live SOFA sliders and plots for real-time tuning
+

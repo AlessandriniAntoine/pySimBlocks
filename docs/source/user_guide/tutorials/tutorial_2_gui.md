@@ -160,20 +160,16 @@ the simulation from the command line:
 python run.py
 ```
 
-## Reference Project
+## Example File
 
-If you want to compare your result with a completed version, the full reference
-project lives in `examples/tutorials/tutorial_2_gui/`.
-The main file is:
+If you want to compare your result with a completed version, you can download
+or view the project files here:
 
 - [`project.yaml`](../../../../examples/tutorials/tutorial_2_gui/project.yaml)
 - [`run.py`](../../../../examples/tutorials/tutorial_2_gui/run.py)
 
-If you are reading the published documentation, you can download the completed
-project file directly:
-
-{download}`Download project.yaml <../../../../examples/tutorials/tutorial_2_gui/project.yaml>`
-{download}`Download run.py <../../../../examples/tutorials/tutorial_2_gui/run.py>`
+If you have cloned the repository, the full reference project lives in
+`examples/tutorials/tutorial_2_gui/`.
 
 ## Comparison with the Python Version
 

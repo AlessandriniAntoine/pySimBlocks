@@ -62,11 +62,3 @@ class ExternalOutputMeta(BlockMeta):
             )
         ]
 
-        self.outputs = [
-            PortMeta(
-                name="out",
-                display_as="out",
-                shape=["m", 1],
-                description="External output signal."
-            )
-        ]

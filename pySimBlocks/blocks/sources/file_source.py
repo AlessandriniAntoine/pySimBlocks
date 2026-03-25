@@ -34,6 +34,14 @@ class FileSource(BlockSource):
     the data is reached, the block either restarts from the first sample
     (``repeat=True``) or outputs zeros.
 
+    Expected data shapes:
+
+    - ``.npz`` / ``.npy``: 1D ``(N,)`` treated as ``(N, 1)``, or 2D ``(N, n)``
+      where N is the number of samples and n the signal dimension. Each step
+      outputs a ``(n, 1)`` column vector.
+    - ``.csv``: a single column is selected by ``key``, always producing shape
+      ``(N, 1)``. Output per step is ``(1, 1)``.
+
     Alternatively, when ``use_time=True``, the output is selected by
     looking up the closest past timestamp in a time column bundled with
     the file, rather than advancing by index.

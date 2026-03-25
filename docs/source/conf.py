@@ -5,6 +5,9 @@ import sys
 import types
 import zipfile
 from pathlib import Path
+from unittest.mock import MagicMock
+
+sys.modules["qpsolvers"] = MagicMock()
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
@@ -76,7 +79,7 @@ autodoc_default_options = {
 }
 
 autodoc_member_order = "bysource"
-autodoc_mock_imports = []
+autodoc_mock_imports = ["qpsolvers"]
 autodoc_type_aliases = {
     "ArrayLike": "ArrayLike",
 }

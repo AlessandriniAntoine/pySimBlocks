@@ -58,22 +58,21 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         IS_READY: Set to True by :meth:`prepare_scene` when the scene is
             ready to start the control loop.
         SOFA_MASTER: If True, SOFA is the time master.
-        root: SOFA root node.
         inputs: Dict of input signals written by :meth:`set_inputs`.
         outputs: Dict of output signals populated by :meth:`get_outputs`.
-        variables_to_log: List of signal names to log at each step.
-        verbose: If True, print logged variables at each control step.
-        dt: SOFA simulation time step in seconds. Must be set by the subclass.
-        sim: The pySimBlocks :class:`Simulator` instance, or None.
-        step_index: Total number of SOFA animation steps executed.
+        dt: SOFA simulation time step in seconds. Set automatically at runtime.
         project_yaml: Path to the pySimBlocks YAML project file.
+        sim: The pySimBlocks :class:`Simulator` instance, or None.
+        variables_to_log: List of signal names to log at each step.
+        node: The SOFA node to which the controller is attached, set automatically at runtime.
+        step_index: Total number of SOFA animation steps executed.
+        verbose: If True, print logged variables at each control step.
     """
 
-    def __init__(self, root: Sofa.Core.Node, name: str = "SofaControllerGui"):
+    def __init__(self, name: str = "SofaControllerGui"):
         """Initialize the SOFA–pySimBlocks controller.
 
         Args:
-            root: SOFA root node.
             name: Name passed to the SOFA controller base class.
         """
         super().__init__(name=name)
@@ -82,12 +81,12 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.SOFA_MASTER = True
         self._imgui = _imgui
 
-        self.root = root
         self.inputs: Dict[str, np.ndarray] = {}
         self.outputs: Dict[str, np.ndarray] = {}
         self.variables_to_log: List[str] = []
         self.verbose = False
 
+        self.node: Sofa.Core.Node | None = None
         self.dt: float | None = None
         self.sim: Simulator | None = None
         self.step_index: int = 0
@@ -174,6 +173,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                 return
 
             if self.sim is None:
+                self._init_sofa_context()
                 self._prepare_pysimblocks()
                 self._get_sofa_outputs()
                 self._set_sofa_plot()
@@ -207,6 +207,20 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
     # Private methods
     # --------------------------------------------------------------------------
 
+    def _init_sofa_context(self):
+        """Resolve the SOFA node and dt from the controller context."""
+        node = self.getContext()
+        if not isinstance(node, Sofa.Core.Node):
+            self._init_failed = True
+            raise RuntimeError("[pySimBlocks] ERROR: Controller context is not a SOFA node.")
+        self.node = node
+        try:
+            self.dt = float(self.node.getRootContext().dt.value)
+        except AttributeError:
+            self._init_failed = True
+            raise RuntimeError("[pySimBlocks] ERROR: Could not read SOFA time step (dt).")
+
+
     def _build_model(self) -> None:
         """Load the pySimBlocks model from ``project_yaml``."""
         project_path = self.project_yaml
@@ -224,10 +238,6 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             if self.SOFA_MASTER and self.project_yaml is None:
                 self._init_failed = True
                 raise RuntimeError("[pySimBlocks] ERROR: SOFA_MASTER=True requires project_yaml.")
-            if self.dt is None:
-                self._init_failed = True
-                raise ValueError("[pySimBlocks] ERROR: SOFA_MASTER=True requires self.dt to be set to the SOFA time step.")
-
             self._build_model()
             self._detect_sofa_exchange_block()
             self._secure_keys()
@@ -322,7 +332,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if self.sim is None:
             raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
 
-        self._plot_node = self.root.addChild("PLOT")
+        self._plot_node = self.node.addChild("PLOT")
         self._plot_data = {}
         for plot in self.plot_cfg.plots:
             for var in plot["signals"]:
@@ -357,7 +367,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         data = self._sofa_block.slider_params
         data = data if data is not None else {}
 
-        self._slider_node = self.root.addChild("SLIDERS")
+        self._slider_node = self.node.addChild("SLIDERS")
         self._slider_data = {}
         for var, extremum in data.items():
             block_name, key = var.split(".")

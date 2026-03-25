@@ -1,100 +1,92 @@
 schema_version: 1
 project:
-  name: tutorial_3_sofa
-  metadata:
-    created_by: pySimBlocks
-    created_at: '2026-02-18T00:00:00Z'
+  name: tutorial_2_gui
 simulation:
   dt: 0.01
-  T: 10.0
+  T: 5.0
   solver: fixed
   logging:
+  - system.outputs.y
   - ref.outputs.out
-  - Sofa.outputs.measure
+  - PID.outputs.u
   plots:
   - title: Ref vs Output
     signals:
+    - system.outputs.y
     - ref.outputs.out
-    - Sofa.outputs.measure
+  - title: Command
+    signals:
+    - PID.outputs.u
 diagram:
   blocks:
-  - name: ref
-    category: sources
-    type: constant
+  - name: system
+    category: systems
+    type: linear_state_space
     parameters:
-      value: [[1.0]]
-  - name: error
-    category: operators
-    type: sum
-    parameters:
-      signs: +-
+      A: [[0.9]]
+      B: [[0.5]]
+      C: [[1.0]]
+      x0: 0.0
   - name: PID
     category: controllers
     type: pid
     parameters:
       controller: PI
-      Kp: 0.2
-      Ki: 1.3
-  - name: Sofa
-    category: systems
-    type: sofa_plant
+      Kp: 0.5
+      Ki: 2.0
+  - name: error
+    category: operators
+    type: sum
     parameters:
-      scene_file: finger/Finger.py
-      input_keys:
-      - cable
-      output_keys:
-      - measure
-      slider_params:
-        ref.value:
-        - -10.0
-        - 50.0
-        PID.Kp:
-        - 0.01
-        - 3.0
-        PID.Ki:
-        - 0.01
-        - 3.0
+      signs: +-
+  - name: ref
+    category: sources
+    type: step
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[1.0]]
+      start_time: 1.0
   connections:
   - name: c1
     ports:
-    - error.out
-    - PID.e
-  - name: c2
-    ports:
     - ref.out
     - error.in1
+  - name: c2
+    ports:
+    - error.out
+    - PID.e
   - name: c3
     ports:
     - PID.u
-    - Sofa.cable
+    - system.u
   - name: c4
     ports:
-    - Sofa.measure
+    - system.y
     - error.in2
 gui:
   layout:
     blocks:
-      ref:
-        x: -480.0
-        y: -45.0
-        orientation: normal
-        width: 120.0
-        height: 60.0
-      error:
-        x: -265.0
-        y: -35.0
+      system:
+        x: -15.0
+        y: -600.0
         orientation: normal
         width: 120.0
         height: 60.0
       PID:
-        x: -95.0
-        y: -35.0
+        x: -220.0
+        y: -600.0
         orientation: normal
         width: 120.0
         height: 60.0
-      Sofa:
-        x: 95.0
-        y: -35.0
+      error:
+        x: -415.0
+        y: -600.0
         orientation: normal
-        width: 155.0
+        width: 120.0
+        height: 60.0
+      ref:
+        x: -595.0
+        y: -610.0
+        orientation: normal
+        width: 120.0
         height: 60.0

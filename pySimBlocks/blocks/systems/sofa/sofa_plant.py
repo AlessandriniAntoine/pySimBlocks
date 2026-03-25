@@ -29,7 +29,7 @@ import numpy as np
 from pySimBlocks.core.block import Block
 
 
-def sofa_worker(conn, scene_file, input_keys, output_keys):
+def sofa_worker(conn, scene_file, input_keys, output_keys, sample_time, block_name):
     """Worker function executed in a subprocess to run the SOFA simulation."""
     import os
     import sys
@@ -75,10 +75,24 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
         conn.close()
         return
 
-    controller.SOFA_MASTER = False
-    Sofa.Simulation.initRoot(root)
 
     dt = float(root.dt.value)
+    ratio = sample_time / dt
+    if abs(ratio - round(ratio)) > 1e-9 or round(ratio) < 1:
+        conn.send({
+            "cmd": "error",
+            "message": (
+                f"[pySimBlocks] ERROR [{block_name}]: SofaPlant sample_time={sample_time}s "
+                f"is not a positive integer multiple of SOFA scene dt={dt}s "
+                f"(ratio={ratio:.6g})."
+            )
+        })
+        conn.close()
+        return
+    ratio = int(round(ratio))
+
+    controller.SOFA_MASTER = False
+    Sofa.Simulation.initRoot(root)
 
     while not controller.IS_READY:
         controller.prepare_scene()
@@ -107,7 +121,8 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
                     controller.inputs[key] = val
 
                 controller.set_inputs()
-                Sofa.Simulation.animate(root, dt)
+                for _ in range(ratio):
+                    Sofa.Simulation.animate(root, dt)
                 controller.get_outputs()
 
                 outputs = {k: np.asarray(controller.outputs[k]).reshape(-1, 1)
@@ -177,7 +192,7 @@ class SofaPlant(Block):
 
         for k in input_keys:
             self.inputs[k] = None
-            self.next_outputs = {}
+        self.next_outputs = {}
         for k in output_keys:
             self.outputs[k] = None
             self.state[k] = None
@@ -246,14 +261,12 @@ class SofaPlant(Block):
 
         self.process = Process(
             target=sofa_worker,
-            args=(child_conn, self.scene_file, self.input_keys, self.output_keys)
+            args=(child_conn, self.scene_file, self.input_keys, self.output_keys,
+                  self._effective_sample_time, self.name)
         )
         self.process.start()
 
-        initial_outputs = self.conn.recv()
-
-        if isinstance(initial_outputs, dict) and initial_outputs.get("cmd") == "error":
-            raise RuntimeError(initial_outputs["message"])
+        initial_outputs = self._recv_or_raise()
 
         for k in self.output_keys:
             self.outputs[k] = initial_outputs[k]
@@ -292,9 +305,7 @@ class SofaPlant(Block):
 
         self.conn.send(msg)
 
-        outputs = self.conn.recv()
-        if isinstance(outputs, dict) and outputs.get("cmd") == "error":
-            raise RuntimeError(outputs["message"])
+        outputs = self._recv_or_raise(timeout=5.)
 
         for k in self.output_keys:
             self.next_state[k] = outputs[k]
@@ -320,6 +331,31 @@ class SofaPlant(Block):
     # --------------------------------------------------------------------------
     # Private methods
     # --------------------------------------------------------------------------
+
+    def _recv_or_raise(self, timeout: float = 30.0) -> Any:
+        """Receive a message from the SOFA worker with timeout and crash detection.
+
+        Args:
+            timeout: Maximum seconds to wait for a response.
+
+        Returns:
+            The message received from the worker.
+
+        Raises:
+            RuntimeError: If the worker times out, has died, or reports an error.
+        """
+        if not self.conn.poll(timeout):
+            if not self.process.is_alive():
+                raise RuntimeError(
+                    f"[{self.name}] SOFA worker process died unexpectedly."
+                )
+            raise RuntimeError(
+                f"[{self.name}] SOFA worker timed out after {timeout}s."
+            )
+        result = self.conn.recv()
+        if isinstance(result, dict) and result.get("cmd") == "error":
+            raise RuntimeError(result["message"])
+        return result
 
     def __del__(self) -> None:
         """Attempt to stop the worker process on garbage collection."""

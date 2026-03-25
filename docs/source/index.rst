@@ -55,4 +55,5 @@ Documentation Overview
    :caption: Contents
 
    user_guide/index
+   concepts/index
    api/index

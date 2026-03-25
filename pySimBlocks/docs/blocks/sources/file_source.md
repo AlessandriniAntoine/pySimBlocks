@@ -40,9 +40,8 @@ None.
 ## Notes
 
 - File format is inferred from `file_path` extension (`.npz`, `.npy`, `.csv`).
-- `npz`: loaded array must be 1D or 2D.
-- `npy`: loaded array must be 1D or 2D.
-- `csv`: `key` selects one named numeric column, producing shape `(1,1)` at each step.
+- `npz` / `npy`: array must be 1D `(N,)` or 2D `(N, n)` — N samples, n signal dimension. Output per step: `(n, 1)`.
+- `csv`: `key` selects a single named column, always `(N, 1)`. Output per step: `(1, 1)`.
 - With `use_time=true`, `time` must exist and be strictly increasing.
   - `npz`: requires key `time`.
   - `csv`: requires column `time`.
