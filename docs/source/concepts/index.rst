@@ -11,3 +11,4 @@ does, how it thinks about blocks and signals, and why it behaves the way it does
    block_model
    execution_order
    glossary
+   adding_block
