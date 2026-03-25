@@ -8,7 +8,7 @@ does, how it thinks about blocks and signals, and why it behaves the way it does
    :maxdepth: 1
 
    simulation_lifecycle
-   block_model
    execution_order
-   glossary
+   block_model
    adding_block
+   glossary
