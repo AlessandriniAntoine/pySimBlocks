@@ -6,12 +6,18 @@ controllers:
     class: StateFeedback
     module: pySimBlocks.blocks.controllers.state_feedback
 interfaces:
+  bus_from:
+    class: BusFrom
+    module: pySimBlocks.blocks.interfaces.bus_from
   external_input:
     class: ExternalInput
     module: pySimBlocks.blocks.interfaces.external_input
   external_output:
     class: ExternalOutput
     module: pySimBlocks.blocks.interfaces.external_output
+  goto:
+    class: Goto
+    module: pySimBlocks.blocks.interfaces.goto
 observers:
   luenberger:
     class: Luenberger
