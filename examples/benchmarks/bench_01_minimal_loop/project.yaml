@@ -1,0 +1,105 @@
+schema_version: 1
+project:
+  name: bench_01_minimal_loop
+simulation:
+  dt: '#dt'
+  T: '#T'
+  solver: fixed
+  external_module: params.py
+  logging:
+  - Delay.outputs.out
+  - WhiteNoise.outputs.out
+  plots:
+  - title: Results
+    signals:
+    - Delay.outputs.out
+    - WhiteNoise.outputs.out
+diagram:
+  blocks:
+  - name: Sum
+    category: operators
+    type: sum
+    parameters:
+      signs: ++
+  - name: Delay
+    category: operators
+    type: delay
+    parameters:
+      num_delays: 1
+      initial_output: '#x0'
+  - name: alpha
+    category: operators
+    type: gain
+    parameters:
+      gain: '#alpha'
+      multiplication: Element wise (K * u)
+  - name: 1-alpha
+    category: operators
+    type: gain
+    parameters:
+      gain: 1-#alpha
+      multiplication: Element wise (K * u)
+  - name: WhiteNoise
+    category: sources
+    type: file_source
+    parameters:
+      file_path: noise_seq.npy
+      repeat: false
+  connections:
+  - name: c1
+    ports:
+    - alpha.out
+    - Sum.in1
+  - name: c2
+    ports:
+    - 1-alpha.out
+    - Sum.in2
+  - name: c3
+    ports:
+    - Delay.out
+    - 1-alpha.in
+  - name: c4
+    ports:
+    - Sum.out
+    - Delay.in
+  - name: c5
+    ports:
+    - WhiteNoise.out
+    - alpha.in
+gui:
+  layout:
+    blocks:
+      Sum:
+        x: -555.0
+        y: -275.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Delay:
+        x: -380.0
+        y: -265.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      alpha:
+        x: -720.0
+        y: -285.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      1-alpha:
+        x: -715.0
+        y: -160.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      WhiteNoise:
+        x: -900.0
+        y: -285.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+    connections:
+      c3:
+        route: [[-245.0, -235.0], [-237.0, -235.0], [-237.0, -70.0], [-729.0, -70.0],
+          [-729.0, -130.0], [-721.0, -130.0]]
