@@ -1,7 +1,7 @@
 import numpy as np
 
 dt = 0.1
-N = 100
+N = 100_000
 T = N * dt
 alpha = 0.1
 

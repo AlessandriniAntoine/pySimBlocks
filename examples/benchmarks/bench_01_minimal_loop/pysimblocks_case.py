@@ -29,6 +29,7 @@ if __name__ == "__main__":
     t, noise_data, output_data, dt_sim = test_pysimblocks_case()
 
     print(f"pySimBlocks simulation completed in {dt_sim:.2f} seconds")
+    print(noise_data.shape, output_data.shape)
 
     # Plot results
     plt.figure(figsize=(10, 6))
