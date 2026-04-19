@@ -1,0 +1,197 @@
+schema_version: 1
+project:
+  name: bench_02_dense_network
+simulation:
+  dt: '#dt'
+  T: '#T'
+  solver: fixed
+  external_module: params.py
+  logging:
+  - WhiteNoise.outputs.out
+  - Integrator.outputs.out
+  plots: []
+diagram:
+  blocks:
+  - name: WhiteNoise
+    category: sources
+    type: file_source
+    parameters:
+      file_path: noise_seq.npy
+      repeat: false
+  - name: Gain1
+    category: operators
+    type: gain
+    parameters:
+      gain: 0.5
+      multiplication: Element wise (K * u)
+  - name: Sum1
+    category: operators
+    type: sum
+    parameters:
+      signs: +++
+  - name: Integrator
+    category: operators
+    type: discrete_integrator
+    parameters:
+      initial_state: x0
+      method: euler forward
+  - name: Gain2
+    category: operators
+    type: gain
+    parameters:
+      gain: 0.3
+      multiplication: Element wise (K * u)
+  - name: Sum2
+    category: operators
+    type: sum
+    parameters:
+      signs: ++
+  - name: Gain3
+    category: operators
+    type: gain
+    parameters:
+      gain: -0.1
+      multiplication: Element wise (K * u)
+  - name: Sum3
+    category: operators
+    type: sum
+    parameters:
+      signs: ++
+  - name: GainFb1
+    category: operators
+    type: gain
+    parameters:
+      gain: 0.2
+      multiplication: Element wise (K * u)
+  - name: GainFb2
+    category: operators
+    type: gain
+    parameters:
+      gain: 0.15
+      multiplication: Element wise (K * u)
+  connections:
+  - name: c1
+    ports:
+    - WhiteNoise.out
+    - Gain1.in
+  - name: c2
+    ports:
+    - WhiteNoise.out
+    - Gain2.in
+  - name: c3
+    ports:
+    - WhiteNoise.out
+    - Gain3.in
+  - name: c4
+    ports:
+    - Gain1.out
+    - Sum1.in1
+  - name: c5
+    ports:
+    - Sum1.out
+    - Integrator.in
+  - name: c6
+    ports:
+    - Gain2.out
+    - Sum2.in1
+  - name: c7
+    ports:
+    - Sum2.out
+    - Sum1.in2
+  - name: c8
+    ports:
+    - Gain3.out
+    - Sum3.in1
+  - name: c9
+    ports:
+    - Sum3.out
+    - Sum1.in3
+  - name: c10
+    ports:
+    - GainFb1.out
+    - Sum2.in2
+  - name: c11
+    ports:
+    - GainFb2.out
+    - Sum3.in2
+  - name: c12
+    ports:
+    - Integrator.out
+    - GainFb1.in
+  - name: c13
+    ports:
+    - Integrator.out
+    - GainFb2.in
+gui:
+  layout:
+    blocks:
+      WhiteNoise:
+        x: -130.0
+        y: -100.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Gain1:
+        x: 180.0
+        y: -170.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Sum1:
+        x: 605.0
+        y: -155.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Integrator:
+        x: 840.0
+        y: -155.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Gain2:
+        x: 175.0
+        y: -100.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Sum2:
+        x: 385.0
+        y: -90.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Gain3:
+        x: 175.0
+        y: 110.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      Sum3:
+        x: 375.0
+        y: 120.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      GainFb1:
+        x: 395.0
+        y: 5.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+      GainFb2:
+        x: 385.0
+        y: 220.0
+        orientation: flipped
+        width: 120.0
+        height: 60.0
+    connections:
+      c9:
+        route: [[510.0, 150.0], [518.0, 150.0], [580.0, 150.0], [580.0, -110.0], [
+            591.0, -110.0], [599.0, -110.0]]
+      c12:
+        route: [[975.0, -125.0], [983.0, -125.0], [983.0, 35.0], [529.0, 35.0], [
+            529.0, 35.0], [521.0, 35.0]]
+      c13:
+        route: [[975.0, -125.0], [983.0, -125.0], [983.0, 62.5], [980.0, 62.5], [
+            980.0, 250.0], [511.0, 250.0]]
