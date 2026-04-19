@@ -118,10 +118,10 @@ class FileSourceMeta(BlockMeta):
         ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
 
         if param_name == "key":
-            return ext in {"npz", "csv"}
+            return ext != "npy"
 
         if param_name == "use_time":
-            return ext in {"npz", "csv"}
+            return ext != "npy"
 
         return super().is_parameter_active(param_name, instance_params)
 

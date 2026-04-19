@@ -28,6 +28,7 @@ from pySimBlocks.core.fixed_time_manager import FixedStepTimeManager
 from pySimBlocks.core.model import Model
 from pySimBlocks.core.scheduler import Scheduler
 from pySimBlocks.core.task import Task
+from pySimBlocks.core import signal_bus
 
 
 class Simulator:
@@ -191,6 +192,8 @@ class Simulator:
         """
         if self.sim_cfg.clock == "external":
             raise RuntimeError("Simulator.run() is not supported with external clock. Use step(dt_override=...)")
+
+        signal_bus.reset()
 
         sim_duration = T if T is not None else self.sim_cfg.T
         t0_run = t0 if t0 is not None else self.sim_cfg.t0

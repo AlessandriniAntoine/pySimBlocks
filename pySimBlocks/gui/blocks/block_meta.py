@@ -84,17 +84,20 @@ class BlockMeta(ABC):
         self,
         instance: BlockInstance,
         project_dir: Path | None = None,
+        project_state=None,
     ) -> BlockDialogSession:
         """Create a dialog session for a block instance.
 
         Args:
             instance: Block instance being edited.
             project_dir: Project directory used to resolve relative files.
+            project_state: Full project state for blocks that need to
+                inspect other blocks in the diagram. None outside the GUI.
 
         Returns:
             New dialog session object bound to the instance.
         """
-        return BlockDialogSession(self, instance, project_dir)
+        return BlockDialogSession(self, instance, project_dir, project_state)
 
     def is_parameter_active(self, 
                             param_name: str, 

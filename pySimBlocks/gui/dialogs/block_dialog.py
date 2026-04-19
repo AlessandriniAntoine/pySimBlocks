@@ -73,12 +73,16 @@ class BlockDialog(QDialog):
 
         main_layout = QVBoxLayout(self)
         project_dir = None
+        project_state = None
         if hasattr(self.block, "view") and self.block.view is not None:
             controller = getattr(self.block.view, "project_controller", None)
             if controller is not None and controller.project_state is not None:
-                project_dir = controller.project_state.directory_path
+                project_state = controller.project_state
+                project_dir = project_state.directory_path
 
-        self.session = self.meta.create_dialog_session(self.instance, project_dir)
+        self.session = self.meta.create_dialog_session(
+            self.instance, project_dir, project_state
+        )
         self.build_meta_layout(main_layout)
         self.build_buttons_layout(main_layout)
 

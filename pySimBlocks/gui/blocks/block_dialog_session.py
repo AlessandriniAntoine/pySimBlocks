@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import QLineEdit
 
@@ -27,6 +27,7 @@ from pySimBlocks.gui.models.block_instance import BlockInstance
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.blocks.block_meta import BlockMeta
+    from pySimBlocks.gui.models.project_state import ProjectState
 
 
 class BlockDialogSession:
@@ -36,6 +37,7 @@ class BlockDialogSession:
         meta: Block metadata driving the dialog.
         instance: Block instance being edited.
         project_dir: Project directory used to resolve relative files.
+        project_state: Full project state, available when opening from the GUI.
         local_params: Local parameter cache for the open dialog.
         param_widgets: Widgets keyed by parameter name.
         param_labels: Labels keyed by parameter name.
@@ -47,6 +49,7 @@ class BlockDialogSession:
         meta: "BlockMeta",
         instance: BlockInstance,
         project_dir: Path | None = None,
+        project_state: "ProjectState | None" = None,
     ):
         """Initialize a block dialog session.
 
@@ -54,16 +57,20 @@ class BlockDialogSession:
             meta: Block metadata driving the dialog.
             instance: Block instance being edited.
             project_dir: Project directory used to resolve relative files.
+            project_state: Full project state, used by blocks that need to
+                inspect other blocks in the diagram (e.g. From reads Goto
+                tags). None when the session is created outside the GUI.
 
         Raises:
             None.
         """
-        self.meta = meta              
+        self.meta = meta
         self.instance = instance
         self.project_dir = project_dir
+        self.project_state: "ProjectState | None" = project_state
 
         # --- STATE UI (par dialog) ---
-        self.local_params = dict(instance.parameters)   
-        self.param_widgets = {}
-        self.param_labels = {}         
-        self.name_edit: QLineEdit | None = None     
+        self.local_params: dict[str, Any] = dict(instance.parameters)
+        self.param_widgets: dict[str, Any] = {}
+        self.param_labels: dict[str, Any] = {}
+        self.name_edit: QLineEdit | None = None

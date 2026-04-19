@@ -203,6 +203,13 @@ class Model:
         for k, v in indegree.items():
             vprint(f"  {k}: {v}")
 
+        # STEP 1b — Inject virtual edges from Goto → BusFrom (same tag)
+        for (goto_name, bus_from_name) in self._build_virtual_edges():
+            if goto_name in graph and bus_from_name in graph:
+                graph[goto_name].append(bus_from_name)
+                indegree[bus_from_name] += 1
+                vprint(f"  VIRTUAL EDGE: {goto_name} -> {bus_from_name} (shared tag)")
+
         # STEP 2 — Kahn topological sort
         vprint("\n--- STEP 2: TOPOLOGICAL SORT ---")
 
@@ -309,3 +316,38 @@ class Model:
             downstream[src[0]].append((src, dst))
         self._downstream_map = downstream
         self._connections_dirty = False
+
+    def _build_virtual_edges(self) -> List[Tuple[str, str]]:
+        """Return virtual Goto → BusFrom edges for matching signal bus tags.
+
+        Iterates over all blocks in the model, collects Goto and BusFrom
+        instances grouped by tag, and returns one directed edge per
+        (Goto, BusFrom) pair that shares a tag. These edges are injected into
+        the topological sort graph so that every BusFrom executes after its
+        corresponding Goto within the same tick.
+
+        Local imports are used to avoid circular imports between the core
+        package and the blocks package.
+
+        Returns:
+            List of ``(goto_block_name, bus_from_block_name)`` tuples.
+        """
+        from pySimBlocks.blocks.interfaces.goto import Goto
+        from pySimBlocks.blocks.interfaces.bus_from import BusFrom
+
+        tag_to_gotos: Dict[str, List[str]] = {}
+        tag_to_bus_froms: Dict[str, List[str]] = {}
+
+        for name, block in self.blocks.items():
+            if isinstance(block, Goto):
+                tag_to_gotos.setdefault(block.tag, []).append(name)
+            elif isinstance(block, BusFrom):
+                tag_to_bus_froms.setdefault(block.tag, []).append(name)
+
+        edges: List[Tuple[str, str]] = []
+        for tag, goto_names in tag_to_gotos.items():
+            for bus_from_name in tag_to_bus_froms.get(tag, []):
+                for goto_name in goto_names:
+                    edges.append((goto_name, bus_from_name))
+
+        return edges

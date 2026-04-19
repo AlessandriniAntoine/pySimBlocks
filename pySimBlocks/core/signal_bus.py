@@ -18,14 +18,20 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pySimBlocks.blocks.interfaces.external_input import ExternalInput
-from pySimBlocks.blocks.interfaces.external_output import ExternalOutput
-from pySimBlocks.blocks.interfaces.goto import Goto
-from pySimBlocks.blocks.interfaces.bus_from import BusFrom
+"""Global signal bus shared by Goto and BusFrom blocks.
 
-__all__ = [
-    "ExternalInput",
-    "ExternalOutput",
-    "Goto",
-    "BusFrom",
-]
+Goto blocks write their input value into ``_signal_bus`` under their tag.
+BusFrom blocks read from ``_signal_bus`` by tag. The bus is reset at the start
+of each simulation run so that successive runs are fully isolated.
+"""
+
+_signal_bus: dict = {}
+
+
+def reset() -> None:
+    """Clear all entries in the signal bus.
+
+    Must be called at the start of each simulation run to prevent signal
+    bleed-over between independent runs.
+    """
+    _signal_bus.clear()
