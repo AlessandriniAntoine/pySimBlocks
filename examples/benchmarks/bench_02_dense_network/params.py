@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import scipy.io as sio
 
@@ -9,7 +10,8 @@ vec_size = 1
 seed = 0
 rng = np.random.default_rng(seed)
 noise_sequence = rng.standard_normal((N + 2, vec_size))
-np.save("noise_seq.npy", noise_sequence)
+dir_path = Path(__file__).parent
+np.save(dir_path / "noise_seq.npy", noise_sequence)
 
 x0 = np.zeros((vec_size, 1))
 
@@ -17,9 +19,9 @@ x0 = np.zeros((vec_size, 1))
 t_vec = np.arange(N + 2) * dt
 noise_data_simulink = np.column_stack([t_vec, noise_sequence])
 
-sio.savemat("matlab/bench_02_simulink.mat", {
-    "dt": dt,
-    "T": T,
-    "x0": x0,
-    "noise_data": noise_data_simulink,
-})
+# sio.savemat("matlab/bench_02_simulink.mat", {
+#     "dt": dt,
+#     "T": T,
+#     "x0": x0,
+#     "noise_data": noise_data_simulink,
+# })
