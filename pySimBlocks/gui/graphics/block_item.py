@@ -21,7 +21,7 @@
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt
-from PySide6.QtGui import QPainterPath, QPen
+from PySide6.QtGui import QPainterPath, QPen, QFont
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QStyle
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
@@ -50,6 +50,7 @@ class BlockItem(QGraphicsRectItem):
     GRID_DY = 5
     SELECTION_HANDLE_SIZE = 8
     SELECTION_HANDLE_HIT_SIZE = 16
+    TYPE_LABEL_MIN_HEIGHT = 45
 
     def __init__(self,
                  instance: "BlockInstance",
@@ -182,12 +183,28 @@ class BlockItem(QGraphicsRectItem):
             painter.setPen(QPen(t.block_border, 3))
 
         painter.drawRect(self.rect())
-        if selected:
-            painter.setPen(t.text_selected)
-        else:
-            painter.setPen(t.text)
-        painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
 
+        rect = self.rect()
+
+        # --- Nom (centré, police normale)
+        name_font = QFont("Sans Serif", 9)
+        painter.setFont(name_font)
+        painter.setPen(t.text_selected if selected else t.text)
+
+        name_rect = QRectF(rect.x(), rect.y(), rect.width(), rect.height() * 0.60)
+        painter.drawText(name_rect, Qt.AlignCenter | Qt.AlignBottom, self.instance.name)
+
+        # --- Type (petite police, italique, couleur atténuée) — uniquement si assez de place
+        if rect.height() >= self.TYPE_LABEL_MIN_HEIGHT:
+            type_font = QFont("Sans Serif", 8)
+            type_font.setItalic(True)
+            painter.setFont(type_font)
+            painter.setPen(t.text_type_selected if selected else t.text_type)
+
+            type_rect = QRectF(rect.x(), rect.y() + rect.height() * 0.58, rect.width(), rect.height() * 0.38)
+            painter.drawText(type_rect, Qt.AlignCenter | Qt.AlignTop, self.instance.meta.type)
+
+        # --- Handles de sélection
         if selected:
             half = self.SELECTION_HANDLE_SIZE / 2
             r = self.rect()
@@ -197,7 +214,6 @@ class BlockItem(QGraphicsRectItem):
                 (r.left(), r.bottom()),
                 (r.right(), r.bottom()),
             ]
-
             painter.setPen(QPen(t.block_border_selected, 1))
             painter.setBrush(t.text_selected)
             for x, y in corners:
