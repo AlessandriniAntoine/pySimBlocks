@@ -25,7 +25,7 @@ from pathsim.blocks import (
     Scope,
     Source,
 )
-from pathsim.solvers import RK4
+from pathsim.solvers import EUF
 
 import params as prm 
 
@@ -102,7 +102,7 @@ def test_pathsim_case():
     sim = Simulation(
         blocks,
         connections,
-        Solver=RK4,
+        Solver=EUF,
         dt=prm.dt,
         dt_min=prm.dt,
         dt_max=prm.dt,
