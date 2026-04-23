@@ -160,13 +160,13 @@ class BlockList(QWidget):
         for i in range(self.tree.topLevelItemCount()):
             category_item = self.tree.topLevelItem(i)
             category_name = category_item.text(0)
-            category_match = category_name.lower().startswith(query)
+            category_match = query in category_name.lower()  # ← startswith → in
 
             visible_children = 0
             for j in range(category_item.childCount()):
                 block_item = category_item.child(j)
                 block_name = block_item.text(0)
-                block_match = block_name.lower().startswith(query)
+                block_match = query in block_name.lower()    # ← startswith → in
                 visible = (not query) or category_match or block_match
                 block_item.setHidden(not visible)
                 if visible:

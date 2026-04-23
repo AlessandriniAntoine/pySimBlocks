@@ -74,8 +74,10 @@ class Theme:
 
     #: Default text color.
     text: QColor
+    text_type: QColor
     #: Selected text color.
     text_selected: QColor
+    text_type_selected: QColor
 
     #: Connection wire color.
     wire: QColor
@@ -110,11 +112,15 @@ def make_theme() -> Theme:
         block_border_selected = QColor("#4A78FF")
 
     text = QColor("#F0F0F0") if is_dark else QColor("#1E1E1E")
+    text_type = QColor("#7EB8D4") if is_dark else QColor("#2E7CA8")
     text_selected = QColor("#FFFFFF") if is_dark else QColor("#000000")
+    text_type_selected = QColor("#A8D4E8") if is_dark else QColor("#1A5C80")
     wire = QColor("#E6E6E6") if is_dark else QColor("#1A1A1A")
 
     text = _ensure_contrast(text, block_bg, min_delta=90.0)
+    text_type = _ensure_contrast(text_type, block_bg, min_delta=90.0)
     text_selected = _ensure_contrast(text_selected, block_bg_selected, min_delta=90.0)
+    text_type_selected = _ensure_contrast(text_type_selected, block_bg_selected, min_delta=90.0)
     block_border = _ensure_contrast(block_border, block_bg, min_delta=60.0)
     block_border_selected = _ensure_contrast(block_border_selected, block_bg_selected, min_delta=60.0)
     wire = _ensure_contrast(wire, scene_bg, min_delta=110.0)
@@ -129,7 +135,9 @@ def make_theme() -> Theme:
         block_border=block_border,
         block_border_selected=block_border_selected,
         text=text,
+        text_type=text_type,
         text_selected=text_selected,
+        text_type_selected=text_type_selected,
         wire=wire,
         port_in=port_in,
         port_out=port_out,
