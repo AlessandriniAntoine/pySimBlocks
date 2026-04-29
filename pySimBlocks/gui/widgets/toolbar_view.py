@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication
+from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication, QToolButton
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 
@@ -34,7 +34,7 @@ from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 # Add ons
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
-
+print("TOOLBAR FILE:", __file__)
 
 class ToolBarView(QToolBar):
     """Application toolbar providing save, run, plot, and add-on actions.
@@ -64,6 +64,7 @@ class ToolBarView(QToolBar):
             None.
         """
         super().__init__()
+        self.setToolButtonStyle(Qt.ToolButtonTextOnly)
 
         self.saver = saver
         self.runner = runner
@@ -72,6 +73,33 @@ class ToolBarView(QToolBar):
         save_action = QAction("Save", self)
         save_action.triggered.connect(self.on_save)
         self.addAction(save_action)
+
+        self.addSeparator()
+
+        self.undo_button = QToolButton(self)
+        self.undo_button.setText("Undo")
+        self.undo_button.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        self.undo_button.clicked.connect(self.project_controller.undo_manager.undo)
+        self.undo_button.clicked.connect(self._focus_view_after_history_action)
+        self.addWidget(self.undo_button)
+
+        self.redo_button = QToolButton(self)
+        self.redo_button.setText("Redo")
+        self.redo_button.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        self.redo_button.clicked.connect(self.project_controller.undo_manager.redo)
+        self.redo_button.clicked.connect(self._focus_view_after_history_action)
+        self.addWidget(self.redo_button)
+
+        self.project_controller.undo_manager.stack.canUndoChanged.connect(
+            self.undo_button.setEnabled
+        )
+        self.project_controller.undo_manager.stack.canRedoChanged.connect(
+            self.redo_button.setEnabled
+        )
+        self.undo_button.setEnabled(self.project_controller.undo_manager.stack.canUndo())
+        self.redo_button.setEnabled(self.project_controller.undo_manager.stack.canRedo())
+
+        self.addSeparator()
 
         export_action = QAction("Export", self)
         export_action.triggered.connect(self.on_export_project)
@@ -183,6 +211,10 @@ class ToolBarView(QToolBar):
         else:
             if self.sofa_action in self.actions():
                 self.removeAction(self.sofa_action)
+
+    def _focus_view_after_history_action(self) -> None:
+        """Return keyboard focus to the canvas after undo/redo from toolbar."""
+        self.project_controller.view.setFocus()
 
     def on_open_sofa_dialog(self) -> None:
         """Open the SOFA dialog if SOFA prerequisites are satisfied."""

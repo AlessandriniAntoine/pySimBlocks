@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QPointF, Qt, QTimer
-from PySide6.QtGui import QGuiApplication, QPainter, QPen
+from PySide6.QtGui import QGuiApplication, QKeySequence, QPainter, QPen
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
@@ -81,6 +81,7 @@ class DiagramView(QGraphicsView):
         self.pending_port: PortItem | None = None
         self.temp_connection: ConnectionItem | None = None
         self.copied_block: BlockItem | None = None
+        self.drop_event_pos: QPointF = QPointF(0, 0)
         self.project_controller: ProjectController | None
         self.block_items: dict[str, BlockItem] = {}
         self.connections: dict[ConnectionInstance, ConnectionItem] = {}
@@ -195,7 +196,6 @@ class DiagramView(QGraphicsView):
         Args:
             block_item: The block item that was repositioned.
         """
-        self.project_controller.make_dirty()
         for conn_inst, conn_item in self.connections.items():
             if conn_inst.is_block_involved(block_item.instance):
                 conn_item.invalidate_manual_route()
@@ -245,6 +245,23 @@ class DiagramView(QGraphicsView):
         Args:
             event: Qt key-press event.
         """
+        # UNDO / REDO
+        if event.matches(QKeySequence.Undo):
+            self.project_controller.undo_manager.undo()
+            event.accept()
+            return
+        if event.matches(QKeySequence.Redo):
+            self.project_controller.undo_manager.redo()
+            event.accept()
+            return
+        if (
+            event.key() == Qt.Key_Z
+            and event.modifiers() == (Qt.ControlModifier | Qt.ShiftModifier)
+        ):
+            self.project_controller.undo_manager.redo()
+            event.accept()
+            return
+
         # COPY
         if event.key() == Qt.Key_C and event.modifiers() & Qt.ControlModifier:
             selected = [i for i in self.diagram_scene.selectedItems() if isinstance(i, BlockItem)]
@@ -278,7 +295,7 @@ class DiagramView(QGraphicsView):
             selected = [i for i in self.diagram_scene.selectedItems()
                         if isinstance(i, BlockItem)]
             for item in selected:
-                item.toggle_orientation()
+                self.project_controller.execute_toggle_orientation(item.instance)
             return
 
         # CENTER VIEW
@@ -338,21 +355,25 @@ class DiagramView(QGraphicsView):
 
     def delete_selected(self) -> None:
         """Remove all selected blocks and connections from the project."""
-        for item in self.diagram_scene.selectedItems():
-            if isinstance(item, BlockItem):
-                self.project_controller.remove_block(item.instance)
-
-            elif isinstance(item, ConnectionItem):
-                self.project_controller.remove_connection(item.instance)
+        selected_items = list(self.diagram_scene.selectedItems())
+        if not selected_items:
+            return
+        self.project_controller.begin_macro("Delete Selection")
+        try:
+            for item in selected_items:
+                if isinstance(item, BlockItem):
+                    self.project_controller.remove_block(item.instance)
+                elif isinstance(item, ConnectionItem):
+                    self.project_controller.remove_connection(item.instance)
+        finally:
+            self.project_controller.end_macro()
 
     def clear_scene(self) -> None:
         """Remove all blocks and connections from the scene and reset state."""
-        for block in list(self.block_items.values()):
-            self.project_controller.remove_block(block.instance)
-
-        for connection in list(self.connections.values()):
-            self.project_controller.remove_connection(connection.instance)
-
+        self.diagram_scene.clear()
+        self.block_items.clear()
+        self.connections.clear()
+        self.temp_connection = None
         self.pending_port = None
 
     def scale_view(self, factor: float) -> None:
