@@ -23,8 +23,10 @@ from pathlib import Path
 
 from PySide6.QtCore import QPointF
 
+from pySimBlocks.gui.models import BlockInstance
 from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.yaml_tools import load_yaml_file
+from pySimBlocks.gui.undo_redo.commands import ConnectionSnapshot
 
 
 class ProjectLoader(ABC):
@@ -133,7 +135,8 @@ class ProjectLoaderYaml(ProjectLoader):
             block_layout = self._sanitize_block_layout((layout_blocks or {}).get(name, {}))
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
-            block = controller.add_block(category, block_type, block_layout)
+            block_meta = controller.resolve_block_meta(category, block_type)
+            block = controller._add_block(BlockInstance(block_meta), block_layout)
             controller.rename_block(block, name)
 
             raw_params = desc.get("parameters", {})
@@ -230,7 +233,15 @@ class ProjectLoaderYaml(ProjectLoader):
                 continue
 
             points = routes.get(conn_name, None) if isinstance(conn_name, str) else None
-            controller.add_connection(src_port, dst_port, points)
+            controller._add_connection_from_snapshot(
+                ConnectionSnapshot(
+                    src_block_uid=src_block.uid,
+                    src_port_name=src_port.name,
+                    dst_block_uid=dst_block.uid,
+                    dst_port_name=dst_port.name,
+                    points=points,
+                )
+            )
 
     def _load_logging(self, controller: ProjectController, sim_data: dict):
         """Load the configured logging signal list."""

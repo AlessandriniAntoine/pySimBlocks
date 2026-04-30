@@ -85,6 +85,8 @@ class BlockItem(QGraphicsRectItem):
         self._resize_start_pos: QPointF | None = None
         self._resize_start_width = self.WIDTH
         self._resize_start_height = self.HEIGHT
+        self._interaction_start_pos: QPointF | None = None
+        self._interaction_start_rect: QRectF | None = None
 
         self.setPos(pos)
         self.setFlag(QGraphicsRectItem.ItemIsMovable)
@@ -139,6 +141,14 @@ class BlockItem(QGraphicsRectItem):
         """Flip the block orientation and relayout its ports."""
         self.orientation = "flipped" if self.orientation == "normal" else "normal"
 
+        self._layout_ports()
+        self.view.on_block_moved(self)
+        self.update()
+
+    def set_orientation(self, orientation: str) -> None:
+        if orientation not in {"normal", "flipped"}:
+            return
+        self.orientation = orientation
         self._layout_ports()
         self.view.on_block_moved(self)
         self.update()
@@ -225,6 +235,8 @@ class BlockItem(QGraphicsRectItem):
         Args:
             event: Qt mouse-press event.
         """
+        self._interaction_start_pos = QPointF(self.pos())
+        self._interaction_start_rect = QRectF(self.rect())
         if self.isSelected():
             handle = self._handle_at(event.pos())
             if handle is not None:
@@ -284,10 +296,29 @@ class BlockItem(QGraphicsRectItem):
         Args:
             event: Qt mouse-release event.
         """
+        start_pos = self._interaction_start_pos
+        start_rect = self._interaction_start_rect
+        end_pos = QPointF(self.pos())
+        end_rect = QRectF(self.rect())
+
         self._resize_handle = None
         self._resize_start_mouse = None
         self._resize_start_pos = None
+        self._interaction_start_pos = None
+        self._interaction_start_rect = None
         super().mouseReleaseEvent(event)
+
+        if start_pos is None or start_rect is None:
+            return
+
+        if start_pos != end_pos or start_rect != end_rect:
+            self.view.project_controller.execute_move_resize_block(
+                self.instance,
+                start_pos,
+                start_rect,
+                end_pos,
+                end_rect,
+            )
 
     def mouseDoubleClickEvent(self, event):
         """Open the block configuration dialog on double click.
