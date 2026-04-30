@@ -23,7 +23,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
-from PySide6.QtCore import QObject, Signal, QPointF
+from PySide6.QtCore import QObject, Signal, QPointF, QRectF
 
 from pySimBlocks.gui.models import (
     BlockInstance,
@@ -34,6 +34,17 @@ from pySimBlocks.gui.models import (
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.services.yaml_tools import cleanup_runtime_project_yaml
+from pySimBlocks.gui.undo_redo.undo_redo_manager import UndoManager
+from pySimBlocks.gui.undo_redo.commands import (
+    AddBlockCommand,
+    AddConnectionCommand,
+    EditBlockParamsCommand,
+    MoveResizeBlockCommand,
+    RemoveBlockCommand,
+    RemoveConnectionCommand,
+    ToggleOrientationCommand,
+    ConnectionSnapshot,
+)
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.services.project_loader import ProjectLoader
@@ -62,6 +73,7 @@ class ProjectController(QObject):
         project_state: ProjectState,
         view: DiagramView,
         resolve_block_meta: Callable[[str, str], BlockMeta],
+        undo_manager: UndoManager,
     ):
         """Initialize the ProjectController.
 
@@ -75,6 +87,7 @@ class ProjectController(QObject):
         self.project_state = project_state
         self.resolve_block_meta = resolve_block_meta
         self.view = view
+        self.undo_manager = undo_manager
 
         self.is_dirty: bool = False
 
@@ -101,7 +114,8 @@ class ProjectController(QObject):
         """
         block_meta = self.resolve_block_meta(category, block_type)
         block_instance = BlockInstance(block_meta)
-        return self._add_block(block_instance, block_layout)
+        self.undo_manager.push(AddBlockCommand(self, block_instance, block_layout))
+        return block_instance
 
     def add_copy_block(self, block_instance: BlockInstance) -> BlockInstance:
         """Add a copy of an existing block to the project.
@@ -113,7 +127,8 @@ class ProjectController(QObject):
             The newly created copy as a :class:`BlockInstance`.
         """
         copy = BlockInstance.copy(block_instance)
-        return self._add_block(copy)
+        self.undo_manager.push(AddBlockCommand(self, copy))
+        return copy
 
     def rename_block(self, block_instance: BlockInstance, new_name: str) -> None:
         """Rename a block and update all references in logging and plot signals.
@@ -156,16 +171,7 @@ class ProjectController(QObject):
             params: New parameter dict. If a ``'name'`` key is present the
                 block is also renamed.
         """
-        self.rename_block(block_instance, params.pop("name", block_instance.name))
-
-        if params == block_instance.parameters:
-            return
-
-        block_instance.update_params(params)
-        block_instance.resolve_ports()
-        self._remove_connection_if_port_disapear(block_instance)
-        self.view.refresh_block_port(block_instance)
-        self.make_dirty()
+        self.undo_manager.push(EditBlockParamsCommand(self, block_instance, params))
 
     def remove_block(self, block_instance: BlockInstance) -> None:
         """Remove a block, its connections, and its signals from the project.
@@ -173,29 +179,7 @@ class ProjectController(QObject):
         Args:
             block_instance: The block to remove.
         """
-        self.make_dirty()
-
-        for connection in self.project_state.get_connections_of_block(block_instance):
-            self.remove_connection(connection)
-
-        removed_signals = [
-            f"{block_instance.name}.outputs.{p.name}"
-            for p in block_instance.ports if p.direction == "output"
-        ]
-        remaining_signals = [
-            s for s in self.project_state.logging
-            if s not in removed_signals
-        ]
-        self.set_logged_signals(remaining_signals)
-
-        for i in reversed(range(len(self.project_state.plots))):
-            plot = self.project_state.plots[i]
-            plot["signals"] = [s for s in plot["signals"] if s not in removed_signals]
-            if not plot["signals"]:
-                self.delete_plot(i)
-
-        self.project_state.remove_block(block_instance)
-        self.view.remove_block(block_instance)
+        self.undo_manager.push(RemoveBlockCommand(self, block_instance))
 
     def make_unique_name(self, base_name: str) -> str:
         """Return ``base_name`` or a suffixed variant that is unique across all blocks.
@@ -260,21 +244,13 @@ class ProjectController(QObject):
         """
         if not port1.is_compatible(port2):
             return
-
         src_port, dst_port = (
             (port1, port2) if port1.direction == "output" else (port2, port1)
         )
-
         port_dst_connections = self.project_state.get_connections_of_port(dst_port)
-
         if not dst_port.can_accept_connection(port_dst_connections):
             return
-
-        connection_instance = ConnectionInstance(src_port, dst_port)
-
-        self.project_state.add_connection(connection_instance)
-        self.view.add_connection(connection_instance, points)
-        self.make_dirty()
+        self.undo_manager.push(AddConnectionCommand(self, src_port, dst_port, points))
 
     def remove_connection(self, connection: ConnectionInstance) -> None:
         """Remove a connection from both the model and the view.
@@ -282,9 +258,37 @@ class ProjectController(QObject):
         Args:
             connection: The :class:`ConnectionInstance` to remove.
         """
-        self.project_state.remove_connection(connection)
-        self.view.remove_connection(connection)
-        self.make_dirty()
+        self.undo_manager.push(RemoveConnectionCommand(self, connection))
+
+    def execute_move_resize_block(
+        self,
+        block_instance: BlockInstance,
+        old_pos: QPointF,
+        old_rect: QRectF,
+        new_pos: QPointF,
+        new_rect: QRectF,
+    ) -> None:
+        self.undo_manager.push(
+            MoveResizeBlockCommand(
+                self, block_instance.uid, old_pos, old_rect, new_pos, new_rect
+            )
+        )
+
+    def execute_toggle_orientation(self, block_instance: BlockInstance) -> None:
+        block_item = self.view.get_block_item_from_instance(block_instance)
+        if block_item is None:
+            return
+        old_orientation = block_item.orientation
+        new_orientation = "flipped" if old_orientation == "normal" else "normal"
+        self.undo_manager.push(
+            ToggleOrientationCommand(self, block_instance.uid, old_orientation, new_orientation)
+        )
+
+    def begin_macro(self, text: str) -> None:
+        self.undo_manager.stack.beginMacro(text)
+
+    def end_macro(self) -> None:
+        self.undo_manager.stack.endMacro()
 
 
     # --------------------------------------------------------------------------
@@ -307,6 +311,8 @@ class ProjectController(QObject):
         """Reset the project state and diagram view to an empty state."""
         self.project_state.clear()
         self.view.clear_scene()
+        self.undo_manager.clear()
+        self.clear_dirty()
 
     def update_project_param(self, new_path: Path, ext: str) -> None:
         """Update the project directory path and external module reference.
@@ -422,16 +428,156 @@ class ProjectController(QObject):
 
         return block_instance
 
-    def _remove_connection_if_port_disapear(self, block_instance: BlockInstance) -> None:
+    def _remove_connection_if_port_disapear(self, block_instance: BlockInstance) -> list[ConnectionSnapshot]:
         """Remove any connection whose source or destination port no longer exists."""
+        removed: list[ConnectionSnapshot] = []
         for connection in self.project_state.get_connections_of_block(block_instance):
             src_exists = connection.src_port in connection.src_block().ports
             dst_exists = connection.dst_port in connection.dst_block().ports
             if not (src_exists and dst_exists):
-                self.remove_connection(connection)
+                removed.append(self._capture_connection_snapshot(connection))
+                self._remove_connection(connection)
+        return removed
 
     def _ensure_logged(self, signals: list[str]) -> None:
         """Append any signal not yet in the logging list."""
         for sig in signals:
             if sig not in self.project_state.logging:
                 self.project_state.logging.append(sig)
+
+    def _remove_block(self, block_instance: BlockInstance) -> None:
+        for connection in list(self.project_state.get_connections_of_block(block_instance)):
+            self._remove_connection(connection)
+
+        removed_signals = [
+            f"{block_instance.name}.outputs.{p.name}"
+            for p in block_instance.ports if p.direction == "output"
+        ]
+        self.project_state.logging = [s for s in self.project_state.logging if s not in removed_signals]
+
+        for i in reversed(range(len(self.project_state.plots))):
+            plot = self.project_state.plots[i]
+            plot["signals"] = [s for s in plot["signals"] if s not in removed_signals]
+            if not plot["signals"]:
+                del self.project_state.plots[i]
+
+        self.project_state.remove_block(block_instance)
+        self.view.remove_block(block_instance)
+
+    def _remove_connection(self, connection: ConnectionInstance) -> None:
+        self.project_state.remove_connection(connection)
+        self.view.remove_connection(connection)
+
+    def _find_block_by_uid(self, block_uid: str) -> BlockInstance | None:
+        for block in self.project_state.blocks:
+            if block.uid == block_uid:
+                return block
+        return None
+
+    def _find_port(self, block_uid: str, port_name: str) -> PortInstance | None:
+        block = self._find_block_by_uid(block_uid)
+        if block is None:
+            return None
+        for port in block.ports:
+            if port.name == port_name:
+                return port
+        return None
+
+    def _capture_block_layout(self, block_instance: BlockInstance) -> dict:
+        block_item = self.view.get_block_item_from_instance(block_instance)
+        if block_item is None:
+            return {}
+        pos = block_item.pos()
+        rect = block_item.rect()
+        return {
+            "x": float(pos.x()),
+            "y": float(pos.y()),
+            "orientation": block_item.orientation,
+            "width": float(rect.width()),
+            "height": float(rect.height()),
+        }
+
+    def _capture_connection_snapshot(self, connection: ConnectionInstance) -> ConnectionSnapshot:
+        points: list[QPointF] | None = None
+        connection_item = self.view.connections.get(connection)
+        if (
+            connection_item is not None
+            and connection_item.is_manual
+            and connection_item.route is not None
+        ):
+            points = [QPointF(p) for p in connection_item.route.points]
+        return ConnectionSnapshot(
+            src_block_uid=connection.src_block().uid,
+            src_port_name=connection.src_port.name,
+            dst_block_uid=connection.dst_block().uid,
+            dst_port_name=connection.dst_port.name,
+            points=points,
+        )
+
+    def _add_connection_from_snapshot(self, snapshot: ConnectionSnapshot) -> ConnectionInstance | None:
+        src_port = self._find_port(snapshot.src_block_uid, snapshot.src_port_name)
+        dst_port = self._find_port(snapshot.dst_block_uid, snapshot.dst_port_name)
+        if src_port is None or dst_port is None:
+            return None
+        if not src_port.is_compatible(dst_port):
+            return None
+        if not dst_port.can_accept_connection(self.project_state.get_connections_of_port(dst_port)):
+            return None
+        connection_instance = ConnectionInstance(src_port, dst_port)
+        self.project_state.add_connection(connection_instance)
+        self.view.add_connection(connection_instance, snapshot.points)
+        return connection_instance
+
+    def _set_block_geometry(self, block_uid: str, pos: QPointF, rect: QRectF) -> None:
+        block = self._find_block_by_uid(block_uid)
+        if block is None:
+            return
+        block_item = self.view.get_block_item_from_instance(block)
+        if block_item is None:
+            return
+        block_item.setPos(QPointF(pos))
+        block_item.setRect(0, 0, rect.width(), rect.height())
+        block_item._layout_ports()
+        self.view.on_block_moved(block_item)
+
+    def _set_block_orientation(self, block_uid: str, orientation: str) -> None:
+        block = self._find_block_by_uid(block_uid)
+        if block is None:
+            return
+        block_item = self.view.get_block_item_from_instance(block)
+        if block_item is None:
+            return
+        block_item.set_orientation(orientation)
+        self.view.on_block_moved(block_item)
+
+    def _apply_block_update(
+        self,
+        block_instance: BlockInstance,
+        new_name: str,
+        params: dict[str, Any],
+    ) -> list[ConnectionSnapshot]:
+        old_name = block_instance.name
+        if old_name != new_name:
+            new_name = self.make_unique_name(new_name)
+            block_instance.name = new_name
+            prefix_old = f"{old_name}.outputs."
+            prefix_new = f"{new_name}.outputs."
+            self.project_state.logging = [
+                s.replace(prefix_old, prefix_new)
+                if s.startswith(prefix_old) else s
+                for s in self.project_state.logging
+            ]
+            for plot in self.project_state.plots:
+                plot["signals"] = [
+                    s.replace(prefix_old, prefix_new)
+                    if s.startswith(prefix_old) else s
+                    for s in plot["signals"]
+                ]
+
+        if params != block_instance.parameters:
+            block_instance.update_params(params)
+            block_instance.resolve_ports()
+            removed = self._remove_connection_if_port_disapear(block_instance)
+            self.view.refresh_block_port(block_instance)
+            return removed
+        return []

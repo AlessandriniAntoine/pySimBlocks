@@ -35,6 +35,7 @@ from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
 from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 from pySimBlocks.gui.services.yaml_tools import cleanup_runtime_project_yaml
+from pySimBlocks.gui.undo_redo.undo_redo_manager import UndoManager
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
@@ -73,10 +74,13 @@ class MainWindow(QMainWindow):
         self.runner = SimulationRunner()
 
         self.block_registry = load_block_registry()
+        self.undo_manager = UndoManager()
 
         self.project_state = ProjectState(project_path)
         self.view = DiagramView()
-        self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
+        self.project_controller = ProjectController(
+            self.project_state, self.view, self.resolve_block_meta, self.undo_manager
+        )
         self.view.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
         self.toolbar = ToolBarView(self.saver, self.runner, self.project_controller)
@@ -94,6 +98,7 @@ class MainWindow(QMainWindow):
             self.project_controller.load_project(self.loader)
 
         self.project_controller.dirty_changed.connect(self.update_window_title)
+        self.undo_manager.stack.cleanChanged.connect(self._on_clean_changed)
         self.update_window_title()
 
         self.save_action = QAction("Save", self)
@@ -105,6 +110,16 @@ class MainWindow(QMainWindow):
         self.quit_action.setShortcut(QKeySequence("Ctrl+Q"))
         self.quit_action.triggered.connect(self.close)
         self.addAction(self.quit_action)
+
+        self.undo_action = self.undo_manager.create_undo_action(self)
+        self.undo_action.setShortcut(QKeySequence.Undo)
+        self.undo_action.setShortcutContext(Qt.ApplicationShortcut)
+        self.addAction(self.undo_action)
+
+        self.redo_action = self.undo_manager.create_redo_action(self)
+        self.redo_action.setShortcuts([QKeySequence("Ctrl+Y"), QKeySequence("Ctrl+Shift+Z")])
+        self.redo_action.setShortcutContext(Qt.ApplicationShortcut)
+        self.addAction(self.redo_action)
 
         QTimer.singleShot(0, self.view.setFocus)
 
@@ -200,6 +215,10 @@ class MainWindow(QMainWindow):
             event: Qt close event.
         """
         if self.confirm_discard_or_save("closing"):
+            try:
+                self.undo_manager.stack.cleanChanged.disconnect(self._on_clean_changed)
+            except (TypeError, RuntimeError):
+                pass
             self.cleanup()
             event.accept()
         else:
@@ -235,4 +254,13 @@ class MainWindow(QMainWindow):
         if not self.project_controller.is_dirty:
             return
         self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
-        self.project_controller.clear_dirty()
+        self.undo_manager.set_clean()
+
+    def _on_clean_changed(self, is_clean: bool) -> None:
+        try:
+            if is_clean:
+                self.project_controller.clear_dirty()
+            else:
+                self.project_controller.make_dirty()
+        except RuntimeError:
+            return
