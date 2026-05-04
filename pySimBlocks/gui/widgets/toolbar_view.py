@@ -34,7 +34,6 @@ from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 # Add ons
 from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
-print("TOOLBAR FILE:", __file__)
 
 class ToolBarView(QToolBar):
     """Application toolbar providing save, run, plot, and add-on actions.
