@@ -19,5 +19,13 @@
 # ******************************************************************************
 
 from pySimBlocks.real_time.real_time_runner import RealTimeRunner
+from pySimBlocks.real_time.real_time_process import RealTimeProcess, Gate, on
+from pySimBlocks.real_time.real_time_session import RealTimeSession
 
-__all__ = ["RealTimeRunner"]
+__all__ = [
+        "RealTimeRunner",
+        "RealTimeProcess",
+        "Gate",
+        "on",
+        "RealTimeSession",
+]
