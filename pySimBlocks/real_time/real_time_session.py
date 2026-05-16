@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import multiprocessing.connection
 import time
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -55,6 +56,8 @@ class RealTimeSession:
         self._extra_shared: Dict[str, int] = {}
         # name -> typecode string ("d", "b", "i", ...)
         self._extra_dtypes: Dict[str, str] = {}
+        # process id -> shutdown writer pipe end
+        self._shutdown_writers: Dict[int, multiprocessing.connection.Connection] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -126,8 +129,7 @@ class RealTimeSession:
     def run(self) -> None:
         """Wire everything, start all processes, and block until interrupted."""
         shared_arrays, shared_dtypes = self._build_shared_arrays()
-        mp_events = self._build_mp_events()
-        self._wire(shared_arrays, shared_dtypes, mp_events)
+        self._wire(shared_arrays, shared_dtypes)
 
         for p in self._processes:
             p.start()
@@ -159,8 +161,6 @@ class RealTimeSession:
             - Dict  name -> ``multiprocessing.Array``
             - Dict  name -> numpy dtype  (forwarded to the proxy)
         """
-        import numpy as np
-
         # Yaml gives us block names with default size=1 as a safety net.
         # declare_shared() overrides both size and dtype.
         io_specs = _parse_io_specs(self._project_yaml)
@@ -177,58 +177,64 @@ class RealTimeSession:
 
         return arrays, np_dtypes
 
-    def _build_mp_events(self) -> Dict[str, multiprocessing.Event]:
-        """Create one ``multiprocessing.Event`` per unique event name."""
-        names: set[str] = set()
-        for p in self._processes:
-            names.update(p.emits)
-            names.update(p.listens)
-            for gate in p.gates:
-                names.update(gate.wait_for)
-        return {name: multiprocessing.Event() for name in names}
-
     def _wire(
         self,
         shared_arrays: Dict[str, multiprocessing.Array],
         shared_dtypes: Dict[str, type],
-        mp_events: Dict[str, multiprocessing.Event],
     ) -> None:
-        """Inject shared proxy and event references into each process."""
+        """Inject shared proxy, pipes, and shutdown connections into each process."""
         shared_proxy = _SharedProxy(shared_arrays, shared_dtypes)
 
-        # One mp.Event per (dst_instance, event_name).
-        incoming: Dict[Tuple[int, str], multiprocessing.Event] = {}
+        # One pipe per (dst_instance, event_name) — all sources for the same
+        # (event, dst) pair share the same writer end.
+        incoming: Dict[Tuple[int, str], Tuple[
+            multiprocessing.connection.Connection,
+            multiprocessing.connection.Connection,
+        ]] = {}
         for event, src, dst in self._connections:
             key = (id(dst), event)
             if key not in incoming:
-                incoming[key] = multiprocessing.Event()
+                incoming[key] = multiprocessing.Pipe(duplex=False)  # (reader, writer)
 
         for p in self._processes:
-            # events_in: events this process waits on
-            events_in: Dict[str, multiprocessing.Event] = {}
+            # Shutdown pipe: session writes, process reads to exit _dispatch_loop.
+            shutdown_reader, shutdown_writer = multiprocessing.Pipe(duplex=False)
+            self._shutdown_writers[id(p)] = shutdown_writer
+            p._shutdown_reader = shutdown_reader
+
+            # events_in: reader end for each event this process receives.
+            events_in: Dict[str, multiprocessing.connection.Connection] = {}
             for event, src, dst in self._connections:
                 if dst is p:
-                    events_in[event] = incoming[(id(p), event)]
+                    reader, _ = incoming[(id(p), event)]
+                    events_in[event] = reader
             p._events_in = events_in
 
-            # events_out: for each emitted event, list of downstream mp.Events
-            events_out: Dict[str, List[multiprocessing.Event]] = {}
+            # events_out: writer ends for each event this process emits.
+            events_out: Dict[str, List[multiprocessing.connection.Connection]] = {}
             for event, src, dst in self._connections:
                 if src is p:
-                    events_out.setdefault(event, []).append(
-                        incoming[(id(dst), event)]
-                    )
+                    _, writer = incoming[(id(dst), event)]
+                    events_out.setdefault(event, []).append(writer)
             p._events_out = events_out
 
             p.shared        = shared_proxy
             p._project_yaml = self._project_yaml
 
     def _shutdown(self) -> None:
+        # Ask processes to exit their dispatch loop cleanly before terminating.
+        for _, writer in self._shutdown_writers.items():
+            try:
+                writer.send_bytes(b"\x00")
+            except Exception:
+                pass
+        for p in self._processes:
+            p.join(timeout=2.0)
         for p in self._processes:
             if p.is_alive():
                 p.terminate()
         for p in self._processes:
-            p.join(timeout=5.0)
+            p.join(timeout=3.0)
             if p.is_alive():
                 p.kill()
         print("[RealTimeSession] All processes stopped.")

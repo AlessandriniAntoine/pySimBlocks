@@ -70,6 +70,8 @@ class DiagramProcess(RealTimeProcess):
             pace=False,
         )
 
+        self._command = outs["Cmd"]
+        self.shared.Cmd = self._command.flatten()
 
         print("--- Control step ---")
         print(f"Camera: {self.shared.Camera.flatten()}")

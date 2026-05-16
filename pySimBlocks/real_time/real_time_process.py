@@ -22,10 +22,12 @@
 
 from __future__ import annotations
 
+import copy
 import multiprocessing
+import multiprocessing.connection
 import multiprocessing.sharedctypes
 from abc import abstractmethod
-from typing import Callable, ClassVar, Dict, List, Optional
+from typing import Callable, ClassVar, Dict, List, Optional, cast
 
 import numpy as np
 
@@ -321,17 +323,21 @@ class RealTimeProcess(multiprocessing.Process):
     listens: ClassVar[List[str]] = []
     gates:   ClassVar[List[Gate]] = []
 
-    shared:        _SharedProxy
-    _events_in:    Dict[str, "multiprocessing.Event"]
-    _events_out:   Dict[str, List["multiprocessing.Event"]]
-    _project_yaml: Optional[str]
+    shared:          _SharedProxy
+    _events_in:      Dict[str, "multiprocessing.connection.Connection"]
+    _events_out:     Dict[str, List["multiprocessing.connection.Connection"]]
+    _shutdown_reader: Optional["multiprocessing.connection.Connection"]
+    _project_yaml:   Optional[str]
 
     def __init__(self):
         super().__init__(daemon=True)
-        self.shared         = _SharedProxy({})
-        self._events_in     = {}
-        self._events_out    = {}
-        self._project_yaml  = None
+        self.shared          = _SharedProxy({})
+        self._events_in      = {}
+        self._events_out     = {}
+        self._shutdown_reader = None
+        self._project_yaml   = None
+        # Per-instance copy so two instances of the same class never share Gate state.
+        self._gates: List[Gate] = copy.deepcopy(type(self).gates)
 
         # Collect @on handlers at class definition time
         self._handlers: Dict[str, str] = {}  # event -> method name
@@ -366,8 +372,8 @@ class RealTimeProcess(multiprocessing.Process):
                 f"[{type(self).__name__}] Undeclared event '{event}'. "
                 f"Add it to emits = [...]."
             )
-        for mp_event in self._events_out.get(event, []):
-            mp_event.set()
+        for conn in self._events_out.get(event, []):
+            conn.send_bytes(b"\x00")
 
     def load_runner(
         self,
@@ -410,23 +416,32 @@ class RealTimeProcess(multiprocessing.Process):
     # ------------------------------------------------------------------
 
     def _dispatch_loop(self) -> None:
-        """Reactive loop: block on each event in turn, dispatch on arrival.
+        """Reactive loop: block on ALL input connections simultaneously.
 
-        Uses ``wait()`` without timeout — the OS wakes this process the moment
-        an event is set, with ~50 µs latency instead of the ~5 ms polling
-        latency of ``wait(timeout=0.005)``.
+        Uses ``multiprocessing.connection.wait()`` — the OS wakes this process
+        the moment any pipe has data, with ~50 µs latency. All ready events are
+        dispatched before blocking again, so no event is ever starved by another.
         """
         gate_index: Dict[str, List[Gate]] = {}
-        for gate in self.gates:
+        for gate in self._gates:
             for ev in gate.wait_for:
                 gate_index.setdefault(ev, []).append(gate)
 
+        conn_to_event: Dict[multiprocessing.connection.Connection, str] = {
+            conn: name for name, conn in self._events_in.items()
+        }
+
+        readers = list(self._events_in.values())
+        if self._shutdown_reader is not None:
+            readers.append(self._shutdown_reader)
+
         while True:
-            for event_name, mp_event in self._events_in.items():
-                # --- WAIT: block until event arrives, no polling ---
-                mp_event.wait()
-                mp_event.clear()
-                self._handle_event(event_name, gate_index)
+            for conn in multiprocessing.connection.wait(readers):
+                c = cast(multiprocessing.connection.Connection, conn)
+                if c is self._shutdown_reader:
+                    return
+                c.recv_bytes()
+                self._handle_event(conn_to_event[c], gate_index)
 
     def _handle_event(
         self,
