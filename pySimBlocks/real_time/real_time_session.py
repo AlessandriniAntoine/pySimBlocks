@@ -22,13 +22,19 @@
 
 from __future__ import annotations
 
+import logging
 import multiprocessing
 import multiprocessing.connection
+from multiprocessing.sharedctypes import SynchronizedArray
 import time
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import yaml
+
 from pySimBlocks.real_time.real_time_process import RealTimeProcess, _SharedProxy, _resolve_dtype
+
+logger = logging.getLogger(__name__)
 
 
 class RealTimeSession:
@@ -134,18 +140,22 @@ class RealTimeSession:
         for p in self._processes:
             p.start()
 
-        print(f"[RealTimeSession] Started {len(self._processes)} process(es). "
-              "Press Ctrl-C to stop.")
+        logger.info(
+            "RealTimeSession: started %d process(es). Press Ctrl-C to stop.",
+            len(self._processes),
+        )
         try:
             while True:
                 time.sleep(1.0)
                 for p in self._processes:
                     if not p.is_alive():
-                        print(f"[RealTimeSession] Process '{type(p).__name__}' "
-                              f"(pid={p.pid}) exited unexpectedly "
-                              f"(exitcode={p.exitcode}).")
+                        logger.error(
+                            "RealTimeSession: process '%s' (pid=%s) exited "
+                            "unexpectedly (exitcode=%s).",
+                            type(p).__name__, p.pid, p.exitcode,
+                        )
         except KeyboardInterrupt:
-            print("\n[RealTimeSession] Stopping...")
+            logger.info("RealTimeSession: stopping...")
         finally:
             self._shutdown()
 
@@ -163,10 +173,10 @@ class RealTimeSession:
         """
         # Yaml gives us block names with default size=1 as a safety net.
         # declare_shared() overrides both size and dtype.
-        io_specs = _parse_io_specs(self._project_yaml)
+        io_specs = self._parse_io_specs()
         all_specs = {**io_specs, **self._extra_shared}
 
-        arrays: Dict[str, multiprocessing.Array] = {}
+        arrays: Dict[str, SynchronizedArray] = {}
         np_dtypes: Dict[str, type] = {}
 
         for name, size in all_specs.items():
@@ -179,7 +189,7 @@ class RealTimeSession:
 
     def _wire(
         self,
-        shared_arrays: Dict[str, multiprocessing.Array],
+        shared_arrays: Dict[str, SynchronizedArray],
         shared_dtypes: Dict[str, type],
     ) -> None:
         """Inject shared proxy, pipes, and shutdown connections into each process."""
@@ -222,36 +232,67 @@ class RealTimeSession:
             p._project_yaml = self._project_yaml
 
     def _shutdown(self) -> None:
-        # Ask processes to exit their dispatch loop cleanly before terminating.
+        """Stop all processes gracefully, falling back to SIGTERM/SIGKILL.
+
+        Sequence:
+        1. Send a shutdown byte on each process's shutdown pipe so that
+           ``_dispatch_loop`` exits cleanly and ``finally:`` blocks in
+           subclass ``run()`` have a chance to release hardware resources.
+        2. Wait up to 3 s for each process to exit on its own.
+        3. Send SIGTERM to any process that is still alive.
+        4. Wait up to 3 s more, then SIGKILL as a last resort.
+
+        .. note::
+            Steps 1-2 replace the original ``join(timeout=2) → terminate()``
+            pattern (FIX ⑤) so that hardware teardown in ``finally:`` blocks
+            (cameras, DAQ boards, serial ports, …) is normally executed before
+            any signal is sent.
+        """
+        # FIX ⑤ — signal processes via the shutdown pipe first so their
+        # finally: blocks (hardware teardown) have time to run.
         for _, writer in self._shutdown_writers.items():
             try:
                 writer.send_bytes(b"\x00")
             except Exception:
                 pass
-        for p in self._processes:
-            p.join(timeout=2.0)
-        for p in self._processes:
-            if p.is_alive():
-                p.terminate()
+
+        # Give processes time to exit cleanly on their own.
         for p in self._processes:
             p.join(timeout=3.0)
+
+        # Escalate to SIGTERM for any stragglers.
+        for p in self._processes:
             if p.is_alive():
+                logger.warning(
+                    "RealTimeSession: process '%s' (pid=%s) did not exit "
+                    "within 3 s — sending SIGTERM.",
+                    type(p).__name__, p.pid,
+                )
+                p.terminate()
+
+        for p in self._processes:
+            p.join(timeout=3.0)
+
+        # Last resort: SIGKILL.
+        for p in self._processes:
+            if p.is_alive():
+                logger.error(
+                    "RealTimeSession: process '%s' (pid=%s) did not respond "
+                    "to SIGTERM — sending SIGKILL.",
+                    type(p).__name__, p.pid,
+                )
                 p.kill()
-        print("[RealTimeSession] All processes stopped.")
 
+        for p in self._processes:
+            p.join(timeout=3.0)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+        logger.info("RealTimeSession: all processes stopped.")
 
-def _parse_io_specs(project_yaml: str) -> Dict[str, int]:
-    """Read ExternalInput/Output block names from the yaml (size defaults to 1)."""
-    import yaml
-    with open(project_yaml, "r") as f:
-        cfg = yaml.safe_load(f)
-    specs: Dict[str, int] = {}
-    for block in cfg.get("diagram", {}).get("blocks", []):
-        if block.get("type") in {"external_input", "external_output"}:
-            params = block.get("parameters", {}) or {}
-            specs[block["name"]] = int(params.get("size", 1))
-    return specs
+    def _parse_io_specs(self) -> Dict[str, int]:
+        with open(self._project_yaml, "r") as f:
+            cfg = yaml.safe_load(f)
+        return {
+            block["name"]: int((block.get("parameters") or {}).get("size", 1))
+            for block in cfg.get("diagram", {}).get("blocks", [])
+            if block.get("type") in {"external_input", "external_output"}
+        }

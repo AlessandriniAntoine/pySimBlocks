@@ -18,10 +18,13 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+import logging
 import time
 import numpy as np
 from typing import Any, Dict, List, Optional
 from pySimBlocks.core.simulator import Simulator
+
+logger = logging.getLogger(__name__)
 
 
 class RealTimeRunner:
@@ -79,6 +82,11 @@ class RealTimeRunner:
     def initialize(self, t0: float = 0.0) -> None:
         """Initialize the simulator and synchronize the runner clock.
 
+        Must be called before the first :meth:`tick`. This anchors
+        ``_t_prev`` to the wall clock *after* all setup work is done,
+        so the first measured ``dt`` reflects only the inter-tick interval
+        and not the duration of model loading or hardware initialization.
+
         Args:
             t0: Initial simulation time in seconds.
         """
@@ -104,12 +112,18 @@ class RealTimeRunner:
             Output values keyed by block name as column vectors.
 
         Raises:
+            RuntimeError: If :meth:`initialize` has not been called yet.
             KeyError: If a required input block value is missing.
             RuntimeError: If an output block does not provide an ``"out"``
                 value.
         """
+        # FIX ④ — fail explicitly instead of silently absorbing a missing
+        # initialize() call, which would produce a huge first dt equal to
+        # the entire setup duration and could cause integrator divergence.
         if self._t_prev is None:
-            self._t_prev = self._now()
+            raise RuntimeError(
+                "RealTimeRunner.initialize() must be called before tick()."
+            )
 
         t_now = self._now()
         dt_meas = t_now - self._t_prev
@@ -117,12 +131,15 @@ class RealTimeRunner:
 
         # warning if dt is much larger than target_dt
         if self.target_dt is not None and dt_used > 1.5 * self.target_dt:
-            print(f"[RealTimeRunner] Warning: dt={dt_used:.3f}s exceeds target_dt={self.target_dt:.3f}s")
+            logger.warning(
+                "RealTimeRunner: dt=%.3fs exceeds target_dt=%.3fs",
+                dt_used, self.target_dt,
+            )
 
         # 1) push inputs
         for block_name, block in self.input_blocks.items():
             if block_name not in inputs:
-                raise KeyError(f"[RealTimeRunner] Missing input '{block_name}'")
+                raise KeyError(f"RealTimeRunner: missing input '{block_name}'")
             block.inputs["in"] = inputs[block_name]
 
         # 2) step with external dt
@@ -133,7 +150,9 @@ class RealTimeRunner:
         for block_name, block in self.output_blocks.items():
             y = block.outputs["out"]
             if y is None:
-                raise RuntimeError(f"[RealTimeRunner] Output 'out' of block '{block_name}' is None")
+                raise RuntimeError(
+                    f"RealTimeRunner: output 'out' of block '{block_name}' is None"
+                )
             outputs[block_name] = np.asarray(y, dtype=float).reshape(-1, 1)
 
         # 4) bookkeeping + pacing

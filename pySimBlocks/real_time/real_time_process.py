@@ -23,13 +23,17 @@
 from __future__ import annotations
 
 import copy
+import logging
 import multiprocessing
 import multiprocessing.connection
-import multiprocessing.sharedctypes
+from multiprocessing.sharedctypes import SynchronizedArray
+import threading
 from abc import abstractmethod
 from typing import Callable, ClassVar, Dict, List, Optional, cast
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +77,9 @@ class Gate:
     When all events in *wait_for* have been received since the last trigger,
     the Gate fires a synthetic event named *trigger*.
 
+    All internal state mutations are protected by a ``threading.Lock`` so the
+    gate is safe to feed from concurrent threads.
+
     Example::
 
         gates = [Gate("tick", wait_for=["frame_ready", "measure_ready"])]
@@ -87,20 +94,26 @@ class Gate:
         self.trigger  = trigger
         self.wait_for = list(wait_for)
         self._received: Dict[str, bool] = {e: False for e in wait_for}
+        # FIX ③ — protect _received against concurrent feed() calls
+        self._lock = threading.Lock()
 
     def feed(self, event: str) -> bool:
         """Mark *event* as received. Returns True when all events have fired."""
-        if event in self._received:
-            self._received[event] = True
-        return all(self._received.values())
+        # FIX ③ — acquire lock before reading/writing _received
+        with self._lock:
+            if event in self._received:
+                self._received[event] = True
+            return all(self._received.values())
 
     def reset(self) -> None:
-        for k in self._received:
-            self._received[k] = False
+        with self._lock:
+            for k in self._received:
+                self._received[k] = False
 
     @property
     def pending_events(self) -> List[str]:
-        return [e for e, received in self._received.items() if not received]
+        with self._lock:
+            return [e for e, received in self._received.items() if not received]
 
 
 # ---------------------------------------------------------------------------
@@ -144,17 +157,25 @@ class _SharedProxy:
         self.shared.Camera = np.array([...])   # write
         val = self.shared.Camera               # read — returns pre-alloc buffer
 
-    Grouped read — ONE lock for N fields, coherent snapshot::
+    Grouped read — ONE lock window for N fields, coherent snapshot::
 
         s = self.shared.read("Camera", "Ref_cl", "Mode")
         # s["Camera"], s["Ref_cl"], s["Mode"] — all from the same lock window
 
-    Grouped write — ONE lock for N fields::
+    Grouped write — ONE lock window for N fields::
 
         self.shared.write(Camera=arr, Ref_cl=ref)
 
     Pre-allocated read buffers are created the first time each field is read
     inside a given process (after fork). Zero allocation on the hot path.
+
+    .. note::
+        ``read()`` acquires every per-field lock in deterministic (sorted)
+        order to avoid deadlocks. The snapshot is coherent across all
+        requested fields: no other writer can interleave between them.
+        Single-field ``__getattr__`` access is *not* coherent with other
+        fields — use ``read()`` whenever you need a consistent view of
+        several fields in the same tick.
 
     Args:
         arrays: Dict name -> ``multiprocessing.Array``
@@ -163,7 +184,7 @@ class _SharedProxy:
 
     def __init__(
         self,
-        arrays: Dict[str, "multiprocessing.Array"],
+        arrays: Dict[str, SynchronizedArray],
         dtypes: Dict[str, type] | None = None,
     ):
         object.__setattr__(self, "_arrays",  arrays)
@@ -215,13 +236,16 @@ class _SharedProxy:
 
     # ------------------------------------------------------------------
     # Grouped access — single lock window for multiple fields
+    # FIX ① — all per-field locks are held simultaneously so the snapshot
+    #           is coherent: no writer can interleave between two fields.
     # ------------------------------------------------------------------
 
     def read(self, *names: str) -> Dict[str, np.ndarray]:
-        """Read several fields under a single global lock window.
+        """Read several fields under a single coherent lock window.
 
-        More efficient and coherent than N separate attribute reads when
-        a handler needs multiple fields from the same tick.
+        All per-field locks are acquired in deterministic (sorted) order
+        before any copy takes place, so the returned snapshot is consistent:
+        no writer can modify any of the requested fields between two reads.
 
         Returns a dict of pre-allocated numpy arrays (same buffers as
         single-field access — no extra allocation).
@@ -247,8 +271,8 @@ class _SharedProxy:
 
         result: Dict[str, np.ndarray] = {}
 
-        # Acquire all locks in deterministic order to avoid deadlocks,
-        # then copy all fields, then release all locks.
+        # Acquire ALL locks in deterministic order BEFORE any copy.
+        # FIX ① — this ensures no writer can slip between two fields.
         ordered = sorted(names)
         locks   = [arrays[n].get_lock() for n in ordered]
 
@@ -269,7 +293,7 @@ class _SharedProxy:
         return result
 
     def write(self, **fields) -> None:
-        """Write several fields under a single global lock window.
+        """Write several fields under a single coherent lock window.
 
         Example::
 
@@ -366,14 +390,31 @@ class RealTimeProcess(multiprocessing.Process):
         self._dispatch_loop()
 
     def emit(self, event: str) -> None:
-        """Signal *event* to all connected downstream processes."""
+        """Signal *event* to all connected downstream processes.
+
+        Dead connections (``BrokenPipeError``, ``OSError``) are caught,
+        logged, and removed so that a crashed downstream process does not
+        propagate the error to this process.
+        """
+        # FIX ② — guard against BrokenPipeError when a downstream process dies
         if event not in self.emits:
             raise KeyError(
                 f"[{type(self).__name__}] Undeclared event '{event}'. "
                 f"Add it to emits = [...]."
             )
+        dead: List["multiprocessing.connection.Connection"] = []
         for conn in self._events_out.get(event, []):
-            conn.send_bytes(b"\x00")
+            try:
+                conn.send_bytes(b"\x00")
+            except (BrokenPipeError, OSError) as exc:
+                logger.warning(
+                    "%s: emit('%s') failed — downstream connection is dead (%s). "
+                    "Removing from event_out list.",
+                    type(self).__name__, event, exc,
+                )
+                dead.append(conn)
+        for conn in dead:
+            self._events_out[event].remove(conn)
 
     def load_runner(
         self,
@@ -383,6 +424,10 @@ class RealTimeProcess(multiprocessing.Process):
         target_dt: Optional[float] = None,
     ):
         """Build and return an initialised RealTimeRunner from the session yaml.
+
+        The import of :mod:`pySimBlocks.project` and
+        :class:`~pySimBlocks.real_time.real_time_runner.RealTimeRunner` is
+        deferred to avoid circular imports at module load time.
 
         Example::
 
