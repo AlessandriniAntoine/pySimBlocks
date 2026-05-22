@@ -62,11 +62,11 @@ class DiscreteDerivator(Block):
         """
         super().__init__(name, sample_time)
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
-        self.state["u_prev"] = None
-        self.next_state["u_prev"] = None
+        self.set_state("u_prev", None)
+        self.set_next_state("u_prev", None)
 
         self._resolved_shape: tuple[int, int] | None = None
         self._first_output = True
@@ -79,9 +79,9 @@ class DiscreteDerivator(Block):
             self._initial_output_raw = y0.copy()
 
             self._resolved_shape = y0.shape
-            self.outputs["out"] = y0.copy()
+            self.set_output("out", y0.copy())
         else:
-            self.outputs["out"] = self._placeholder.copy()
+            self.set_output("out", self._placeholder.copy())
 
 
     # --------------------------------------------------------------------------
@@ -94,18 +94,18 @@ class DiscreteDerivator(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
 
         if u is None:
-            self.state["u_prev"] = None
-            self.next_state["u_prev"] = None
+            self.set_state("u_prev", None)
+            self.set_next_state("u_prev", None)
             self._first_output = True
             return
 
         u_arr = self._normalize_input(u)
 
-        self.state["u_prev"] = u_arr.copy()
-        self.next_state["u_prev"] = u_arr.copy()
+        self.set_state("u_prev", u_arr.copy())
+        self.set_next_state("u_prev", u_arr.copy())
         self._first_output = True
 
     def output_update(self, t: float, dt: float) -> None:
@@ -120,19 +120,19 @@ class DiscreteDerivator(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        u_arr = self._normalize_input(self.inputs["in"])
+        u_arr = self._normalize_input(self.get_input("in"))
 
         if self._first_output:
             self._first_output = False
-            if self._resolved_shape is not None and self.outputs["out"] is not None:
-                y = np.asarray(self.outputs["out"], dtype=float)
+            if self._resolved_shape is not None and self.get_output("out") is not None:
+                y = np.asarray(self.get_output("out"), dtype=float)
                 if y.shape == (1, 1) and self._resolved_shape != (1, 1):
-                    self.outputs["out"] = np.full(self._resolved_shape, float(y[0, 0]), dtype=float)
+                    self.set_output("out", np.full(self._resolved_shape, float(y[0, 0]), dtype=float))
             return
 
-        u_prev = self.state["u_prev"]
+        u_prev = self.get_state("u_prev")
         if u_prev is None:
-            self.outputs["out"] = np.zeros_like(u_arr)
+            self.set_output("out", np.zeros_like(u_arr))
             return
 
         u_prev_arr = np.asarray(u_prev, dtype=float)
@@ -144,7 +144,7 @@ class DiscreteDerivator(Block):
                 f"[{self.name}] Previous input shape mismatch: u_prev={u_prev_arr.shape}, u={u_arr.shape}."
             )
 
-        self.outputs["out"] = (u_arr - u_prev_arr) / dt
+        self.set_output("out", (u_arr - u_prev_arr) / dt)
 
     def state_update(self, t: float, dt: float) -> None:
         """Store the current input as the previous value for the next step.
@@ -153,8 +153,8 @@ class DiscreteDerivator(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        u_arr = self._normalize_input(self.inputs["in"])
-        self.next_state["u_prev"] = u_arr.copy()
+        u_arr = self._normalize_input(self.get_input("in"))
+        self.set_next_state("u_prev", u_arr.copy())
 
 
     # --------------------------------------------------------------------------
@@ -174,13 +174,13 @@ class DiscreteDerivator(Block):
         if u.shape != (1, 1):
             self._resolved_shape = u.shape
 
-            y = np.asarray(self.outputs["out"], dtype=float)
+            y = np.asarray(self.get_output("out"), dtype=float)
             if y.shape == (1, 1):
                 scalar = float(y[0, 0])
-                self.outputs["out"] = np.full(self._resolved_shape, scalar, dtype=float)
+                self.set_output("out", np.full(self._resolved_shape, scalar, dtype=float))
 
-            self.state["u_prev"] = u.copy()
-            self.next_state["u_prev"] = u.copy()
+            self.set_state("u_prev", u.copy())
+            self.set_next_state("u_prev", u.copy())
 
     def _normalize_input(self, u: ArrayLike | None) -> np.ndarray:
         """Normalize input to 2D, applying shape freezing and scalar broadcasting."""

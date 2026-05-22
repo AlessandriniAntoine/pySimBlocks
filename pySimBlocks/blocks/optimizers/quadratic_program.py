@@ -22,6 +22,7 @@ import numpy as np
 from qpsolvers import Problem, solve_problem, available_solvers
 
 from pySimBlocks.core.block import Block
+from pySimBlocks.core.signal import Signal 
 
 
 class QuadraticProgram(Block):
@@ -62,20 +63,20 @@ class QuadraticProgram(Block):
         self.solver = solver
 
         self.inputs = {
-            "P": None,
-            "q": None,
-            "G": None,
-            "h": None,
-            "A": None,
-            "b": None,
-            "lb": None,
-            "ub": None,
+            "P": Signal(),
+            "q": Signal(),,
+            "G": Signal(),,
+            "h": Signal(),,
+            "A": Signal(),,
+            "b": Signal(),,
+            "lb": Signal(),,
+            "ub": Signal(),,
         }
 
         self.outputs = {
-            "x": None,
-            "status": None,
-            "cost": None,
+            "x": Signal(),,
+            "status": Signal(),,
+            "cost": Signal(),,
         }
 
         self.state = {}
@@ -92,9 +93,9 @@ class QuadraticProgram(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["x"] = np.zeros((1, 1))
-        self.outputs["status"] = np.array([[2]])
-        self.outputs["cost"] = np.array([[np.nan]])
+        self.set_output("x", np.zeros((1, 1)))
+        self.set_output("status", np.array([[2]]))
+        self.set_output("cost", np.array([[np.nan]]))
 
     def output_update(self, t: float, dt: float) -> None:
         """Fetch inputs, build the QP, solve it, and write outputs.
@@ -153,9 +154,9 @@ class QuadraticProgram(Block):
 
             cost = 0.5 * float(x.T @ P @ x) + float(q.reshape(1, -1) @ x)
 
-            self.outputs["x"] = x
-            self.outputs["status"] = np.array([[0]])
-            self.outputs["cost"] = np.array([[cost]])
+            self.set_output("x", x)
+            self.set_output("status", np.array([[0]]))
+            self.set_output("cost", np.array([[cost]]))
 
         except Exception:
             self._set_failure(status=2)
@@ -210,17 +211,17 @@ class QuadraticProgram(Block):
 
         x = self.outputs.get("x", None)
         if x is None:
-            self.outputs["x"] = np.zeros((size, 1))
+            self.set_output("x", np.zeros((size, 1)))
             return
 
         x_arr = np.asarray(x)
         if x_arr.shape != (size, 1):
-            self.outputs["x"] = np.zeros((size, 1))
+            self.set_output("x", np.zeros((size, 1)))
 
     def _set_failure(self, status: int) -> None:
         """Write a failure status and NaN cost to the outputs."""
-        self.outputs["status"] = np.array([[status]])
-        self.outputs["cost"] = np.array([[np.nan]])
+        self.set_output("status", np.array([[status]]))
+        self.set_output("cost", np.array([[np.nan]]))
         self._ensure_output_x_size()
 
     def _check_size_compatibility(self, P, q, G, h, A, b, lb, ub) -> None:

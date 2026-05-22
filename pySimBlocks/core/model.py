@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from pySimBlocks.core.block import Block
+from pySimBlocks.core.signal import Signal 
 
 # A connection is:
 #    ( (src_block, src_port), (dst_block, dst_port) )
@@ -145,6 +146,16 @@ class Model:
                     f"Unknown destination block '{dst_block}'. "
                     f"Known blocks: {list(self.blocks.keys())}"
                 )
+
+        sig = Signal()
+        src = self.blocks[src_block]
+        dst = self.blocks[dst_block]
+        existing = src.outputs.get(src_port)
+        if isinstance(existing, Signal):
+            sig = existing
+        else:
+            src.outputs[src_port] = sig
+        dst.inputs[dst_port] = sig
 
         self.connections.append(
             ((src_block, src_port), (dst_block, dst_port))

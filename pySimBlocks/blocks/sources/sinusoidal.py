@@ -86,7 +86,7 @@ class Sinusoidal(BlockSource):
         self.offset = self._broadcast_scalar_only("offset", O, target_shape)
         self.phase = self._broadcast_scalar_only("phase", P, target_shape)
 
-        self.outputs["out"] = np.zeros(target_shape, dtype=float)
+        self.set_output("out", np.zeros(target_shape, dtype=float))
 
 
     # --------------------------------------------------------------------------
@@ -117,8 +117,8 @@ class Sinusoidal(BlockSource):
 
     def _compute_output(self, t: float) -> None:
         """Evaluate the sinusoidal formula at time t and write to outputs."""
-        self.outputs["out"] = (
+        self.set_output("out", (
             self.amplitude
             * np.sin(2.0 * np.pi * self.frequency * t + self.phase)
             + self.offset
-        )
+        ))

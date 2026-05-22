@@ -130,13 +130,13 @@ class PolytopicStateSpace(Block):
         else:
             x0_arr = self._to_col_vec("x0", x0, nx)
 
-        self.state["x"] = x0_arr.copy()
-        self.next_state["x"] = x0_arr.copy()
+        self.set_state("x", x0_arr.copy())
+        self.set_next_state("x", x0_arr.copy())
 
-        self.inputs["w"] = None
-        self.inputs["u"] = None
-        self.outputs["x"] = None
-        self.outputs["y"] = None
+        self.set_input("w", None)
+        self.set_input("u", None)
+        self.set_output("x", None)
+        self.set_output("y", None)
 
 
     # --------------------------------------------------------------------------
@@ -149,10 +149,10 @@ class PolytopicStateSpace(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        x = self.state["x"]
-        self.outputs["x"] = x.copy()
-        self.outputs["y"] = self.C @ x
-        self.next_state["x"] = x.copy()
+        x = self.get_state("x")
+        self.set_output("x", x.copy())
+        self.set_output("y", self.C @ x)
+        self.set_next_state("x", x.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute y and x outputs from the committed state.
@@ -161,9 +161,9 @@ class PolytopicStateSpace(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        x = self.state["x"]
-        self.outputs["x"] = x.copy()
-        self.outputs["y"] = self.C @ x
+        x = self.get_state("x")
+        self.set_output("x", x.copy())
+        self.set_output("y", self.C @ x)
 
     def state_update(self, t: float, dt: float) -> None:
         """Compute the next state as a weighted sum of vertex dynamics.
@@ -177,8 +177,8 @@ class PolytopicStateSpace(Block):
             ValueError: If ``w`` does not sum to 1, has negative entries,
                 or if input shapes are wrong.
         """
-        w = self.inputs["w"]
-        u = self.inputs["u"]
+        w = self.get_input("w")
+        u = self.get_input("u")
         if w is None:
             raise RuntimeError(f"[{self.name}] Input 'w' is not connected or not set.")
         if u is None:
@@ -191,10 +191,10 @@ class PolytopicStateSpace(Block):
             raise ValueError(f"[{self.name}] Vertex weights w must be non-negative. Got {w_vec.flatten()}.")
 
         u_vec = self._to_col_vec("u", u, self._nu)
-        x = self.state["x"]
+        x = self.get_state("x")
 
         x_next = self.A @ np.kron(w_vec, x) + self.B @ np.kron(w_vec, u_vec)
-        self.next_state["x"] = x_next
+        self.set_next_state("x", x_next)
 
 
     # --------------------------------------------------------------------------

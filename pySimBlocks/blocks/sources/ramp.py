@@ -81,7 +81,7 @@ class Ramp(BlockSource):
         self.start_time = self._broadcast_scalar_only("start_time", T, target_shape)
         self.offset = self._broadcast_scalar_only("offset", O, target_shape)
 
-        self.outputs["out"] = self.offset.copy()
+        self.set_output("out", self.offset.copy())
 
 
     # --------------------------------------------------------------------------
@@ -94,7 +94,7 @@ class Ramp(BlockSource):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["out"] = self.offset.copy()
+        self.set_output("out", self.offset.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute and write the ramp value to the output port.
@@ -104,4 +104,4 @@ class Ramp(BlockSource):
             dt: Current time step in seconds.
         """
         dt_mat = np.maximum(0.0, t - self.start_time)
-        self.outputs["out"] = self.offset + self.slope * dt_mat
+        self.set_output("out", self.offset + self.slope * dt_mat)

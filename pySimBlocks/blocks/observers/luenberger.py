@@ -112,13 +112,13 @@ class Luenberger(Block):
             if x0_arr.ndim != 2 or x0_arr.shape != (n, 1):
                 raise ValueError(f"[{self.name}] x0 must have shape ({n},1). Got {x0_arr.shape}.")
 
-        self.state["x_hat"] = x0_arr.copy()
-        self.next_state["x_hat"] = x0_arr.copy()
+        self.set_state("x_hat", x0_arr.copy())
+        self.set_next_state("x_hat", x0_arr.copy())
 
-        self.inputs["u"] = None
-        self.inputs["y"] = None
-        self.outputs["y_hat"] = None
-        self.outputs["x_hat"] = None
+        self.set_input("u", None)
+        self.set_input("y", None)
+        self.set_output("y_hat", None)
+        self.set_output("x_hat", None)
 
         self._input_shapes = {}
 
@@ -133,10 +133,10 @@ class Luenberger(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        x_hat = self.state["x_hat"]
-        self.outputs["x_hat"] = x_hat.copy()
-        self.outputs["y_hat"] = self.C @ x_hat
-        self.next_state["x_hat"] = x_hat.copy()
+        x_hat = self.get_state("x_hat")
+        self.set_output("x_hat", x_hat.copy())
+        self.set_output("y_hat", self.C @ x_hat)
+        self.set_next_state("x_hat", x_hat.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute x_hat and y_hat outputs from the committed state.
@@ -145,9 +145,9 @@ class Luenberger(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        x_hat = self.state["x_hat"]
-        self.outputs["x_hat"] = x_hat.copy()
-        self.outputs["y_hat"] = self.C @ x_hat
+        x_hat = self.get_state("x_hat")
+        self.set_output("x_hat", x_hat.copy())
+        self.set_output("y_hat", self.C @ x_hat)
 
     def state_update(self, t: float, dt: float) -> None:
         """Update the state estimate using the observer correction law.
@@ -163,10 +163,10 @@ class Luenberger(Block):
         u = self._require_col_vector("u", self._m)
         y = self._require_col_vector("y", self._p)
 
-        x_hat = self.state["x_hat"]
+        x_hat = self.get_state("x_hat")
         y_hat = self.C @ x_hat
 
-        self.next_state["x_hat"] = self.A @ x_hat + self.B @ u + self.L @ (y - y_hat)
+        self.set_next_state("x_hat", self.A @ x_hat + self.B @ u + self.L @ (y - y_hat))
 
 
     # --------------------------------------------------------------------------
@@ -188,7 +188,7 @@ class Luenberger(Block):
             ValueError: If the array is not a column vector, has the wrong
                 number of rows, or its shape has changed since the first call.
         """
-        val = self.inputs[port]
+        val = self.get_input(port)
         if val is None:
             raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
 

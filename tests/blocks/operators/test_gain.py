@@ -179,4 +179,4 @@ def test_initialization_output_elementwise_default():
     sim = Simulator(m, sim_cfg)
     sim.initialize(0.0)
 
-    assert np.allclose(G.outputs["out"], [[3.0]])
+    assert np.allclose(G.get_output("out"), [[3.0]])

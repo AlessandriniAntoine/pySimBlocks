@@ -127,7 +127,7 @@ class Chirp(BlockSource):
                     f"[{self.name}] f0 must differ from f1 in log mode."
                 )
 
-        self.outputs["out"] = np.zeros(target_shape, dtype=float)
+        self.set_output("out", np.zeros(target_shape, dtype=float))
 
 
     # --------------------------------------------------------------------------
@@ -166,7 +166,7 @@ class Chirp(BlockSource):
         else:  # log
             phi = self._log_phase(tau, tau_clip)
 
-        self.outputs["out"] = self.amplitude * np.sin(phi) + self.offset
+        self.set_output("out", self.amplitude * np.sin(phi) + self.offset)
 
     def _linear_phase(self, tau: np.ndarray, tau_clip: np.ndarray) -> np.ndarray:
         """Compute the instantaneous phase for a linear frequency sweep.

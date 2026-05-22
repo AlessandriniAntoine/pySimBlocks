@@ -58,9 +58,9 @@ class Demux(Block):
             raise ValueError(f"[{self.name}] num_outputs must be a positive integer.")
         self.num_outputs = num_outputs
 
-        self.inputs["in"] = None
+        self.set_input("in", None)
         for i in range(num_outputs):
-            self.outputs[f"out{i+1}"] = None
+            self.set_output(f"out{i+1}", None)
 
 
     # --------------------------------------------------------------------------
@@ -73,9 +73,9 @@ class Demux(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        if self.inputs["in"] is None:
+        if self.get_input("in") is None:
             for i in range(self.num_outputs):
-                self.outputs[f"out{i+1}"] = np.zeros((1, 1), dtype=float)
+                self.set_output(f"out{i+1}", np.zeros((1, 1), dtype=float))
             return
 
         self._compute_outputs()
@@ -121,7 +121,7 @@ class Demux(Block):
 
     def _compute_outputs(self) -> None:
         """Split the input vector into output segments."""
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
 
@@ -141,5 +141,5 @@ class Demux(Block):
         for i in range(p):
             seg_len = q + 1 if i < m else q
             end = start + seg_len
-            self.outputs[f"out{i+1}"] = vec[start:end].copy()
+            self.set_output(f"out{i+1}", vec[start:end].copy())
             start = end

@@ -10,7 +10,7 @@ from pySimBlocks.blocks.sources.constant import Constant
 def test_constant_scalar():
     c = Constant("c", 5.0)
     c.initialize(0.0)
-    assert np.allclose(c.outputs["out"], [[5.0]])
+    assert np.allclose(c.get_output("out"), [[5.0]])
 
 
 # ------------------------------------------------------------
@@ -19,7 +19,7 @@ def test_constant_scalar():
 def test_constant_vector():
     c = Constant("c", [[1.0], [2.0], [3.0]])
     c.initialize(0.0)
-    assert np.allclose(c.outputs["out"], [[1.0], [2.0], [3.0]])
+    assert np.allclose(c.get_output("out"), [[1.0], [2.0], [3.0]])
 
 
 # ------------------------------------------------------------
@@ -28,7 +28,7 @@ def test_constant_vector():
 def test_constant_1d_list():
     c = Constant("c", [10.0, 20.0])
     c.initialize(0.0)
-    assert np.allclose(c.outputs["out"], [[10.0], [20.0]])
+    assert np.allclose(c.get_output("out"), [[10.0], [20.0]])
 
 # ------------------------------------------------------------
 # 4) Test matrice (m,n)
@@ -36,7 +36,7 @@ def test_constant_1d_list():
 def test_constant_matrix():
     c = Constant("c", [[1.0, 2.0], [3.0, 4.0]])
     c.initialize(0.0)
-    assert np.allclose(c.outputs["out"], [[1.0, 2.0], [3.0, 4.0]])
+    assert np.allclose(c.get_output("out"), [[1.0, 2.0], [3.0, 4.0]])
 
 
 # ------------------------------------------------------------

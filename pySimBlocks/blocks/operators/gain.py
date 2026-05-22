@@ -27,6 +27,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from pySimBlocks.core.block import Block
+from pySimBlocks.core.signal import Signal
 
 
 class Gain(Block):
@@ -90,8 +91,8 @@ class Gain(Block):
             self.gain = g
             self._gain_kind = "vector" if g.ndim == 1 else "matrix"
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
 
     # --------------------------------------------------------------------------
@@ -142,9 +143,9 @@ class Gain(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
-            self.outputs["out"] = None
+            self.set_output("out", None)
             return
 
         if not self._gain_kind == "scalar":
@@ -153,7 +154,7 @@ class Gain(Block):
             if u.ndim == 2 and u.shape == (1, 1):
                 u = self._resolve_initialize(u)
 
-        self.outputs["out"] = self._compute(u)
+        self.set_output("out", self._compute(u))
 
     def output_update(self, t: float, dt: float) -> None:
         """Apply the gain to the input and write the result to the output port.
@@ -167,10 +168,10 @@ class Gain(Block):
             ValueError: If the input is not 2D or dimensions are incompatible
                 with the gain and multiplication mode.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
-        self.outputs["out"] = self._compute(u)
+        self.set_output("out", self._compute(u))
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Gain is a stateless block.

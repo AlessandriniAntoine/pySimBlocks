@@ -19,7 +19,7 @@ def test_chirp_scalar_at_start():
     )
     c.initialize(0.0)
     # tau = 0 -> sin(0)=0
-    assert np.allclose(c.outputs["out"], [[0.5]])
+    assert np.allclose(c.get_output("out"), [[0.5]])
 
 
 def test_chirp_scalar_mid_sweep():
@@ -32,7 +32,7 @@ def test_chirp_scalar_mid_sweep():
     phi = 2 * np.pi * (1.0 * tau + 0.5 * k * tau**2)
     expected = np.sin(phi)
 
-    assert np.allclose(c.outputs["out"], [[expected]])
+    assert np.allclose(c.get_output("out"), [[expected]])
 
 
 # ----------------------------------------------------------
@@ -42,10 +42,10 @@ def test_chirp_after_duration_continuity():
     c = Chirp("c", 1.0, 1.0, 3.0, 2.0)
 
     c.output_update(2.0, 0.1)  # end of sweep
-    y_end = c.outputs["out"].copy()
+    y_end = c.get_output("out").copy()
 
     c.output_update(3.0, 0.1)  # after sweep
-    y_after = c.outputs["out"]
+    y_after = c.get_output("out")
 
     # just verify finite and defined (continuity handled in block)
     assert np.isfinite(y_end).all()
@@ -69,7 +69,7 @@ def test_chirp_vector_parameters():
     c.output_update(0.0, 0.1)
 
     # tau=0 -> sin(0)=0
-    assert np.allclose(c.outputs["out"], [[0.0], [10.0]])
+    assert np.allclose(c.get_output("out"), [[0.0], [10.0]])
 
 
 # ----------------------------------------------------------
@@ -85,7 +85,7 @@ def test_chirp_broadcast_scalar_duration():
     )
 
     c.output_update(0.5, 0.1)
-    assert c.outputs["out"].shape == (3, 1)
+    assert c.get_output("out").shape == (3, 1)
 
 
 # ----------------------------------------------------------
@@ -104,7 +104,7 @@ def test_chirp_matrix_same_shape():
     c = Chirp("c", amplitude=A, f0=F0, f1=F1, duration=D)
     c.output_update(0.0, 0.1)
 
-    assert np.allclose(c.outputs["out"], np.zeros((2, 2)))
+    assert np.allclose(c.get_output("out"), np.zeros((2, 2)))
 
 
 def test_chirp_matrix_broadcast_scalar_offset():
@@ -117,7 +117,7 @@ def test_chirp_matrix_broadcast_scalar_offset():
     c = Chirp("c", amplitude=A, f0=F0, f1=F1, duration=D, offset=5.0)
     c.output_update(0.0, 0.1)
 
-    assert np.allclose(c.outputs["out"], np.full((2, 2), 5.0))
+    assert np.allclose(c.get_output("out"), np.full((2, 2), 5.0))
 
 
 # ----------------------------------------------------------

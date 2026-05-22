@@ -49,7 +49,7 @@ class Goto(Block):
         """
         super().__init__(name, sample_time)
         self.tag = tag
-        self.inputs["in"] = None
+        self.set_input("in", None)
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -63,7 +63,7 @@ class Goto(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        signal_bus._signal_bus[self.tag] = self.inputs["in"]
+        signal_bus._signal_bus[self.tag] = self.get_input("in")
 
     def output_update(self, t: float, dt: float) -> None:
         """Write the input value to the signal bus under this block's tag.
@@ -72,7 +72,7 @@ class Goto(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        signal_bus._signal_bus[self.tag] = self.inputs["in"]
+        signal_bus._signal_bus[self.tag] = self.get_input("in")
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Goto carries no internal state."""

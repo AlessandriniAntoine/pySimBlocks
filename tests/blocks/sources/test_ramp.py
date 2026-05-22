@@ -10,13 +10,13 @@ from pySimBlocks.blocks.sources.ramp import Ramp
 def test_ramp_scalar_before_start():
     r = Ramp("r", slope=2.0, start_time=1.0, offset=0.0)
     r.initialize(0.0)
-    assert np.allclose(r.outputs["out"], [[0.0]])  # before start_time
+    assert np.allclose(r.get_output("out"), [[0.0]])  # before start_time
 
 
 def test_ramp_scalar_after_start():
     r = Ramp("r", slope=2.0, start_time=1.0, offset=0.0)
     r.output_update(2.0, 0.1)
-    assert np.allclose(r.outputs["out"], [[2.0]])  # slope * (2 - 1) = 2
+    assert np.allclose(r.get_output("out"), [[2.0]])  # slope * (2 - 1) = 2
 
 
 # ----------------------------------------------------------
@@ -32,7 +32,7 @@ def test_ramp_vector_parameters():
     r.output_update(2.0, 0.1)
     # first: 0 + 1*(2-0)=2
     # second: 10 + 2*(2-1)=12
-    assert np.allclose(r.outputs["out"], [[2.0], [12.0]])
+    assert np.allclose(r.get_output("out"), [[2.0], [12.0]])
 
 
 # ----------------------------------------------------------
@@ -47,7 +47,7 @@ def test_ramp_broadcast_scalar_start_time():
         offset=0.0,      # scalar broadcast
     )
     r.output_update(2.0, 0.1)
-    assert np.allclose(r.outputs["out"], [[2.0], [2.0], [2.0]])
+    assert np.allclose(r.get_output("out"), [[2.0], [2.0], [2.0]])
 
 
 # ----------------------------------------------------------
@@ -67,7 +67,7 @@ def test_ramp_matrix_parameters_same_shape():
     # dt = max(0, t - start_time)
     dt_mat = np.maximum(0.0, 2.0 - start_time)
     expected = offset + slope * dt_mat
-    assert np.allclose(r.outputs["out"], expected)
+    assert np.allclose(r.get_output("out"), expected)
 
 
 def test_ramp_matrix_broadcast_scalar_offset():
@@ -81,7 +81,7 @@ def test_ramp_matrix_broadcast_scalar_offset():
 
     dt_mat = np.maximum(0.0, 2.0 - start_time)
     expected = np.full((2, 2), 5.0) + slope * dt_mat
-    assert np.allclose(r.outputs["out"], expected)
+    assert np.allclose(r.get_output("out"), expected)
 
 
 # ----------------------------------------------------------

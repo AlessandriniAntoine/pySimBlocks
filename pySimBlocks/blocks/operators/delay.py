@@ -24,6 +24,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from pySimBlocks.core.block import Block
+from pySimBlocks.core.signal import Signal
 
 
 class Delay(Block):
@@ -73,12 +74,12 @@ class Delay(Block):
             raise ValueError(f"[{self.name}] num_delays must be >= 1.")
         self.num_delays = num_delays
 
-        self.inputs["in"] = None
-        self.inputs["reset"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_input("reset", None)
+        self.set_output("out", None)
 
-        self.state["buffer"] = None
-        self.next_state["buffer"] = None
+        self.set_state("buffer", None)
+        self.set_next_state("buffer", None)
 
         self._shape_fixed: bool = False
         self._buffer_shape: tuple[int, int] | None = None
@@ -94,8 +95,8 @@ class Delay(Block):
                 self._shape_fixed = True
                 self._buffer_shape = init.shape
 
-        self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
-        self.next_state["buffer"] = None
+        self.set_state("buffer", [init.copy() for _ in range(self.num_delays)])
+        self.set_next_state("buffer", None)
 
 
     # --------------------------------------------------------------------------
@@ -112,9 +113,9 @@ class Delay(Block):
             ValueError: If the initial output shape is inconsistent with the
                 resolved buffer shape.
         """
-        out = self.state["buffer"][0]
+        out = self.get_state("buffer")[0]
 
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is not None:
             u_arr = np.asarray(u, dtype=float)
             self._ensure_shape_and_buffer(u_arr)
@@ -127,7 +128,7 @@ class Delay(Block):
                         f"[{self.name}] Initial output shape mismatch: expected {self._buffer_shape}, got {out.shape}."
                     )
 
-        self.outputs["out"] = out
+        self.set_output("out", out)
 
     def output_update(self, t: float, dt: float) -> None:
         """Output the oldest buffer entry.
@@ -137,12 +138,12 @@ class Delay(Block):
             dt: Current time step in seconds.
         """
         if not self._shape_fixed:
-            u = self.inputs["in"]
+            u = self.get_input("in")
             if u is not None:
                 u_arr = np.asarray(u, dtype=float)
                 self._ensure_shape_and_buffer(u_arr)
 
-        self.outputs["out"] = self.state["buffer"][0].copy()
+        self.set_output("out", self.get_state("buffer")[0].copy())
 
     def state_update(self, t: float, dt: float) -> None:
         """Shift the buffer left and append the current input.
@@ -160,7 +161,7 @@ class Delay(Block):
             self._apply_reset()
             return
 
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
 
@@ -168,14 +169,14 @@ class Delay(Block):
 
         self._ensure_shape_and_buffer(u_arr)
 
-        buffer = self.state["buffer"]
+        buffer = self.get_state("buffer")
 
         new_buffer = []
         for i in range(self.num_delays - 1):
             new_buffer.append(buffer[i + 1].copy())
         new_buffer.append(u_arr.copy())
 
-        self.next_state["buffer"] = new_buffer
+        self.set_next_state("buffer", new_buffer)
 
 
     # --------------------------------------------------------------------------
@@ -189,7 +190,8 @@ class Delay(Block):
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
 
-        buf0 = self.state["buffer"][0]
+        buffer = self.get_state("buffer")
+        buf0 = buffer[0]
         assert buf0 is not None
 
         if self._shape_fixed:
@@ -204,10 +206,10 @@ class Delay(Block):
 
         if self._is_scalar_2d(buf0) and target_shape != (1, 1):
             scalar = float(buf0[0, 0])
-            self.state["buffer"] = [
+            self.set_state("buffer", [
                 np.full(target_shape, scalar, dtype=float) for _ in range(self.num_delays)
-            ]
-            buf0 = self.state["buffer"][0]
+            ])
+            buf0 = self.get_state("buffer")[0]
 
         if buf0.shape != target_shape:
             raise ValueError(
@@ -220,7 +222,7 @@ class Delay(Block):
 
     def _is_reset_active(self) -> bool:
         """Return True if the reset signal is active (truthy scalar)."""
-        reset_signal = self.inputs.get("reset", None)
+        reset_signal = self.get_input("reset")
         if reset_signal is None:
             return False
         reset_arr = np.asarray(reset_signal)
@@ -251,5 +253,5 @@ class Delay(Block):
         else:
             init = np.zeros((1, 1), dtype=float)
 
-        self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
-        self.next_state["buffer"] = [init.copy() for _ in range(self.num_delays)]
+        self.set_state("buffer", [init.copy() for _ in range(self.num_delays)])
+        self.set_next_state("buffer", [init.copy() for _ in range(self.num_delays)])

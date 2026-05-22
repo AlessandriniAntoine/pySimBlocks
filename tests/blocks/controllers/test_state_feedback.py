@@ -177,14 +177,14 @@ def test_state_feedback_shape_change_over_time_raises_valueerror_direct():
     sf = StateFeedback("SF", K=K, G=G)
 
     # First valid shapes
-    sf.inputs["r"] = np.array([[1.0]])          # (1,1)
-    sf.inputs["x"] = np.array([[2.0], [3.0]])   # (2,1)
+    sf.set_input("r", np.array([[1.0]]))          # (1,1)
+    sf.set_input("x", np.array([[2.0], [3.0]]))   # (2,1)
 
     sf.initialize(0.0)
     sf.output_update(0.0, 0.1)
 
     # Now change x shape -> should raise (no implicit flatten, shape frozen)
-    sf.inputs["x"] = np.array([[1.0], [2.0], [3.0]])  # (3,1)
+    sf.set_input("x", np.array([[1.0], [2.0], [3.0]]))  # (3,1)
 
     with pytest.raises(ValueError) as err:
         sf.output_update(0.1, 0.1)

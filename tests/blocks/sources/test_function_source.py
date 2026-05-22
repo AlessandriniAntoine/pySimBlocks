@@ -10,10 +10,10 @@ def test_function_source_single_output():
 
     src = FunctionSource(name="f", function=f, output_keys=["y"])
     src.initialize(0.0)
-    assert np.allclose(src.outputs["y"], [[0.0]])
+    assert np.allclose(src.get_output("y"), [[0.0]])
 
     src.output_update(1.0, 0.1)
-    assert np.allclose(src.outputs["y"], [[2.1]])
+    assert np.allclose(src.get_output("y"), [[2.1]])
 
 
 def test_function_source_multiple_outputs():
@@ -27,9 +27,9 @@ def test_function_source_multiple_outputs():
     src.initialize(0.0)
     src.output_update(0.2, 0.1)
 
-    assert src.outputs["y1"].shape == (2, 1)
-    assert np.allclose(src.outputs["y1"], [[0.2], [0.3]])
-    assert np.allclose(src.outputs["y2"], [[0.4]])
+    assert src.get_output("y1").shape == (2, 1)
+    assert np.allclose(src.get_output("y1"), [[0.2], [0.3]])
+    assert np.allclose(src.get_output("y2"), [[0.4]])
 
 
 def test_function_source_signature_mismatch_raises():
@@ -111,7 +111,7 @@ def test_function_source_adapt_params_loads_function(tmp_path):
 
     src.initialize(0.0)
     src.output_update(0.2, 0.1)
-    assert np.allclose(src.outputs["y"], [[0.3]])
+    assert np.allclose(src.get_output("y"), [[0.3]])
 
 
 def test_function_source_adapt_params_missing_key_raises():

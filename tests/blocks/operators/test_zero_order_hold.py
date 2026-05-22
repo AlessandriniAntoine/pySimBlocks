@@ -88,11 +88,11 @@ def test_zoh_shape_change_raises():
     # block-only: ZOH must reject shape changes once initialized
     zoh = ZeroOrderHold("zoh", sample_time=0.05)
 
-    zoh.inputs["in"] = np.array([[1.0]])  # (1,1)
+    zoh.set_input("in", np.array([[1.0]]))  # (1,1)
     zoh.initialize(0.0)
 
-    zoh.inputs["in"] = np.array([[1.0, 2.0],
-                                 [3.0, 4.0]])  # (2,2)
+    zoh.set_input("in", np.array([[1.0, 2.0],
+                                 [3.0, 4.0]]))  # (2,2)
     with pytest.raises(ValueError) as err:
         zoh.output_update(0.01, 0.01)
 

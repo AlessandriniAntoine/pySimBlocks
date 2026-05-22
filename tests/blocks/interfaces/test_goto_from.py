@@ -37,7 +37,7 @@ def test_goto_writes_to_bus():
     signal_bus.reset()
     g = Goto("g", tag="x")
     g.initialize(0.0)
-    g.inputs["in"] = np.array([[3.0]])
+    g.set_input("in", np.array([[3.0]]))
     g.output_update(0.0, 0.01)
     assert np.allclose(signal_bus._signal_bus["x"], np.array([[3.0]]))
 
@@ -61,7 +61,7 @@ def test_bus_from_reads_from_bus():
     f = BusFrom("f", tag="sig")
     f.initialize(0.0)
     f.output_update(0.0, 0.01)
-    assert np.allclose(f.outputs["out"], np.array([[7.0]]))
+    assert np.allclose(f.get_output("out"), np.array([[7.0]]))
 
 
 def test_bus_from_raises_when_tag_missing():
@@ -77,7 +77,7 @@ def test_bus_from_initialize_returns_none_when_tag_absent():
     signal_bus.reset()
     f = BusFrom("f", tag="absent")
     f.initialize(0.0)
-    assert f.outputs["out"] is None
+    assert f.get_output("out") is None
 
 
 # --------------------------------------------------------------------------

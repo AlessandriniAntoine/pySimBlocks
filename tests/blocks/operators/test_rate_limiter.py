@@ -154,12 +154,12 @@ def test_rate_limiter_input_shape_change_raises():
     # Direct block test: once initialized with (1,1), shape cannot change
     R = RateLimiter("R", rising_slope=1.0, falling_slope=-1.0, initial_output=0.0)
 
-    R.inputs["in"] = np.array([[1.0]])
+    R.set_input("in", np.array([[1.0]]))
     R.initialize(0.0)
     R.output_update(0.0, 0.1)
 
-    R.inputs["in"] = np.array([[1.0, 2.0],
-                               [3.0, 4.0]])
+    R.set_input("in", np.array([[1.0, 2.0],
+                               [3.0, 4.0]]))
     with pytest.raises(ValueError) as err:
         R.output_update(0.1, 0.1)
 

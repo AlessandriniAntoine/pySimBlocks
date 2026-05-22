@@ -81,13 +81,13 @@ class DiscreteIntegrator(Block):
 
         self.direct_feedthrough = (self.method == "euler backward")
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
         self._resolved_shape: tuple[int, int] | None = None
 
-        self.state["x"] = None
-        self.next_state["x"] = None
+        self.set_state("x", None)
+        self.set_next_state("x", None)
 
         self._placeholder = np.zeros((1, 1), dtype=float)
 
@@ -99,13 +99,13 @@ class DiscreteIntegrator(Block):
             if x0.shape != (1, 1):
                 self._resolved_shape = x0.shape
 
-            self.state["x"] = x0.copy()
-            self.next_state["x"] = x0.copy()
-            self.outputs["out"] = x0.copy()
+            self.set_state("x", x0.copy())
+            self.set_next_state("x", x0.copy())
+            self.set_output("out", x0.copy())
         else:
-            self.state["x"] = self._placeholder.copy()
-            self.next_state["x"] = self._placeholder.copy()
-            self.outputs["out"] = self._placeholder.copy()
+            self.set_state("x", self._placeholder.copy())
+            self.set_next_state("x", self._placeholder.copy())
+            self.set_output("out", self._placeholder.copy())
 
 
     # --------------------------------------------------------------------------
@@ -120,13 +120,13 @@ class DiscreteIntegrator(Block):
         """
         if self._initial_state_raw is not None:
             x0 = self._initial_state_raw.copy()
-            self.state["x"] = x0.copy()
-            self.next_state["x"] = x0.copy()
-            self.outputs["out"] = x0.copy()
+            self.set_state("x", x0.copy())
+            self.set_next_state("x", x0.copy())
+            self.set_output("out", x0.copy())
         else:
-            self.state["x"] = self._placeholder.copy()
-            self.next_state["x"] = self._placeholder.copy()
-            self.outputs["out"] = self._placeholder.copy()
+            self.set_state("x", self._placeholder.copy())
+            self.set_next_state("x", self._placeholder.copy())
+            self.set_output("out", self._placeholder.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute the output from the current state according to the integration method.
@@ -138,11 +138,11 @@ class DiscreteIntegrator(Block):
         x = self._normalize_state()
 
         if self.method == "euler forward":
-            self.outputs["out"] = x.copy()
+            self.set_output("out", x.copy())
             return
 
-        u = self._normalize_input(self.inputs["in"])
-        self.outputs["out"] = x + dt * u
+        u = self._normalize_input(self.get_input("in"))
+        self.set_output("out", x + dt * u)
 
     def state_update(self, t: float, dt: float) -> None:
         """Advance the integrator state by one step.
@@ -155,7 +155,7 @@ class DiscreteIntegrator(Block):
             ValueError: If the state and input shapes are inconsistent after
                 shape resolution.
         """
-        u = self._normalize_input(self.inputs["in"])
+        u = self._normalize_input(self.get_input("in"))
         x = self._normalize_state()
 
         if self._resolved_shape is not None:
@@ -164,7 +164,7 @@ class DiscreteIntegrator(Block):
                     f"[{self.name}] Shape mismatch between state and input: x={x.shape}, u={u.shape}."
                 )
 
-        self.next_state["x"] = x + dt * u
+        self.set_next_state("x", x + dt * u)
 
 
     # --------------------------------------------------------------------------
@@ -181,20 +181,20 @@ class DiscreteIntegrator(Block):
         if self._resolved_shape is None and u.shape != (1, 1):
             self._resolved_shape = u.shape
 
-            if self.state["x"] is None:
-                self.state["x"] = np.zeros(self._resolved_shape, dtype=float)
+            if self.get_state("x") is None:
+                self.set_state("x", np.zeros(self._resolved_shape, dtype=float))
             else:
-                x = np.asarray(self.state["x"], dtype=float)
+                x = np.asarray(self.get_state("x"), dtype=float)
                 if x.shape == (1, 1):
                     scalar = float(x[0, 0])
-                    self.state["x"] = np.full(self._resolved_shape, scalar, dtype=float)
+                    self.set_state("x", np.full(self._resolved_shape, scalar, dtype=float))
 
-            self.next_state["x"] = np.asarray(self.state["x"], dtype=float).copy()
+            self.set_next_state("x", np.asarray(self.get_state("x"), dtype=float).copy())
 
-            y = np.asarray(self.outputs["out"], dtype=float)
+            y = np.asarray(self.get_output("out"), dtype=float)
             if y.shape == (1, 1):
                 scalar = float(y[0, 0])
-                self.outputs["out"] = np.full(self._resolved_shape, scalar, dtype=float)
+                self.set_output("out", np.full(self._resolved_shape, scalar, dtype=float))
 
     def _normalize_input(self, u: ArrayLike | None) -> np.ndarray:
         """Normalize input to 2D, applying shape freezing and scalar broadcasting."""
@@ -224,13 +224,13 @@ class DiscreteIntegrator(Block):
 
     def _normalize_state(self) -> np.ndarray:
         """Ensure the state exists and matches the resolved shape."""
-        x = np.asarray(self.state["x"], dtype=float)
+        x = np.asarray(self.get_state("x"), dtype=float)
 
         if self._resolved_shape is not None and self._resolved_shape != (1, 1):
             if x.shape == (1, 1):
                 scalar = float(x[0, 0])
                 x = np.full(self._resolved_shape, scalar, dtype=float)
-                self.state["x"] = x.copy()
+                self.set_state("x", x.copy())
 
             if x.shape != self._resolved_shape:
                 raise ValueError(

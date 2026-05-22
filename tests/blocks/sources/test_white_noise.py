@@ -14,15 +14,15 @@ def test_white_noise_scalar_reproducible():
     s1.initialize(0.0)
     s2.initialize(0.0)
 
-    assert np.allclose(s1.outputs["out"], s2.outputs["out"])
+    assert np.allclose(s1.get_output("out"), s2.get_output("out"))
 
 
 def test_white_noise_scalar_update_changes():
     s = WhiteNoise("n", mean=2.0, std=0.5, seed=0)
     s.initialize(0.0)
-    first = s.outputs["out"].copy()
+    first = s.get_output("out").copy()
     s.output_update(0.1, 0.1)
-    second = s.outputs["out"]
+    second = s.get_output("out")
 
     assert not np.allclose(first, second)
 
@@ -33,7 +33,7 @@ def test_white_noise_scalar_update_changes():
 def test_white_noise_vector_params_shape():
     s = WhiteNoise("n", mean=[1.0, 2.0], std=[0.1, 0.2], seed=10)
     s.initialize(0.0)
-    assert s.outputs["out"].shape == (2, 1)
+    assert s.get_output("out").shape == (2, 1)
 
 
 def test_white_noise_broadcast_scalar_mean():
@@ -41,7 +41,7 @@ def test_white_noise_broadcast_scalar_mean():
     s.initialize(0.0)
     assert s.mean.shape == (3, 1)
     assert s.std.shape == (3, 1)
-    assert s.outputs["out"].shape == (3, 1)
+    assert s.get_output("out").shape == (3, 1)
 
 
 # ----------------------------------------------------------
@@ -54,7 +54,7 @@ def test_white_noise_matrix_params_shape():
                     [3.0, 4.0]])
     s = WhiteNoise("n", mean=mean, std=std, seed=123)
     s.initialize(0.0)
-    assert s.outputs["out"].shape == (2, 2)
+    assert s.get_output("out").shape == (2, 2)
 
 
 def test_white_noise_matrix_broadcast_scalar_std():
@@ -64,7 +64,7 @@ def test_white_noise_matrix_broadcast_scalar_std():
     s.initialize(0.0)
     assert s.mean.shape == (2, 2)
     assert s.std.shape == (2, 2)
-    assert s.outputs["out"].shape == (2, 2)
+    assert s.get_output("out").shape == (2, 2)
 
 
 def test_white_noise_matrix_reproducible_same_seed():
@@ -78,7 +78,7 @@ def test_white_noise_matrix_reproducible_same_seed():
 
     s1.initialize(0.0)
     s2.initialize(0.0)
-    assert np.allclose(s1.outputs["out"], s2.outputs["out"])
+    assert np.allclose(s1.get_output("out"), s2.get_output("out"))
 
 
 # ----------------------------------------------------------

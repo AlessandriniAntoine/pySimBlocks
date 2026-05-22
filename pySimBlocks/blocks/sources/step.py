@@ -79,7 +79,7 @@ class Step(BlockSource):
             raise TypeError(f"[{self.name}] start_time must be a float or int.")
         self.start_time = float(start_time)
 
-        self.outputs["out"] = None
+        self.set_output("out", None)
         self.EPS = float(eps)
 
 
@@ -93,11 +93,11 @@ class Step(BlockSource):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["out"] = (
+        self.set_output("out", (
             self.value_before.copy()
             if t0 < self.start_time - self.EPS
             else self.value_after.copy()
-        )
+        ))
 
     def output_update(self, t: float, dt: float) -> None:
         """Write value_before or value_after to the output port based on t.
@@ -106,9 +106,9 @@ class Step(BlockSource):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        self.outputs["out"] = (
+        self.set_output("out", (
             self.value_before.copy()
             if t < self.start_time - self.EPS
             else self.value_after.copy()
-        )
+        ))
 

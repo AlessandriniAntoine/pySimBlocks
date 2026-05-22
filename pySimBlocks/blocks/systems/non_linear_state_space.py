@@ -26,7 +26,7 @@ from typing import Any, Callable, Dict, List
 import numpy as np
 
 from pySimBlocks.core.block import Block
-
+from pySimBlocks.core.signal import Signal
 
 class NonLinearStateSpace(Block):
     """User-defined nonlinear state-space block.
@@ -97,8 +97,8 @@ class NonLinearStateSpace(Block):
             raise ValueError(
                 f"{self.name}: x0 must have shape (n,1) or (n,)"
             )
-        self.state["x"] = x0.copy()
-        self.next_state["x"] = x0.copy()
+        self.set_state("x", x0.copy())
+        self.set_next_state("x", x0.copy())
 
 
     # --------------------------------------------------------------------------
@@ -200,10 +200,10 @@ class NonLinearStateSpace(Block):
         self._validate_signature()
 
         for k in self.input_keys:
-            self.inputs[k] = None
+            self.set_input(k, None)
 
         for k in self.output_keys:
-            self.outputs[k] = None
+            self.set_output(k, None)
 
     def output_update(self, t: float, dt: float) -> None:
         """Call the output function and write results to the output ports.
@@ -214,11 +214,11 @@ class NonLinearStateSpace(Block):
         """
         assert self._output_func is not None
 
-        x = self.state["x"]
+        x = self.get_state("x")
         out = self._call_output_func(t, dt, x=x)
 
         for k in self.output_keys:
-            self.outputs[k] = out[k]
+            self.set_output(k, out[k])
 
     def state_update(self, t: float, dt: float) -> None:
         """Call the state function and store the next state.
@@ -233,9 +233,9 @@ class NonLinearStateSpace(Block):
         """
         assert self._output_func is not None
 
-        kwargs: Dict[str, np.ndarray] = {}
+        kwargs: Dict[str, Signal] = {}
         for k in self.input_keys:
-            u = self.inputs[k]
+            u = self.get_input(k)
             if not isinstance(u, np.ndarray):
                 raise TypeError(
                     f"{self.name}: input '{k}' is not a numpy array"
@@ -246,9 +246,9 @@ class NonLinearStateSpace(Block):
                 )
             kwargs[k] = u
 
-        x = self.state["x"]
+        x = self.get_state("x")
         out = self._state_func(t, dt, x=x, **kwargs)
-        self.next_state["x"] = out
+        self.set_next_state("x", out)
 
 
     # --------------------------------------------------------------------------

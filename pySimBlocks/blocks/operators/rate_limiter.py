@@ -77,8 +77,8 @@ class RateLimiter(Block):
         """
         super().__init__(name, sample_time)
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
         self.rising_raw = self._to_2d_array("rising_slope", rising_slope)
         self.falling_raw = self._to_2d_array("falling_slope", falling_slope)
@@ -93,8 +93,8 @@ class RateLimiter(Block):
         self.falling_slope: ArrayLike | None = None
         self._resolved_shape: tuple[int, int] | None = None
 
-        self.state["y"] = None
-        self.next_state["y"] = None
+        self.set_state("y", None)
+        self.set_next_state("y", None)
 
 
     # --------------------------------------------------------------------------
@@ -111,7 +111,7 @@ class RateLimiter(Block):
             RuntimeError: If input ``'in'`` is None at initialization.
             ValueError: If input is not 2D or slopes have incompatible shapes.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
@@ -128,8 +128,8 @@ class RateLimiter(Block):
         else:
             y0 = u.copy()
 
-        self.state["y"] = y0.copy()
-        self.outputs["out"] = y0.copy()
+        self.set_state("y", y0.copy())
+        self.set_output("out", y0.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Apply the rate limit and write the result to the output port.
@@ -144,7 +144,7 @@ class RateLimiter(Block):
             ValueError: If input is not 2D or its shape changed after
                 initialization.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
@@ -154,12 +154,12 @@ class RateLimiter(Block):
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
 
-        if self.state["y"] is None:
+        if self.get_state("y") is None:
             raise RuntimeError(f"[{self.name}] RateLimiter not initialized (state 'y' is None).")
 
         self._resolve_for_input(u)
 
-        y_prev = self.state["y"]
+        y_prev = self.get_state("y")
         if y_prev.shape != u.shape:
             raise ValueError(
                 f"[{self.name}] Internal state shape mismatch: y has shape {y_prev.shape}, input has shape {u.shape}."
@@ -170,7 +170,7 @@ class RateLimiter(Block):
         du_max = self.rising_slope * dt
 
         du_limited = np.clip(du, du_min, du_max)
-        self.outputs["out"] = y_prev + du_limited
+        self.set_output("out", y_prev + du_limited)
 
     def state_update(self, t: float, dt: float) -> None:
         """Store the current output as the previous value for the next step.
@@ -179,7 +179,7 @@ class RateLimiter(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        self.next_state["y"] = None if self.outputs["out"] is None else self.outputs["out"].copy()
+        self.set_next_state("y", None if self.get_output("out") is None else self.get_output("out").copy())
 
 
     # --------------------------------------------------------------------------

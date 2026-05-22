@@ -64,7 +64,7 @@ class Constant(BlockSource):
         arr = self._to_2d_array("value", value, dtype=float)
 
         self.value = arr
-        self.outputs["out"] = arr.copy()
+        self.set_output("out", arr.copy())
 
 
     # --------------------------------------------------------------------------
@@ -77,7 +77,7 @@ class Constant(BlockSource):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["out"] = self.value.copy()
+        self.set_output("out", self.value.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Write the constant value to the output port.
@@ -86,4 +86,4 @@ class Constant(BlockSource):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        self.outputs["out"] = self.value.copy()
+        self.set_output("out", self.value.copy())

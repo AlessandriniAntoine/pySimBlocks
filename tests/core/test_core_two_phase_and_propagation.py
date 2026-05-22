@@ -14,10 +14,10 @@ class SourceSetsOne(Block):
     """
 
     def initialize(self, t0: float):
-        self.outputs["y"] = np.array([[0.0]])
+        self.set_output("y", np.array([[0.0]]))
 
     def output_update(self, t: float, dt: float):
-        self.outputs["y"] = np.array([[1.0]])
+        self.set_output("y", np.array([[1.0]]))
 
     def state_update(self, t: float, dt: float):
         # Stateless
@@ -31,12 +31,12 @@ class PassThrough(Block):
     """
 
     def initialize(self, t0: float):
-        self.outputs["y"] = np.array([[0.0]])
+        self.set_output("y", np.array([[0.0]]))
 
     def output_update(self, t: float, dt: float):
         if "u" not in self.inputs:
             raise RuntimeError(f"[{self.name}] missing input 'u'")
-        self.outputs["y"] = np.array(self.inputs["u"])
+        self.set_output("y", np.array(self.get_input("u")))
 
     def state_update(self, t: float, dt: float):
         self.next_state = self.state
@@ -52,14 +52,14 @@ class StatefulCounter(Block):
     """
 
     def initialize(self, t0: float):
-        self.state["x"] = np.array([[0.0]])
-        self.outputs["y"] = np.array([[0.0]])
+        self.set_state("x", np.array([[0.0]]))
+        self.set_output("y", np.array([[0.0]]))
 
     def output_update(self, t: float, dt: float):
-        self.outputs["y"] = np.array(self.state["x"])
+        self.set_output("y", np.array(self.get_state("x")))
 
     def state_update(self, t: float, dt: float):
-        self.next_state["x"] = self.state["x"] + 1.0
+        self.set_next_state("x", self.get_state("x") + 1.0)
 
 
 def _run(model: Model, dt: float, T: float, logging: list[str]):

@@ -10,13 +10,13 @@ from pySimBlocks.blocks.sources.sinusoidal import Sinusoidal
 def test_sinusoidal_scalar():
     s = Sinusoidal("s", amplitude=2.0, frequency=1.0, offset=0.5, phase=0.0)
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], [[0.5]])  # sin(0)=0
+    assert np.allclose(s.get_output("out"), [[0.5]])  # sin(0)=0
 
 
 def test_sinusoidal_scalar_time():
     s = Sinusoidal("s", 2.0, 1.0, 0.0, 0.0)
     s.output_update(0.25, 0.1)  # sin(2π * 1 * 0.25) = sin(π/2) = 1
-    assert np.allclose(s.outputs["out"], [[2.0]])
+    assert np.allclose(s.get_output("out"), [[2.0]])
 
 
 # ----------------------------------------------------------
@@ -32,7 +32,7 @@ def test_sinusoidal_vector():
     )
     s.output_update(0.0, 0.1)
     # out(0): [1*sin(0)+0, 2*sin(pi/2)+10] = [0, 12]
-    assert np.allclose(s.outputs["out"], [[0.0], [12.0]])
+    assert np.allclose(s.get_output("out"), [[0.0], [12.0]])
 
 
 # ----------------------------------------------------------
@@ -49,7 +49,7 @@ def test_sinusoidal_broadcast_scalar_frequency():
     )
     s.output_update(1.0, 0.1)
     expected = np.sin(2 * np.pi * 0.5 * 1.0) * np.ones((3, 1))
-    assert np.allclose(s.outputs["out"], expected)
+    assert np.allclose(s.get_output("out"), expected)
 
 
 # ----------------------------------------------------------
@@ -69,7 +69,7 @@ def test_sinusoidal_matrix_same_shape():
     s.output_update(0.0, 0.1)
 
     expected = A * np.sin(2 * np.pi * F * 0.0 + P) + O
-    assert np.allclose(s.outputs["out"], expected)
+    assert np.allclose(s.get_output("out"), expected)
 
 
 def test_sinusoidal_matrix_broadcast_scalar_phase():
@@ -82,7 +82,7 @@ def test_sinusoidal_matrix_broadcast_scalar_phase():
     s.output_update(0.0, 0.1)
 
     expected = A * np.sin(2 * np.pi * F * 0.0 + 0.0) + 0.0
-    assert np.allclose(s.outputs["out"], expected)
+    assert np.allclose(s.get_output("out"), expected)
 
 
 # ----------------------------------------------------------

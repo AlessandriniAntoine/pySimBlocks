@@ -20,15 +20,15 @@ class RateCounter(Block):
     """
 
     def initialize(self, t0: float):
-        self.state["count"] = np.array([[0.0]])
-        self.outputs["y"] = np.array([[0.0]])
+        self.set_state("count", np.array([[0.0]]))
+        self.set_output("y", np.array([[0.0]]))
 
     def output_update(self, t: float, dt: float):
-        self.outputs["y"] = np.array(self.state["count"])
-        # print(self.outputs["y"])
+        self.set_output("y", np.array(self.get_state("count")))
+        # print(self.get_output("y"))
 
     def state_update(self, t: float, dt: float):
-        self.next_state["count"] = self.state["count"] + 1.0
+        self.set_next_state("count", self.get_state("count") + 1.0)
 
 
 def test_task_get_dt_semantics(capsys):

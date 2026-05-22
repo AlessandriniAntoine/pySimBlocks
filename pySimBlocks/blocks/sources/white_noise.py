@@ -84,7 +84,7 @@ class WhiteNoise(BlockSource):
 
         self.rng = np.random.default_rng(seed)
 
-        self.outputs["out"] = np.zeros(target_shape, dtype=float)
+        self.set_output("out", np.zeros(target_shape, dtype=float))
 
 
     # --------------------------------------------------------------------------
@@ -97,7 +97,7 @@ class WhiteNoise(BlockSource):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["out"] = self._draw()
+        self.set_output("out", self._draw())
 
     def output_update(self, t: float, dt: float) -> None:
         """Draw a new noise sample and write it to the output port.
@@ -106,7 +106,7 @@ class WhiteNoise(BlockSource):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        self.outputs["out"] = self._draw()
+        self.set_output("out", self._draw())
 
 
     # --------------------------------------------------------------------------

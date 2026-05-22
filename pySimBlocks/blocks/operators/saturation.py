@@ -69,8 +69,8 @@ class Saturation(Block):
         """
         super().__init__(name, sample_time)
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
         self.u_min_raw = self._to_2d_array("u_min", u_min)
         self.u_max_raw = self._to_2d_array("u_max", u_max)
@@ -95,7 +95,7 @@ class Saturation(Block):
             ValueError: If input is not 2D, bounds have incompatible shapes,
                 or ``u_min > u_max`` for any component.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
@@ -106,7 +106,7 @@ class Saturation(Block):
             )
 
         self._resolve_bounds_for_input(u)
-        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
+        self.set_output("out", np.clip(u, self.u_min, self.u_max))
 
     def output_update(self, t: float, dt: float) -> None:
         """Saturate the input and write the result to the output port.
@@ -120,7 +120,7 @@ class Saturation(Block):
             ValueError: If input is not 2D or its shape changed after
                 initialization.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
@@ -131,7 +131,7 @@ class Saturation(Block):
             )
 
         self._resolve_bounds_for_input(u)
-        self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
+        self.set_output("out", np.clip(u, self.u_min, self.u_max))
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Saturation is a stateless block.

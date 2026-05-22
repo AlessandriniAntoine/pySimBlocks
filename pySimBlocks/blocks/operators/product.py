@@ -95,9 +95,9 @@ class Product(Block):
         self.num_inputs = len(self.operations) + 1
 
         for i in range(self.num_inputs):
-            self.inputs[f"in{i+1}"] = None
+            self.set_input(f"in{i+1}", None)
 
-        self.outputs["out"] = None
+        self.set_output("out", None)
 
         self._input_shapes: dict[str, tuple[int, int]] = {}
 
@@ -113,10 +113,10 @@ class Product(Block):
             t0: Initial simulation time in seconds.
         """
         for i in range(self.num_inputs):
-            if self.inputs[f"in{i+1}"] is None:
-                self.outputs["out"] = None
+            if self.get_input(f"in{i+1}") is None:
+                self.set_output("out", None)
                 return
-        self.outputs["out"] = self._compute_output()
+        self.set_output("out", self._compute_output())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute the product and write the result to the output port.
@@ -130,7 +130,7 @@ class Product(Block):
             ValueError: If input shapes are inconsistent or incompatible with
                 the multiplication mode.
         """
-        self.outputs["out"] = self._compute_output()
+        self.set_output("out", self._compute_output())
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Product is a stateless block.
@@ -148,7 +148,7 @@ class Product(Block):
 
     def _get_input_2d(self, port: str) -> np.ndarray:
         """Retrieve, validate, and shape-freeze a single input port."""
-        u = self.inputs[port]
+        u = self.get_input(port)
         if u is None:
             raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
         u_arr = self._to_2d_array(port, u)

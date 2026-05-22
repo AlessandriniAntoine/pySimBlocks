@@ -59,9 +59,9 @@ class Mux(Block):
         self.num_inputs = num_inputs
 
         for i in range(num_inputs):
-            self.inputs[f"in{i+1}"] = None
+            self.set_input(f"in{i+1}", None)
 
-        self.outputs["out"] = None
+        self.set_output("out", None)
 
 
     # --------------------------------------------------------------------------
@@ -75,11 +75,11 @@ class Mux(Block):
             t0: Initial simulation time in seconds.
         """
         for i in range(self.num_inputs):
-            if self.inputs[f"in{i+1}"] is None:
-                self.outputs["out"] = None
+            if self.get_input(f"in{i+1}") is None:
+                self.set_output("out", None)
                 return
 
-        self.outputs["out"] = self._compute_output()
+        self.set_output("out", self._compute_output())
 
     def output_update(self, t: float, dt: float) -> None:
         """Concatenate all inputs vertically and write the result to the output port.
@@ -92,7 +92,7 @@ class Mux(Block):
             RuntimeError: If any input port is not connected.
             ValueError: If any input is not a scalar, 1D, or column vector.
         """
-        self.outputs["out"] = self._compute_output()
+        self.set_output("out", self._compute_output())
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Mux is a stateless block.
@@ -135,7 +135,7 @@ class Mux(Block):
 
         for i in range(self.num_inputs):
             key = f"in{i+1}"
-            u = self.inputs[key]
+            u = self.get_input(key)
             if u is None:
                 raise RuntimeError(f"[{self.name}] Input '{key}' is not connected or not set.")
 

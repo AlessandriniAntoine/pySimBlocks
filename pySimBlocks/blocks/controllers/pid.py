@@ -125,13 +125,13 @@ class Pid(Block):
             # I-only
             self.direct_feedthrough = (self.integration_method == "euler backward")
 
-        self.inputs["e"] = None
-        self.outputs["u"] = None
+        self.set_input("e", None)
+        self.set_output("u", None)
 
-        self.state["x_i"] = np.zeros((1, 1), dtype=float)
-        self.state["e_prev"] = np.zeros((1, 1), dtype=float)
-        self.next_state["x_i"] = np.zeros((1, 1), dtype=float)
-        self.next_state["e_prev"] = np.zeros((1, 1), dtype=float)
+        self.set_state("x_i", np.zeros((1, 1), dtype=float))
+        self.set_state("e_prev", np.zeros((1, 1), dtype=float))
+        self.set_next_state("x_i", np.zeros((1, 1), dtype=float))
+        self.set_next_state("e_prev", np.zeros((1, 1), dtype=float))
 
 
     # --------------------------------------------------------------------------
@@ -144,7 +144,7 @@ class Pid(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["u"] = np.zeros((1, 1), dtype=float)
+        self.set_output("u", np.zeros((1, 1), dtype=float))
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute the PID control command from the current error input.
@@ -156,14 +156,14 @@ class Pid(Block):
         Raises:
             RuntimeError: If input ``e`` is not connected.
         """
-        e_in = self.inputs["e"]
+        e_in = self.get_input("e")
         if e_in is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
 
         e = self._to_siso("e", e_in)
 
-        x_i = self.state["x_i"]
-        e_prev = self.state["e_prev"]
+        x_i = self.get_state("x_i")
+        e_prev = self.get_state("e_prev")
 
         has_p = "P" in self.controller
         has_i = "I" in self.controller
@@ -188,7 +188,7 @@ class Pid(Block):
         if self.u_max is not None:
             u = np.minimum(u, self.u_max)
 
-        self.outputs["u"] = u
+        self.set_output("u", u)
 
     def state_update(self, t: float, dt: float) -> None:
         """Update the integrator state and store the previous error.
@@ -200,7 +200,7 @@ class Pid(Block):
         Raises:
             RuntimeError: If input ``e`` is not connected.
         """
-        e_in = self.inputs["e"]
+        e_in = self.get_input("e")
         if e_in is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
 
@@ -209,9 +209,9 @@ class Pid(Block):
         has_i = "I" in self.controller
 
         if has_i:
-            x_i_next = self.state["x_i"] + self.Ki * e * dt
+            x_i_next = self.get_state("x_i") + self.Ki * e * dt
         else:
-            x_i_next = self.state["x_i"].copy()
+            x_i_next = self.get_state("x_i").copy()
 
         # Anti-windup: clamp integral state to saturation bounds
         if self.u_min is not None:
@@ -219,8 +219,8 @@ class Pid(Block):
         if self.u_max is not None:
             x_i_next = np.minimum(x_i_next, self.u_max)
 
-        self.next_state["x_i"] = x_i_next
-        self.next_state["e_prev"] = e.copy()
+        self.set_next_state("x_i", x_i_next)
+        self.set_next_state("e_prev", e.copy())
 
 
     # --------------------------------------------------------------------------

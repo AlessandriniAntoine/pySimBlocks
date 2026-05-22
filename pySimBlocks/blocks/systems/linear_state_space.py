@@ -117,12 +117,12 @@ class LinearStateSpace(Block):
             if x0_arr.shape != (n, 1):
                 raise ValueError(f"[{self.name}] x0 must have shape ({n}, 1). Got {x0_arr.shape}.")
 
-        self.state["x"] = x0_arr.copy()
-        self.next_state["x"] = x0_arr.copy()
+        self.set_state("x", x0_arr.copy())
+        self.set_next_state("x", x0_arr.copy())
 
-        self.inputs["u"] = None
-        self.outputs["y"] = None
-        self.outputs["x"] = None
+        self.set_input("u", None)
+        self.set_output("y", None)
+        self.set_output("x", None)
 
 
     # --------------------------------------------------------------------------
@@ -135,10 +135,10 @@ class LinearStateSpace(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        x = self.state["x"]
-        self.outputs["y"] = self.C @ x
-        self.outputs["x"] = x.copy()
-        self.next_state["x"] = x.copy()
+        x = self.get_state("x")
+        self.set_output("y", self.C @ x)
+        self.set_output("x", x.copy())
+        self.set_next_state("x", x.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute y and x outputs from the committed state.
@@ -147,9 +147,9 @@ class LinearStateSpace(Block):
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
-        x = self.state["x"]
-        self.outputs["y"] = self.C @ x
-        self.outputs["x"] = x.copy()
+        x = self.get_state("x")
+        self.set_output("y", self.C @ x)
+        self.set_output("x", x.copy())
 
     def state_update(self, t: float, dt: float) -> None:
         """Compute the next state x[k+1] = A x[k] + B u[k].
@@ -162,14 +162,14 @@ class LinearStateSpace(Block):
             RuntimeError: If input ``u`` is not connected.
             ValueError: If input ``u`` has the wrong shape.
         """
-        u = self.inputs["u"]
+        u = self.get_input("u")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
 
         u_vec = self._to_col_vec("u", u, self._m)
-        x = self.state["x"]
+        x = self.get_state("x")
 
-        self.next_state["x"] = self.A @ x + self.B @ u_vec
+        self.set_next_state("x", self.A @ x + self.B @ u_vec)
 
 
     # --------------------------------------------------------------------------

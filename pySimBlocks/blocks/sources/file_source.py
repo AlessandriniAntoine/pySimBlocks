@@ -108,7 +108,7 @@ class FileSource(BlockSource):
         self._index = 0
         self._output_shape = (self._samples.shape[1], 1)
 
-        self.outputs["out"] = np.zeros(self._output_shape, dtype=float)
+        self.set_output("out", np.zeros(self._output_shape, dtype=float))
 
 
     # --------------------------------------------------------------------------
@@ -157,10 +157,10 @@ class FileSource(BlockSource):
             t0: Initial simulation time in seconds.
         """
         if self.use_time:
-            self.outputs["out"] = self._current_output_at_time(t0)
+            self.set_output("out", self._current_output_at_time(t0))
         else:
             self._index = 0
-            self.outputs["out"] = self._current_output()
+            self.set_output("out", self._current_output())
 
     def output_update(self, t: float, dt: float) -> None:
         """Write the current sample to the output port and advance the index.
@@ -170,9 +170,9 @@ class FileSource(BlockSource):
             dt: Current time step in seconds.
         """
         if self.use_time:
-            self.outputs["out"] = self._current_output_at_time(t)
+            self.set_output("out", self._current_output_at_time(t))
         else:
-            self.outputs["out"] = self._current_output()
+            self.set_output("out", self._current_output())
             self._index += 1
 
     def state_update(self, t: float, dt: float) -> None:

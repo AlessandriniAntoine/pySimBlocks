@@ -124,9 +124,9 @@ def test_saturation_no_bounds():
 # ------------------------------------------------------------
 def test_saturation_bounds_componentwise_ok():
     s = Saturation("sat", u_min=[1.0, 5.0], u_max=[2.0, 8.0])
-    s.inputs["in"] = np.array([[0.0], [10.0]])
+    s.set_input("in", np.array([[0.0], [10.0]]))
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], [[1.0], [8.0]])
+    assert np.allclose(s.get_output("out"), [[1.0], [8.0]])
 
 # ------------------------------------------------------------
 # 10) Invalid bounds (after resolution)
@@ -134,7 +134,7 @@ def test_saturation_bounds_componentwise_ok():
 def test_saturation_invalid_bounds_scalar():
     with pytest.raises(ValueError):
         s = Saturation("sat", u_min=2.0, u_max=1.0)
-        s.inputs["in"] = np.array([[0.0]])
+        s.set_input("in", np.array([[0.0]]))
         s.initialize(0.0)
 
 

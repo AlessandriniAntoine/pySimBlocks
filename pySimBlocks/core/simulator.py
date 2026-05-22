@@ -97,7 +97,6 @@ class Simulator:
         for block in self.output_order:
             try:
                 block.initialize(self.t)
-                self._propagate_from(block)
             except Exception as e:
                 raise RuntimeError(
                     f"Error during initialization of block '{block.name}': {e}"
@@ -147,7 +146,6 @@ class Simulator:
             dt_task = task.accumulated_dt 
             for block in task.output_blocks:
                 block.output_update(self.t, dt_task)
-                self._propagate_from(block)
 
         # PHASE 2 — states
         for task in active_tasks:
@@ -317,15 +315,6 @@ class Simulator:
                 "Supported modes are: 'fixed', 'variable'."
             )
 
-    def _propagate_from(self, block: Block) -> None:
-        """Forward outputs of block to its direct downstream inputs."""
-        blocks = self.model.blocks
-        for (src, dst) in self.model.downstream_of(block.name):
-            _, src_port = src
-            dst_block, dst_port = dst
-            value = block.outputs[src_port]
-            if value is not None:
-                blocks[dst_block].inputs[dst_port] = value
 
     def _log(self, variables_to_log: List[str]) -> None:
         """Log specified variables at the current timestep.
@@ -341,9 +330,9 @@ class Simulator:
             block = self.model.blocks[block_name]
 
             if container == "outputs":
-                value = block.outputs[key]
+                value = block.get_output(key)
             elif container == "state":
-                value = block.state[key]
+                value = block.get_state(key)
             else:
                 raise ValueError(f"Unknown container '{container}' in '{var}'.")
 

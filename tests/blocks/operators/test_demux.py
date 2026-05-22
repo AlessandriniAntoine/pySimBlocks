@@ -85,7 +85,7 @@ def test_demux_rejects_matrix_input():
 
 def test_demux_rejects_1d_input():
     dmx = Demux("D", num_outputs=1)
-    dmx.inputs["in"] = np.array([5.0])
+    dmx.set_input("in", np.array([5.0]))
 
     with pytest.raises(ValueError) as err:
         dmx.output_update(t=0.0, dt=0.1)

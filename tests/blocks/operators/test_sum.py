@@ -180,4 +180,4 @@ def test_sum_initial_output():
     sim = Simulator(m, sim_cfg)
     sim.initialize(0.0)
 
-    assert np.allclose(sm.outputs["out"], [[3.0]])
+    assert np.allclose(sm.get_output("out"), [[3.0]])

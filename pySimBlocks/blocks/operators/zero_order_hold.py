@@ -56,13 +56,13 @@ class ZeroOrderHold(Block):
         self.sample_time = float(sample_time)
         self.EPS = 1e-12
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
-        self.state["y"] = None
-        self.next_state["y"] = None
-        self.state["t_last"] = None
-        self.next_state["t_last"] = None
+        self.set_state("y", None)
+        self.set_next_state("y", None)
+        self.set_state("t_last", None)
+        self.set_next_state("t_last", None)
 
         self._resolved_shape: tuple[int, int] | None = None
 
@@ -81,7 +81,7 @@ class ZeroOrderHold(Block):
             RuntimeError: If input ``'in'`` is None at initialization.
             ValueError: If input is not 2D.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
@@ -89,13 +89,13 @@ class ZeroOrderHold(Block):
         self._ensure_shape(u)
 
         y0 = u.copy()
-        self.state["y"] = y0
-        self.state["t_last"] = float(t0)
+        self.set_state("y", y0)
+        self.set_state("t_last", float(t0))
 
-        self.next_state["y"] = y0.copy()
-        self.next_state["t_last"] = float(t0)
+        self.set_next_state("y", y0.copy())
+        self.set_next_state("t_last", float(t0))
 
-        self.outputs["out"] = y0.copy()
+        self.set_output("out", y0.copy())
 
     def output_update(self, t: float, dt: float) -> None:
         """Output the current sample or the held value depending on the elapsed time.
@@ -107,21 +107,21 @@ class ZeroOrderHold(Block):
         Raises:
             RuntimeError: If input ``'in'`` is None or block is not initialized.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
         u = self._to_2d_array("input", u)
         self._ensure_shape(u)
 
-        t_last = self.state["t_last"]
+        t_last = self.get_state("t_last")
         if t_last is None:
             raise RuntimeError(f"[{self.name}] ZOH not initialized (t_last is None).")
 
         if (t - t_last) >= self.sample_time - self.EPS:
-            self.outputs["out"] = u.copy()
+            self.set_output("out", u.copy())
         else:
-            self.outputs["out"] = self.state["y"].copy()
+            self.set_output("out", self.get_state("y").copy())
 
     def state_update(self, t: float, dt: float) -> None:
         """Update the held value and timestamp if a new sample was taken.
@@ -133,16 +133,16 @@ class ZeroOrderHold(Block):
         Raises:
             RuntimeError: If block is not initialized.
         """
-        t_last = self.state["t_last"]
+        t_last = self.get_state("t_last")
         if t_last is None:
             raise RuntimeError(f"[{self.name}] ZOH not initialized (t_last is None).")
 
         if (t - t_last) >= self.sample_time - self.EPS:
-            self.next_state["y"] = self.outputs["out"].copy()
-            self.next_state["t_last"] = float(t)
+            self.set_next_state("y", self.get_output("out").copy())
+            self.set_next_state("t_last", float(t))
         else:
-            self.next_state["y"] = self.state["y"].copy()
-            self.next_state["t_last"] = float(t_last)
+            self.set_next_state("y", self.get_state("y").copy())
+            self.set_next_state("t_last", float(t_last))
 
 
     # --------------------------------------------------------------------------

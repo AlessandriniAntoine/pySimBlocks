@@ -125,22 +125,22 @@ def test_derivator_shape_upgrade_from_placeholder_unit():
     D.initialize(0.0)
 
     # First output_update with missing input -> should keep placeholder, not crash
-    D.inputs["in"] = None
+    D.set_input("in", None)
     D.output_update(0.0, 0.1)
-    assert np.allclose(D.outputs["out"], [[0.0]])
+    assert np.allclose(D.get_output("out"), [[0.0]])
 
     # Now provide a matrix; first call after upgrade keeps 0 (but shape becomes (2,2))
-    D.inputs["in"] = np.array([[1.0, 2.0], [3.0, 4.0]])
+    D.set_input("in", np.array([[1.0, 2.0], [3.0, 4.0]]))
     D.output_update(0.1, 0.1)
-    assert D.outputs["out"].shape == (2, 2)
-    assert np.allclose(D.outputs["out"], np.zeros((2, 2)))
+    assert D.get_output("out").shape == (2, 2)
+    assert np.allclose(D.get_output("out"), np.zeros((2, 2)))
 
     # Second call with same matrix -> derivative zero
     D.state_update(0.1, 0.1)
-    D.state["u_prev"] = D.next_state["u_prev"].copy()
+    D.set_state("u_prev", D.get_next_state("u_prev").copy())
 
     D.output_update(0.2, 0.1)
-    assert np.allclose(D.outputs["out"], np.zeros((2, 2)))
+    assert np.allclose(D.get_output("out"), np.zeros((2, 2)))
 
 
 # ------------------------------------------------------------
@@ -149,11 +149,11 @@ def test_derivator_shape_change_after_freeze_raises_unit():
     D.initialize(0.0)
 
     # First: provide matrix -> freezes
-    D.inputs["in"] = np.array([[1.0, 2.0], [3.0, 4.0]])
+    D.set_input("in", np.array([[1.0, 2.0], [3.0, 4.0]]))
     D.output_update(0.0, 0.1)
 
     # Now attempt incompatible shape
-    D.inputs["in"] = np.array([[1.0], [2.0], [3.0]])
+    D.set_input("in", np.array([[1.0], [2.0], [3.0]]))
     with pytest.raises(ValueError) as err:
         D.output_update(0.1, 0.1)
 

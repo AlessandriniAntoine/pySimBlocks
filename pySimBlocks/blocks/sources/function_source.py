@@ -26,6 +26,7 @@ from typing import Any, Callable, Dict, List
 import numpy as np
 
 from pySimBlocks.core.block_source import BlockSource
+from pySimBlocks.core.signal import Signal
 
 
 class FunctionSource(BlockSource):
@@ -75,7 +76,7 @@ class FunctionSource(BlockSource):
         if len(self.output_keys) == 0:
             raise ValueError(f"[{self.name}] output_keys cannot be empty.")
 
-        self.outputs: Dict[str, np.ndarray | None] = {k: None for k in self.output_keys}
+        self.outputs: Dict[str, Signal | None] = {k: Signal() for k in self.output_keys}
         self._out_shapes: Dict[str, tuple[int, int] | None] = {
             k: None for k in self.output_keys
         }
@@ -168,7 +169,7 @@ class FunctionSource(BlockSource):
         self._validate_signature()
         out = self._call_func(t0, 0.0)
         for key in self.output_keys:
-            self.outputs[key] = out[key]
+            self.set_output(key, out[key])
 
     def output_update(self, t: float, dt: float) -> None:
         """Call the user function and write results to the output ports.
@@ -179,7 +180,7 @@ class FunctionSource(BlockSource):
         """
         out = self._call_func(t, dt)
         for key in self.output_keys:
-            self.outputs[key] = out[key]
+            self.set_output(key, out[key])
 
 
     # --------------------------------------------------------------------------

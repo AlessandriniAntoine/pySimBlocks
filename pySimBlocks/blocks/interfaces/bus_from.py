@@ -49,7 +49,7 @@ class BusFrom(Block):
         """
         super().__init__(name, sample_time)
         self.tag = tag
-        self.outputs["out"] = None
+        self.set_output("out", None)
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -64,7 +64,7 @@ class BusFrom(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        self.outputs["out"] = signal_bus._signal_bus.get(self.tag)
+        self.set_output("out", signal_bus._signal_bus.get(self.tag))
 
     def output_update(self, t: float, dt: float) -> None:
         """Read the current value from the signal bus.
@@ -82,7 +82,7 @@ class BusFrom(Block):
                 f"[{self.name}] Tag '{self.tag}' not found in signal bus. "
                 "Ensure a Goto block with the same tag exists in the model."
             )
-        self.outputs["out"] = signal_bus._signal_bus[self.tag]
+        self.set_output("out", signal_bus._signal_bus[self.tag])
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: BusFrom carries no internal state."""

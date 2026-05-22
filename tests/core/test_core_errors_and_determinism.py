@@ -14,12 +14,12 @@ class RequiresInput(Block):
     """
 
     def initialize(self, t0: float):
-        self.outputs["y"] = np.array([[0.0]])
+        self.set_output("y", np.array([[0.0]]))
 
     def output_update(self, t: float, dt: float):
         if "u" not in self.inputs:
             raise RuntimeError(f"[{self.name}] missing input 'u'")
-        self.outputs["y"] = np.array(self.inputs["u"])
+        self.set_output("y", np.array(self.get_input("u")))
 
     def state_update(self, t: float, dt: float):
         self.next_state = self.state
@@ -31,10 +31,10 @@ class PureSource(Block):
         self.value = float(value)
 
     def initialize(self, t0: float):
-        self.outputs["y"] = np.array([[self.value]])
+        self.set_output("y", np.array([[self.value]]))
 
     def output_update(self, t: float, dt: float):
-        self.outputs["y"] = np.array([[self.value]])
+        self.set_output("y", np.array([[self.value]]))
 
     def state_update(self, t: float, dt: float):
         self.next_state = self.state

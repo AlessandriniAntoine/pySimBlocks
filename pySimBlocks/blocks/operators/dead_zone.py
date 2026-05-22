@@ -77,8 +77,8 @@ class DeadZone(Block):
         """
         super().__init__(name, sample_time)
 
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
 
         self.lower_raw = self._to_2d_array("lower_bound", lower_bound)
         self.upper_raw = self._to_2d_array("upper_bound", upper_bound)
@@ -102,7 +102,7 @@ class DeadZone(Block):
             RuntimeError: If input ``'in'`` is None at initialization.
             ValueError: If input is not 2D or bounds have incompatible shapes.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None at initialization.")
 
@@ -113,7 +113,7 @@ class DeadZone(Block):
             )
 
         self._resolve_for_input(u)
-        self.outputs["out"] = self._apply_dead_zone(u)
+        self.set_output("out", self._apply_dead_zone(u))
 
     def output_update(self, t: float, dt: float) -> None:
         """Apply the dead zone to the input and write the result to the output port.
@@ -127,7 +127,7 @@ class DeadZone(Block):
             ValueError: If input is not 2D or its shape changed after
                 initialization.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
 
@@ -138,7 +138,7 @@ class DeadZone(Block):
             )
 
         self._resolve_for_input(u)
-        self.outputs["out"] = self._apply_dead_zone(u)
+        self.set_output("out", self._apply_dead_zone(u))
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: DeadZone is a stateless block.

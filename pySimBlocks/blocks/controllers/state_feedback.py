@@ -79,9 +79,9 @@ class StateFeedback(Block):
         self._n = n
         self._p = p
 
-        self.inputs["r"] = None
-        self.inputs["x"] = None
-        self.outputs["u"] = None
+        self.set_input("r", None)
+        self.set_input("x", None)
+        self.set_output("U", None)
 
         self._input_shapes = {}
 
@@ -96,18 +96,18 @@ class StateFeedback(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        r = self.inputs["r"]
-        x = self.inputs["x"]
+        r = self.get_input("r")
+        x = self.get_input("x")
         if r is None or x is None:
-            self.outputs["u"] = np.zeros((self._m, 1))
+            self.set_output("u", np.zeros((self._m, 1)))
             return
 
         try:
             r = self._require_col_vector("r", self._p)
             x = self._require_col_vector("x", self._n)
-            self.outputs["u"] = self.G @ r - self.K @ x
+            self.set_output("u", self.G @ r - self.K @ x)
         except Exception as _:
-            self.outputs["u"] = np.zeros((self._m, 1))
+            self.set_output("u", np.zeros((self._m, 1)))
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute the control output u = G @ r - K @ x.
@@ -123,7 +123,7 @@ class StateFeedback(Block):
         r = self._require_col_vector("r", self._p)
         x = self._require_col_vector("x", self._n)
 
-        self.outputs["u"] = self.G @ r - self.K @ x
+        self.set_output("u", self.G @ r - self.K @ x)
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: StateFeedback carries no internal state."""
@@ -148,7 +148,7 @@ class StateFeedback(Block):
             ValueError: If the array is not a column vector or has the
                 wrong number of rows.
         """
-        u = self.inputs[port]
+        u = self.get_input(port)
         if u is None:
             raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
 

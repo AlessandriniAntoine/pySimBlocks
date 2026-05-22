@@ -42,8 +42,8 @@ class ExternalInput(Block):
                 global simulation dt.
         """
         super().__init__(name, sample_time)
-        self.inputs["in"] = None
-        self.outputs["out"] = None
+        self.set_input("in", None)
+        self.set_output("out", None)
         self._resolved_shape: tuple[int, int] | None = None
 
 
@@ -57,12 +57,12 @@ class ExternalInput(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        u = self.inputs["in"]
+        u = self.get_input("in")
         if u is None:
-            self.outputs["out"] = np.zeros((1, 1))
+            self.set_output("out", np.zeros((1, 1)))
             return
 
-        self.outputs["out"] = self._to_col_vec(u)
+        self.set_output("out", self._to_col_vec(u))
 
     def output_update(self, t: float, dt: float) -> None:
         """Forward the input to the output as a column vector.
@@ -75,10 +75,10 @@ class ExternalInput(Block):
             RuntimeError: If input ``in`` is not set.
             ValueError: If the input shape is incompatible or has changed.
         """
-        u = self.inputs["in"]
+        u = self.get_inputs("in")
         if u is None:
             raise RuntimeError(f"[{self.name}] Missing input 'in'.")
-        self.outputs["out"] = self._to_col_vec(u)
+        self.set_output("out", self._to_col_vec(u))
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: ExternalInput carries no internal state."""

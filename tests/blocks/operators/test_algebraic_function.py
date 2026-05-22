@@ -29,10 +29,10 @@ def test_algebraic_function_pass_through_scalar():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[2.0]])
+    blk.set_input("u", np.array([[2.0]]))
     blk.output_update(0.0, 0.1)
 
-    assert np.allclose(blk.outputs["y"], [[2.0]])
+    assert np.allclose(blk.get_output("y"), [[2.0]])
 
 
 # ---------------------------------------------------------------------
@@ -52,12 +52,12 @@ def test_algebraic_function_matrix_support():
     B = np.array([[5.0],
                   [6.0]])
 
-    blk.inputs["A"] = A
-    blk.inputs["B"] = B
+    blk.set_input("A", A)
+    blk.set_input("B", B)
     blk.output_update(0.0, 0.1)
 
-    assert np.allclose(blk.outputs["Y"], A @ B)
-    assert blk.outputs["Y"].shape == (2, 1)
+    assert np.allclose(blk.get_output("Y"), A @ B)
+    assert blk.get_output("Y").shape == (2, 1)
 
 
 # ---------------------------------------------------------------------
@@ -73,11 +73,11 @@ def test_algebraic_function_multiple_outputs():
     blk.initialize(0.0)
 
     u = np.array([[3.0], [4.0]])
-    blk.inputs["u"] = u
+    blk.set_input("u", u)
     blk.output_update(0.0, 0.1)
 
-    assert np.allclose(blk.outputs["y1"], u)
-    assert np.allclose(blk.outputs["y2"], 2.0 * u)
+    assert np.allclose(blk.get_output("y1"), u)
+    assert np.allclose(blk.get_output("y2"), 2.0 * u)
 
 
 # ---------------------------------------------------------------------
@@ -92,7 +92,7 @@ def test_algebraic_function_missing_input_raises():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = None
+    blk.set_input("u", None)
     with pytest.raises(RuntimeError) as err:
         blk.output_update(0.0, 0.1)
 
@@ -128,7 +128,7 @@ def test_algebraic_function_return_not_dict_raises():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[1.0]])
+    blk.set_input("u", np.array([[1.0]]))
     with pytest.raises(RuntimeError) as err:
         blk.output_update(0.0, 0.1)
 
@@ -147,7 +147,7 @@ def test_algebraic_function_output_keys_mismatch_raises():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[1.0]])
+    blk.set_input("u", np.array([[1.0]]))
     with pytest.raises(RuntimeError) as err:
         blk.output_update(0.0, 0.1)
 
@@ -164,7 +164,7 @@ def test_algebraic_function_output_must_be_2d():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[1.0]])
+    blk.set_input("u", np.array([[1.0]]))
     with pytest.raises(ValueError) as err:
         blk.output_update(0.0, 0.1)
 
@@ -183,11 +183,11 @@ def test_algebraic_function_input_shape_change_raises():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[1.0]])  # (1,1)
+    blk.set_input("u", np.array([[1.0]]))  # (1,1)
     blk.output_update(0.0, 0.1)
 
-    blk.inputs["u"] = np.array([[1.0, 2.0],
-                                [3.0, 4.0]])  # (2,2) -> shape change
+    blk.set_input("u", np.array([[1.0, 2.0],
+                                [3.0, 4.0]])) # (2,2) -> shape change
     with pytest.raises(ValueError) as err:
         blk.output_update(0.1, 0.1)
 
@@ -207,7 +207,7 @@ def test_algebraic_function_output_shape_change_raises():
     blk = make_block(f, input_keys=("u",), output_keys=("y",))
     blk.initialize(0.0)
 
-    blk.inputs["u"] = np.array([[0.0]])  # dummy input (shape fixed too)
+    blk.set_input("u", np.array([[0.0]]))  # dummy input (shape fixed too)
     blk.output_update(0.0, 0.1)
 
     with pytest.raises(ValueError) as err:

@@ -7,17 +7,17 @@ from pySimBlocks.blocks.sources.step import Step
 def test_step_scalar_before_after():
     s = Step("s", 0.0, 1.0, start_time=1.0)
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], [[0.0]])
+    assert np.allclose(s.get_output("out"), [[0.0]])
     s.initialize(2.0)
-    assert np.allclose(s.outputs["out"], [[1.0]])
+    assert np.allclose(s.get_output("out"), [[1.0]])
 
 
 def test_step_vector():
     s = Step("s", [0, 0], [1, 2], start_time=1.0)
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], [[0.0], [0.0]])
+    assert np.allclose(s.get_output("out"), [[0.0], [0.0]])
     s.initialize(2.0)
-    assert np.allclose(s.outputs["out"], [[1.0], [2.0]])
+    assert np.allclose(s.get_output("out"), [[1.0], [2.0]])
 
 
 def test_step_matrix_same_shape():
@@ -28,9 +28,9 @@ def test_step_matrix_same_shape():
     s = Step("s", vb, va, start_time=1.0)
 
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], vb)
+    assert np.allclose(s.get_output("out"), vb)
     s.initialize(2.0)
-    assert np.allclose(s.outputs["out"], va)
+    assert np.allclose(s.get_output("out"), va)
 
 
 def test_step_scalar_broadcast_to_matrix_before():
@@ -41,9 +41,9 @@ def test_step_scalar_broadcast_to_matrix_before():
     s = Step("s", vb, va, start_time=1.0)
 
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], np.zeros((2, 2)))
+    assert np.allclose(s.get_output("out"), np.zeros((2, 2)))
     s.initialize(2.0)
-    assert np.allclose(s.outputs["out"], va)
+    assert np.allclose(s.get_output("out"), va)
 
 
 def test_step_scalar_broadcast_to_matrix_after():
@@ -54,9 +54,9 @@ def test_step_scalar_broadcast_to_matrix_after():
     s = Step("s", vb, va, start_time=1.0)
 
     s.initialize(0.0)
-    assert np.allclose(s.outputs["out"], vb)
+    assert np.allclose(s.get_output("out"), vb)
     s.initialize(2.0)
-    assert np.allclose(s.outputs["out"], np.zeros((2, 2)))
+    assert np.allclose(s.get_output("out"), np.zeros((2, 2)))
 
 
 def test_step_shape_mismatch_non_scalars():

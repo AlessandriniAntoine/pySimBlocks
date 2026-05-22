@@ -90,7 +90,7 @@ def test_dead_zone_invalid_bounds():
     # Must include zero: lower <= 0 <= upper, and lower <= upper
     with pytest.raises(ValueError):
         dz = DeadZone("dz", lower_bound=1.0, upper_bound=0.0)
-        dz.inputs["in"] = np.array([[0.0]])
+        dz.set_input("in", np.array([[0.0]]))
         dz.initialize(0.0)
 
 

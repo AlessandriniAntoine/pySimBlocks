@@ -168,4 +168,4 @@ def test_product_initial_output():
     sim = Simulator(m, sim_cfg)
     sim.initialize(0.0)
 
-    assert np.allclose(pr.outputs["out"], [[6.0]])
+    assert np.allclose(pr.get_output("out"), [[6.0]])

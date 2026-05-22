@@ -78,9 +78,9 @@ class Sum(Block):
         self.num_inputs = len(self.signs)
 
         for i in range(self.num_inputs):
-            self.inputs[f"in{i+1}"] = None
+            self.set_input(f"in{i+1}", None)
 
-        self.outputs["out"] = None
+        self.set_output("out", None)
 
 
     # --------------------------------------------------------------------------
@@ -93,11 +93,11 @@ class Sum(Block):
         Args:
             t0: Initial simulation time in seconds.
         """
-        if any(self.inputs[f"in{i+1}"] is None for i in range(self.num_inputs)):
-            self.outputs["out"] = None
+        if any(self.get_input(f"in{i+1}") is None for i in range(self.num_inputs)):
+            self.set_output("out", None)
             return
 
-        self.outputs["out"] = self._compute_output()
+        self.set_output("out", self._compute_output())
 
     def output_update(self, t: float, dt: float) -> None:
         """Compute the signed element-wise sum and write it to the output port.
@@ -114,7 +114,7 @@ class Sum(Block):
         arrays = []
         for i in range(self.num_inputs):
             key = f"in{i+1}"
-            u = self.inputs[key]
+            u = self.get_input(key)
             if u is None:
                 raise RuntimeError(f"[{self.name}] Input '{key}' is not connected or not set.")
 
@@ -125,7 +125,7 @@ class Sum(Block):
                 )
             arrays.append(a)
 
-        self.outputs["out"] = self._compute_output(prevalidated_arrays=arrays)
+        self.set_output("out", self._compute_output(prevalidated_arrays=arrays))
 
     def state_update(self, t: float, dt: float) -> None:
         """No-op: Sum is a stateless block.
@@ -173,7 +173,7 @@ class Sum(Block):
     def _compute_output(self, prevalidated_arrays: list[np.ndarray] | None = None) -> np.ndarray:
         """Compute the signed element-wise sum with scalar-only broadcasting."""
         if prevalidated_arrays is None:
-            arrays = [np.asarray(self.inputs[f"in{i+1}"], dtype=float) for i in range(self.num_inputs)]
+            arrays = [np.asarray(self.get_input(f"in{i+1}"), dtype=float) for i in range(self.num_inputs)]
         else:
             arrays = prevalidated_arrays
 

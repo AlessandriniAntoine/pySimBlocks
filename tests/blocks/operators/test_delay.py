@@ -157,10 +157,10 @@ def test_delay_input_shape_change_over_time_raises():
     d = Delay("D", num_delays=1)
 
     d.initialize(0.0)
-    d.inputs["in"] = np.array([[1.0]])  # scalar input
+    d.set_input("in", np.array([[1.0]]))  # scalar input
     d.state_update(0.0, 0.1)
-    d.inputs["in"] = np.array([[1.0, 2.0],  # shape change to (2,2)
-                             [3.0, 4.0]])
+    d.set_input("in", np.array([[1.0, 2.0],  # shape change to (2,2)
+                             [3.0, 4.0]]))
     with pytest.raises(ValueError) as err:
         d.state_update(0.1, 0.1)
 
