@@ -23,6 +23,7 @@ from pathlib import Path
 from pySimBlocks.gui.models.block_instance import BlockInstance, PortInstance
 from pySimBlocks.gui.models.connection_instance import ConnectionInstance
 from pySimBlocks.gui.models.project_simulation_params import ProjectSimulationParams
+from pySimBlocks.gui.models.visual_group import VisualGroup
 
 class ProjectState:
     """Store the editable state of a GUI project.
@@ -55,6 +56,7 @@ class ProjectState:
         self.logging: list[str] = []
         self.logs: dict = {}
         self.plots: list[dict[str, str | list[str]]] = []
+        self.visual_groups: list[VisualGroup] = []
 
 
     # --- Public methods ---
@@ -67,6 +69,7 @@ class ProjectState:
         self.logs.clear()
         self.logging.clear()
         self.plots.clear()
+        self.visual_groups.clear()
 
         self.simulation.clear()
 
@@ -113,6 +116,7 @@ class ProjectState:
         """
         if block_instance in self.blocks:
             self.blocks.remove(block_instance)
+            self.remove_block_from_groups(block_instance.uid)
 
     def add_connection(self, conn: ConnectionInstance):
         """Add a connection instance to the project.
@@ -196,3 +200,29 @@ class ProjectState:
             )
 
         return True, "Plotting is available."
+
+    def get_visual_group(self, group_uid: str) -> VisualGroup | None:
+        """Return a visual group by UID, if present."""
+        for group in self.visual_groups:
+            if group.uid == group_uid:
+                return group
+        return None
+
+    def remove_visual_group(self, group_uid: str) -> bool:
+        """Remove a visual group by UID."""
+        group = self.get_visual_group(group_uid)
+        if group is None:
+            return False
+        self.visual_groups.remove(group)
+        return True
+
+    def remove_block_from_groups(self, block_uid: str) -> None:
+        """Remove a block UID from all groups and drop empty groups."""
+        to_remove: list[VisualGroup] = []
+        for group in self.visual_groups:
+            if block_uid in group.members:
+                group.members = [uid for uid in group.members if uid != block_uid]
+            if not group.members and not group.child_group_uids:
+                to_remove.append(group)
+        for group in to_remove:
+            self.visual_groups.remove(group)

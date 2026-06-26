@@ -23,7 +23,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QPointF
 
-from pySimBlocks.gui.models import BlockInstance
+from pySimBlocks.gui.models import BlockInstance, VisualGroup
 from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.yaml_tools import load_yaml_file
 from pySimBlocks.gui.undo_redo.commands import ConnectionSnapshot
@@ -77,16 +77,20 @@ class ProjectLoaderYaml(ProjectLoader):
         gui_data = project_data.get("gui", {})
 
         layout_blocks, layout_conns, layout_warnings = self._load_layout_data(gui_data)
+        member_layouts_by_uid = self._collect_group_member_layouts(gui_data)
         for w in layout_warnings:
             print(f"[Layout warning] {w}")
 
         controller.clear()
 
         self._load_simulation(controller, sim_data)
-        self._load_blocks(controller, diagram_data, layout_blocks)
+        self._load_blocks(
+            controller, diagram_data, layout_blocks, member_layouts_by_uid
+        )
         self._load_connections(controller, diagram_data, layout_conns)
         self._load_logging(controller, sim_data)
         self._load_plots(controller, sim_data)
+        self._load_groups(controller, gui_data)
 
         controller.clear_dirty()
 
@@ -108,10 +112,11 @@ class ProjectLoaderYaml(ProjectLoader):
         controller: ProjectController,
         diagram_data: dict,
         layout_blocks: dict | None = None,
+        member_layouts_by_uid: dict[str, dict] | None = None,
     ):
         """Create block instances and restore their layout metadata."""
         positions, position_warnings = self._compute_block_positions(
-            diagram_data, layout_blocks
+            diagram_data, layout_blocks, member_layouts_by_uid
         )
         for w in position_warnings:
             print(f"[Layout blocks warning] {w}")
@@ -136,7 +141,11 @@ class ProjectLoaderYaml(ProjectLoader):
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
             block_meta = controller.resolve_block_meta(category, block_type)
-            block = controller._add_block(BlockInstance(block_meta), block_layout)
+            block_uid = desc.get("uid")
+            block_instance = BlockInstance(block_meta)
+            if isinstance(block_uid, str) and block_uid.strip():
+                block_instance.uid = block_uid.strip()
+            block = controller._add_block(block_instance, block_layout)
             controller.rename_block(block, name)
 
             raw_params = desc.get("parameters", {})
@@ -253,6 +262,30 @@ class ProjectLoaderYaml(ProjectLoader):
         plot_data = sim_data.get("plots", [])
         controller.project_state.plots = plot_data if isinstance(plot_data, list) else []
 
+    def _load_groups(self, controller: ProjectController, gui_data: dict) -> None:
+        """Load visual groups from GUI-only project data."""
+        if not isinstance(gui_data, dict):
+            controller.project_state.visual_groups = []
+            return
+
+        groups_data = gui_data.get("groups", [])
+        if not isinstance(groups_data, list):
+            print("[Groups warning] project.yaml gui.groups is invalid, ignored.")
+            controller.project_state.visual_groups = []
+            return
+
+        groups: list[VisualGroup] = []
+        for idx, raw in enumerate(groups_data):
+            if not isinstance(raw, dict):
+                print(f"[Groups warning] Invalid group entry at index {idx}, ignored.")
+                continue
+            group = VisualGroup.from_dict(raw)
+            if not group.uid:
+                print(f"[Groups warning] Group at index {idx} has empty uid, ignored.")
+                continue
+            groups.append(group)
+        controller.project_state.visual_groups = groups
+
     def _load_layout_data(self, gui_data: dict) -> tuple[dict, dict, list[str]]:
         """Extract block and connection layout data from GUI configuration."""
         warnings = []
@@ -279,10 +312,28 @@ class ProjectLoaderYaml(ProjectLoader):
 
         return blocks, conns, warnings
 
+    def _collect_group_member_layouts(self, gui_data: dict) -> dict[str, dict]:
+        """Merge member layouts from all visual groups, keyed by block uid."""
+        layouts: dict[str, dict] = {}
+        groups = gui_data.get("groups", [])
+        if not isinstance(groups, list):
+            return layouts
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            member_layouts = group.get("member_layouts", {})
+            if not isinstance(member_layouts, dict):
+                continue
+            for uid, layout in member_layouts.items():
+                if isinstance(uid, str) and isinstance(layout, dict):
+                    layouts[uid] = layout
+        return layouts
+
     def _compute_block_positions(
         self,
         diagram_data: dict,
         layout_blocks: dict | None,
+        member_layouts_by_uid: dict[str, dict] | None = None,
     ) -> tuple[dict[str, QPointF], list[str]]:
         """Compute block positions from saved layout or fallback auto-placement."""
         warnings = []
@@ -307,6 +358,18 @@ class ProjectLoaderYaml(ProjectLoader):
                 continue
 
             name = block["name"]
+            block_uid = block.get("uid")
+            if (
+                isinstance(block_uid, str)
+                and member_layouts_by_uid
+                and block_uid in member_layouts_by_uid
+            ):
+                entry = member_layouts_by_uid[block_uid]
+                x_val = entry.get("x")
+                y_val = entry.get("y")
+                if isinstance(x_val, (int, float)) and isinstance(y_val, (int, float)):
+                    positions[name] = QPointF(float(x_val), float(y_val))
+                    continue
 
             if layout_blocks and name in layout_blocks:
                 entry = layout_blocks[name]
@@ -321,7 +384,11 @@ class ProjectLoaderYaml(ProjectLoader):
                 )
 
             else:
-                if layout_blocks is not None:
+                if layout_blocks is not None and not (
+                    isinstance(block_uid, str)
+                    and member_layouts_by_uid
+                    and block_uid in member_layouts_by_uid
+                ):
                     warnings.append(
                         f"Block '{name}' not found in project.yaml gui.layout.blocks, auto-placed."
                     )

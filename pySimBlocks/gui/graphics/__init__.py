@@ -20,10 +20,16 @@
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
 from pySimBlocks.gui.graphics.connection_item import ConnectionItem
+from pySimBlocks.gui.graphics.group_item import GroupItem, GroupBoundaryPortItem
+from pySimBlocks.gui.graphics.group_proxy_item import GroupProxyItem, GroupProxyPortItem
 from pySimBlocks.gui.graphics.port_item import PortItem
 
 __all__ = [
     "BlockItem",
     "ConnectionItem",
-    "PortItem"
+    "GroupItem",
+    "GroupBoundaryPortItem",
+    "GroupProxyItem",
+    "GroupProxyPortItem",
+    "PortItem",
 ]

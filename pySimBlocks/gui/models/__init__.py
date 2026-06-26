@@ -22,10 +22,13 @@ from pySimBlocks.gui.models.block_instance import BlockInstance
 from pySimBlocks.gui.models.connection_instance import ConnectionInstance
 from pySimBlocks.gui.models.port_instance import PortInstance
 from pySimBlocks.gui.models.project_state import ProjectState
+from pySimBlocks.gui.models.visual_group import BoundaryPort, VisualGroup
 
 __all__ = [
     "BlockInstance",
     "ConnectionInstance",
     "PortInstance",
-    "ProjectState"
+    "ProjectState",
+    "BoundaryPort",
+    "VisualGroup",
 ]

@@ -690,14 +690,14 @@ class PlotDialog(QDialog):
         if index < 0 or index >= len(self._manual.selections):
             return
         if index == self._manual.active:
-            self._update_preview_plot()
+            self._refresh_manual_panel_highlights()
             return
         self._save_active_manual_selection()
         self._save_active_manual_title()
         self._manual.active = index
         self._load_active_manual_title()
         self._load_manual_selection_to_tree(self._manual.selections[index])
-        self._update_preview_plot()
+        self._refresh_manual_panel_highlights()
 
     def _save_active_manual_selection(self) -> None:
         """Persist the signal tree checks into the active manual plot."""
@@ -986,6 +986,16 @@ class PlotDialog(QDialog):
         self._axis_to_panel_key[id(ax)] = key
         self._highlight_manual_axis(ax, key == f"manual::{self._manual.active}")
 
+    @staticmethod
+    def _manual_panel_index_from_key(key: str) -> int:
+        """Return manual panel index encoded in a preview panel key."""
+        if key.startswith("manual::"):
+            try:
+                return int(key.split("::", 1)[1])
+            except ValueError:
+                pass
+        return 0
+
     def _render_manual_plots_preview(self) -> None:
         """Render all manual plot panels in a 2-column grid (last odd spans full width)."""
         self._refresh_subplot_filter([], keep_current=False)
@@ -1026,7 +1036,8 @@ class PlotDialog(QDialog):
         if len(panels) == 1:
             title, key, series = panels[0]
             ax = self.figure.add_subplot(111)
-            self._draw_manual_panel(ax, time, title, key, series, 0)
+            panel_idx = self._manual_panel_index_from_key(key)
+            self._draw_manual_panel(ax, time, title, key, series, panel_idx)
             self._finalize_layout()
             return
 
@@ -1037,7 +1048,8 @@ class PlotDialog(QDialog):
                 ax = self.figure.add_subplot(gs[i // 2, :])
             else:
                 ax = self.figure.add_subplot(gs[i // 2, i % 2])
-            self._draw_manual_panel(ax, time, title, key, series, i)
+            panel_idx = self._manual_panel_index_from_key(key)
+            self._draw_manual_panel(ax, time, title, key, series, panel_idx)
         self._finalize_layout()
 
     def _highlight_manual_axis(self, ax, selected: bool) -> None:
@@ -1047,6 +1059,18 @@ class PlotDialog(QDialog):
         for spine in ax.spines.values():
             spine.set_linewidth(width)
             spine.set_edgecolor(color)
+
+    def _refresh_manual_panel_highlights(self) -> None:
+        """Update active-panel borders without redrawing plot data (keeps zoom)."""
+        if not self._uses_manual_layout() or not self.figure.axes:
+            return
+        active_key = f"manual::{self._manual.active}"
+        for ax in self.figure.axes:
+            key = self._axis_to_panel_key.get(id(ax))
+            if key is None or not key.startswith("manual::"):
+                continue
+            self._highlight_manual_axis(ax, key == active_key)
+        self.canvas.draw_idle()
 
     def _refresh_subplot_filter(self, panels: list[tuple[str, str, list[tuple[str, np.ndarray]]]], keep_current: bool):
         """Rebuild subplot check-list from panel descriptors."""

@@ -18,12 +18,25 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPointF, QRectF
 from PySide6.QtGui import QPen, QPainterPath, QPainterPathStroker
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 
 from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.models.connection_instance import ConnectionInstance
+
+
+def _endpoint_view(endpoint):
+    if isinstance(endpoint, PortItem):
+        return endpoint.parent_block.view
+    from pySimBlocks.gui.graphics.group_proxy_item import GroupProxyPortItem
+    from pySimBlocks.gui.graphics.group_item import GroupBoundaryPortItem
+
+    if isinstance(endpoint, GroupProxyPortItem):
+        return endpoint.parent_proxy.view
+    if isinstance(endpoint, GroupBoundaryPortItem):
+        return endpoint.parent_group.view
+    raise TypeError(f"Unsupported wire endpoint: {type(endpoint)!r}")
 
 
 class OrthogonalRoute:
@@ -62,8 +75,10 @@ class ConnectionItem(QGraphicsPathItem):
     OFFSET = 8
     MARGIN = 12
     DETOUR = 8
-    PICK_TOL = 6
+    PICK_TOL = 10
     GRID = 5
+    AXIS_EPS = 0.5
+    JOG_EPS = 8.0
 
     def __init__(self,
                  src_port: PortItem | None,
@@ -93,24 +108,29 @@ class ConnectionItem(QGraphicsPathItem):
         self._valid_port = src_port if src_port is not None else dst_port
         self.is_manual: bool = False
         self.route: OrthogonalRoute | None = None
+        self._route_drag_active = False
+        self._route_points_before_drag: list[QPointF] | None = None
+        self._manual_src_redirected: bool | None = None
+        self._manual_dst_redirected: bool | None = None
+        self._manual_view_group_uid: str | None = None
 
         if points and len(points) >= 2:
             self.apply_manual_route(points)
 
-        t = self._valid_port.parent_block.view.theme
+        t = _endpoint_view(self._valid_port)
 
 
         if self.is_temporary:
             self.setFlag(QGraphicsItem.ItemIsSelectable, False)
             self.setAcceptedMouseButtons(Qt.NoButton)
-            pen = QPen(t.wire, 3, Qt.DashLine)
+            pen = QPen(t.theme.wire, 3, Qt.DashLine)
         else:
             self.setFlag(QGraphicsItem.ItemIsSelectable, True)
             self.setAcceptedMouseButtons(Qt.LeftButton)
-            pen = QPen(t.wire, 3, Qt.SolidLine)
+            pen = QPen(t.theme.wire, 3, Qt.SolidLine)
 
         self.setPen(pen)
-        self.setZValue(1)
+        self.setZValue(2)
 
         self.update_position()
 
@@ -122,16 +142,31 @@ class ConnectionItem(QGraphicsPathItem):
         if self.is_temporary:
             return
 
-        p1 = self.src_port.connection_anchor()
-        p2 = self.dst_port.connection_anchor()
-        if self.is_manual and self.route and len(self.route.points) >= 2:
-            self.route.points[0] = p1
-            self.route.points[-1] = p2
-            self._apply_route(self.route.points)
+        view = self.src_port.parent_block.view
+        p1 = view.connection_anchor_for_port_item(self.src_port)
+        p2 = view.connection_anchor_for_port_item(self.dst_port)
+
+        if self._route_drag_active:
+            if self.route and len(self.route.points) >= 2:
+                self.route.points[0] = p1
+                self.route.points[-1] = p2
+                self._apply_route(self.route.points, simplify=False)
             return
+
+        if self.is_manual and self.route and len(self.route.points) >= 2:
+            if self._manual_anchor_context_matches():
+                self.route.points[0] = p1
+                self.route.points[-1] = p2
+                self._apply_route(self.route.points, simplify=False)
+                return
+            self.is_manual = False
 
         pts = self._compute_auto_route(p1, p2)
         self.route = OrthogonalRoute(pts)
+        self.is_manual = False
+        self._manual_src_redirected = None
+        self._manual_dst_redirected = None
+        self._manual_view_group_uid = None
         self._apply_route(self.route.points)
 
     def update_temp_position(self, scene_pos: QPointF):
@@ -141,8 +176,7 @@ class ConnectionItem(QGraphicsPathItem):
             scene_pos: Current mouse position in scene coordinates.
         """
         p1 = self._valid_port.connection_anchor()
-        pts = [p1, scene_pos]
-        self._apply_route(pts)
+        self._apply_route([p1, scene_pos], simplify=False)
 
     def apply_manual_route(self, points: list[QPointF]):
         """Apply a persisted manual route to the connection.
@@ -152,12 +186,16 @@ class ConnectionItem(QGraphicsPathItem):
         """
         self.route = OrthogonalRoute(points)
         self.is_manual = True
+        self._capture_manual_anchor_context()
         self._apply_route(self.route.points)
 
     def invalidate_manual_route(self):
         """Discard any manual route so the next update recomputes it."""
         self.is_manual = False
         self.route = None
+        self._manual_src_redirected = None
+        self._manual_dst_redirected = None
+        self._manual_view_group_uid = None
 
     def segment_at(self, scene_pos: QPointF) -> int | None:
         """Return the route segment index located near the given scene point.
@@ -175,14 +213,14 @@ class ConnectionItem(QGraphicsPathItem):
         for i in range(len(pts) - 1):
             a, b = pts[i], pts[i + 1]
 
-            if a.x() == b.x():  # vertical
+            if abs(a.x() - b.x()) < self.AXIS_EPS:  # vertical
                 if abs(scene_pos.x() - a.x()) < self.PICK_TOL \
-                   and min(a.y(), b.y()) <= scene_pos.y() <= max(a.y(), b.y()):
+                   and min(a.y(), b.y()) - self.PICK_TOL <= scene_pos.y() <= max(a.y(), b.y()) + self.PICK_TOL:
                     return i
 
-            if a.y() == b.y():  # horizontal
+            elif abs(a.y() - b.y()) < self.AXIS_EPS:  # horizontal
                 if abs(scene_pos.y() - a.y()) < self.PICK_TOL \
-                   and min(a.x(), b.x()) <= scene_pos.x() <= max(a.x(), b.x()):
+                   and min(a.x(), b.x()) - self.PICK_TOL <= scene_pos.x() <= max(a.x(), b.x()) + self.PICK_TOL:
                     return i
         return None
 
@@ -193,95 +231,159 @@ class ConnectionItem(QGraphicsPathItem):
             Stroke path used for hit testing.
         """
         stroker = QPainterPathStroker()
-        stroker.setWidth(6)
+        stroker.setWidth(12)
         return stroker.createStroke(self.path())
 
     def mousePressEvent(self, event):
-        """Start manual segment dragging when pressing a routed segment.
-
-        Args:
-            event: Qt mouse-press event.
-        """
-        idx = self.segment_at(event.scenePos())
-        if idx is not None:
-            self.route.dragged_index = idx
-            self.is_manual = True
-            event.accept()
-        else:
-            super().mousePressEvent(event)
+        """Start manual segment dragging with the left mouse button."""
+        if event.button() == Qt.LeftButton:
+            idx = self.segment_at(event.scenePos())
+            if idx is not None:
+                if self.route is None:
+                    self.update_position()
+                if self.route is None:
+                    super().mousePressEvent(event)
+                    return
+                self._route_points_before_drag = [
+                    QPointF(point) for point in self.route.points
+                ]
+                self.route.dragged_index = idx
+                self.is_manual = True
+                self._route_drag_active = True
+                self.grabMouse()
+                event.accept()
+                return
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        """Move the selected orthogonal segment during manual route editing.
-
-        Args:
-            event: Qt mouse-move event.
-        """
+        """Move the selected orthogonal segment during manual route editing."""
         if not self.route or self.route.dragged_index is None:
+            super().mouseMoveEvent(event)
+            return
+
+        if not (event.buttons() & Qt.LeftButton):
             return
 
         i = self.route.dragged_index
-        a = self.route.points[i]
-        b = self.route.points[i + 1]
+        points = self.route.points
+        if i < 0 or i + 1 >= len(points):
+            self.route.dragged_index = None
+            self._route_drag_active = False
+            self.ungrabMouse()
+            return
+
+        a = points[i]
+        b = points[i + 1]
         pos = event.scenePos()
 
-        if a.x() == b.x():  # vertical segment
+        if abs(a.x() - b.x()) < self.AXIS_EPS:  # vertical segment
             x = self._snap(pos.x())
-            self.route.points[i]     = QPointF(x, a.y())
-            self.route.points[i + 1] = QPointF(x, b.y())
+            points[i] = QPointF(x, a.y())
+            points[i + 1] = QPointF(x, b.y())
 
-        elif a.y() == b.y():  # horizontal segment
+        elif abs(a.y() - b.y()) < self.AXIS_EPS:  # horizontal segment
             y = self._snap(pos.y())
-            self.route.points[i]     = QPointF(a.x(), y)
-            self.route.points[i + 1] = QPointF(b.x(), y)
+            points[i] = QPointF(a.x(), y)
+            points[i + 1] = QPointF(b.x(), y)
 
-        self._apply_route(self.route.points)
+        else:
+            return
+
+        self._apply_route(points, simplify=False)
 
     def mouseReleaseEvent(self, event):
-        """Finish manual segment dragging.
-
-        Args:
-            event: Qt mouse-release event.
-        """
+        """Finish manual segment dragging."""
+        was_dragging = self._route_drag_active
         if self.route:
             self.route.dragged_index = None
+        self._route_drag_active = False
+        if was_dragging:
+            self.ungrabMouse()
         super().mouseReleaseEvent(event)
+        if was_dragging and event.button() == Qt.LeftButton and self.route is not None:
+            self._apply_route(self.route.points)
+            self._capture_manual_anchor_context()
+            view = self.src_port.parent_block.view
+            new_points = [QPointF(point) for point in self.route.points]
+            view.on_connection_route_edited(
+                self,
+                self._route_points_before_drag,
+                new_points,
+            )
+        self._route_points_before_drag = None
 
 
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
 
+    def _anchor_redirected(self, port_item: PortItem) -> bool:
+        """Return whether the current view routes this port through a group border or proxy."""
+        view = port_item.parent_block.view
+        redirected = view.connection_anchor_for_port_item(port_item)
+        direct = port_item.connection_anchor()
+        return (
+            abs(redirected.x() - direct.x()) > 0.5
+            or abs(redirected.y() - direct.y()) > 0.5
+        )
+
+    def _capture_manual_anchor_context(self) -> None:
+        """Remember view level and anchor redirection when the route was edited."""
+        view = self.src_port.parent_block.view
+        self._manual_view_group_uid = view.current_view_group_uid
+        self._manual_src_redirected = self._anchor_redirected(self.src_port)
+        self._manual_dst_redirected = self._anchor_redirected(self.dst_port)
+
+    def _manual_anchor_context_matches(self) -> bool:
+        """Return whether the current view matches the one used when the route was edited."""
+        view = self.src_port.parent_block.view
+        if view.current_view_group_uid != self._manual_view_group_uid:
+            return False
+        src_redirected = self._anchor_redirected(self.src_port)
+        dst_redirected = self._anchor_redirected(self.dst_port)
+        if self._manual_src_redirected is None or self._manual_dst_redirected is None:
+            return not src_redirected and not dst_redirected
+        return (
+            self._manual_src_redirected == src_redirected
+            and self._manual_dst_redirected == dst_redirected
+        )
+
     def _compute_auto_route(self, p1: QPointF, p2: QPointF) -> list[QPointF]:
         """Compute an orthogonal route between two port anchors."""
-        src_block = self.src_port.parent_block
-        dst_block = self.dst_port.parent_block
+        src_rect = self._routing_rect_for_port(self.src_port)
+        dst_rect = self._routing_rect_for_port(self.dst_port)
 
-        # Use the visual block rect (not selection handle hit area) for routing.
-        src_rect = src_block.mapRectToScene(src_block.rect())
-        dst_rect = dst_block.mapRectToScene(dst_block.rect())
-
-        src_out_sign = 1 if not self.src_port.is_on_left_side else -1
-        dst_in_sign = -1 if self.dst_port.is_on_left_side else 1
+        src_out_sign = self._wire_side_sign(p1, src_rect)
+        dst_in_sign = self._wire_side_sign(p2, dst_rect)
 
         p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
         p2_in = QPointF(p2.x() + dst_in_sign * self.OFFSET, p2.y())
 
-        same_block = src_block is dst_block
+        same_block = self.src_port.parent_block is self.dst_port.parent_block
         u_turn = ((p2_in.x() - p1_out.x()) * src_out_sign) < 0
         is_feedback = same_block or u_turn
 
         if not is_feedback:
-            mid_x = (p1_out.x() + p2_in.x()) * 0.5
-            candidate = [
-                p1, p1_out,
-                QPointF(mid_x, p1.y()),
-                QPointF(mid_x, p2.y()),
-                p2_in, p2
-            ]
+            if abs(p1.y() - p2.y()) < self.AXIS_EPS:
+                straight = [p1, p1_out, p2_in, p2]
+                path = self._path_from(straight)
+                if not (path.intersects(src_rect) or path.intersects(dst_rect)):
+                    return straight
+
+            if abs(p1.y() - p2.y()) <= self.JOG_EPS:
+                candidate = [p1, p1_out, QPointF(p2.x(), p1.y()), p2]
+            else:
+                mid_x = (p1_out.x() + p2_in.x()) * 0.5
+                candidate = [
+                    p1, p1_out,
+                    QPointF(mid_x, p1.y()),
+                    QPointF(mid_x, p2.y()),
+                    p2_in, p2
+                ]
 
             path = self._path_from(candidate)
             if not (path.intersects(src_rect) or path.intersects(dst_rect)):
-                return candidate
+                return self._simplify_orthogonal_route(candidate)
 
         # fallback / feedback routing
         candidates_y = [
@@ -299,23 +401,93 @@ class ConnectionItem(QGraphicsPathItem):
             key=lambda y: abs(p1.y() - y) + abs(p2.y() - y)
         )
 
-        return [
-            p1, p1_out,
-            QPointF(p1_out.x(), route_y),
-            QPointF(p2_in.x(), route_y),
-            p2_in, p2
-        ]
+        if src_rect.left() <= p2_in.x() <= src_rect.right():
+            approach_x = (
+                src_rect.left() - self.DETOUR
+                if dst_in_sign < 0
+                else src_rect.right() + self.DETOUR
+            )
+            return self._simplify_orthogonal_route(
+                [
+                    p1,
+                    p1_out,
+                    QPointF(p1_out.x(), route_y),
+                    QPointF(approach_x, route_y),
+                    QPointF(approach_x, p2.y()),
+                    p2,
+                ]
+            )
+
+        return self._simplify_orthogonal_route(
+            [
+                p1, p1_out,
+                QPointF(p1_out.x(), route_y),
+                QPointF(p2_in.x(), route_y),
+                p2_in, p2
+            ]
+        )
+
+    def _wire_side_sign(self, anchor: QPointF, rect: QRectF) -> int:
+        """Return -1 when the anchor is on the left edge, +1 on the right."""
+        dist_left = abs(anchor.x() - rect.left())
+        dist_right = abs(anchor.x() - rect.right())
+        return -1 if dist_left <= dist_right else 1
+
+    def _routing_rect_for_port(self, port_item: PortItem) -> QRectF:
+        """Return the scene rectangle used for obstacle avoidance."""
+        view = port_item.parent_block.view
+        return view.routing_rect_for_port_item(port_item)
+
+    def _wire_length(self, points: list[QPointF]) -> float:
+        total = 0.0
+        for index in range(len(points) - 1):
+            a = points[index]
+            b = points[index + 1]
+            total += abs(a.x() - b.x()) + abs(a.y() - b.y())
+        return total
+
+    def _simplify_orthogonal_route(self, points: list[QPointF]) -> list[QPointF]:
+        if len(points) <= 2:
+            return [QPointF(point) for point in points]
+
+        simplified = [QPointF(points[0])]
+        for index in range(1, len(points) - 1):
+            prev_pt = simplified[-1]
+            current = points[index]
+            next_pt = points[index + 1]
+            same_vertical = (
+                abs(prev_pt.x() - current.x()) < self.AXIS_EPS
+                and abs(current.x() - next_pt.x()) < self.AXIS_EPS
+            )
+            same_horizontal = (
+                abs(prev_pt.y() - current.y()) < self.AXIS_EPS
+                and abs(current.y() - next_pt.y()) < self.AXIS_EPS
+            )
+            if same_vertical or same_horizontal:
+                continue
+            simplified.append(QPointF(current))
+        simplified.append(QPointF(points[-1]))
+        return simplified
 
     def _snap(self, v: float) -> float:
         """Snap a scalar coordinate to the routing grid."""
         return round(v / self.GRID) * self.GRID
 
-    def _apply_route(self, points: list[QPointF]):
+    def _apply_route(self, points: list[QPointF], *, simplify: bool = True):
         """Apply a route by building and setting the corresponding path."""
-        path = QPainterPath(points[0])
-        for p in points[1:]:
-            path.lineTo(p)
+        cleaned = (
+            self._simplify_orthogonal_route(points)
+            if simplify
+            else [QPointF(point) for point in points]
+        )
+        if len(cleaned) < 2:
+            return
+        path = QPainterPath(cleaned[0])
+        for point in cleaned[1:]:
+            path.lineTo(point)
         self.setPath(path)
+        if self.route is not None:
+            self.route.points = cleaned
 
     def _path_from(self, pts: list[QPointF]) -> QPainterPath:
         """Build a painter path from an ordered list of route points."""

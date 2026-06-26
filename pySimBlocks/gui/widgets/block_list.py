@@ -102,6 +102,8 @@ class _BlockTree(QTreeWidget):
             return
 
         category, block_type = data
+        if category == "group_ports":
+            return
 
         meta = self.resolve_block_meta(category, block_type)
 
@@ -147,6 +149,21 @@ class BlockList(QWidget):
         layout.addWidget(self.tree)
 
         self.search.textChanged.connect(self._apply_filter)
+
+    def rebuild(self) -> None:
+        """Rebuild the category tree after the diagram view context changes."""
+        expanded = {
+            self.tree.topLevelItem(i).text(0): self.tree.topLevelItem(i).isExpanded()
+            for i in range(self.tree.topLevelItemCount())
+        }
+        self.tree.clear()
+        for category in self.tree.get_categories():
+            category_item = QTreeWidgetItem(self.tree, [category])
+            category_item.setExpanded(expanded.get(category, False))
+            for block_type in self.tree.get_blocks(category):
+                block_item = QTreeWidgetItem(category_item, [block_type])
+                block_item.setData(0, Qt.UserRole, (category, block_type))
+        self._apply_filter(self.search.text())
 
 
     # --------------------------------------------------------------------------

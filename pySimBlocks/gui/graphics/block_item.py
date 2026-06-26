@@ -311,7 +311,11 @@ class BlockItem(QGraphicsRectItem):
         if start_pos is None or start_rect is None:
             return
 
-        if start_pos != end_pos or start_rect != end_rect:
+        moved = start_pos != end_pos or start_rect != end_rect
+        if moved and self.view.try_drop_block_onto_group(self):
+            return
+
+        if moved:
             self.view.project_controller.execute_move_resize_block(
                 self.instance,
                 start_pos,

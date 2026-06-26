@@ -1,0 +1,355 @@
+schema_version: 1
+project:
+  name: gui
+simulation:
+  dt: 0.02
+  T: 2.0
+  solver: fixed
+  external_module: parameters.py
+  logging:
+  - controller.outputs.u
+  - step.outputs.out
+  - system.outputs.y
+  - dist.outputs.out
+  plots:
+  - title: Reference vs output
+    mode: overlay
+    signals:
+    - step.outputs.out
+    - system.outputs.y
+  - title: Control and disturbance
+    mode: overlay
+    signals:
+    - controller.outputs.u
+    - dist.outputs.out
+diagram:
+  blocks:
+  - name: step
+    category: sources
+    type: step
+    uid: 99f6d3c88fd148f9894da926d23db49d
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[1.0]]
+      start_time: 0.5
+  - name: dist
+    category: sources
+    type: step
+    uid: f8a5da1628a042c49ea65e9eb688e7e3
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[0.15]]
+      start_time: 1.0
+  - name: gain_dist
+    category: operators
+    type: gain
+    uid: 936e4fe7174b44bda9b1d3d08bfdaf10
+    parameters:
+      gain: 0.8
+      multiplication: Element wise (K * u)
+  - name: sum_err
+    category: operators
+    type: sum
+    uid: 41e669bef8b34c5c82859ef228798300
+    parameters:
+      signs: +-
+  - name: controller
+    category: controllers
+    type: state_feedback
+    uid: 3643a75d10754f21afb56a8a24844cdb
+    parameters:
+      K: '#K'
+      G: '#G'
+  - name: sum_plant
+    category: operators
+    type: sum
+    uid: db6d7d946a14478fa5fed05018e0a64a
+    parameters:
+      signs: ++
+  - name: system
+    category: systems
+    type: linear_state_space
+    uid: 3f552e25cb9647bba4ce08cf897de600
+    parameters:
+      A: '#A'
+      B: '#B'
+      C: '#C'
+  - name: monitor
+    category: operators
+    type: gain
+    uid: 5417b603712a41db8d3ef5d0df87b393
+    parameters:
+      gain: 1.0
+      multiplication: Element wise (K * u)
+  connections:
+  - name: c1
+    ports:
+    - step.out
+    - sum_err.in1
+  - name: c2
+    ports:
+    - sum_err.out
+    - controller.r
+  - name: c3
+    ports:
+    - controller.u
+    - sum_plant.in1
+  - name: c4
+    ports:
+    - dist.out
+    - gain_dist.in
+  - name: c5
+    ports:
+    - gain_dist.out
+    - sum_plant.in2
+  - name: c6
+    ports:
+    - sum_plant.out
+    - system.u
+  - name: c7
+    ports:
+    - system.x
+    - controller.x
+  - name: c8
+    ports:
+    - system.y
+    - monitor.in
+  - name: c9
+    ports:
+    - system.y
+    - sum_err.in2
+gui:
+  layout:
+    blocks:
+      step:
+        x: -360.0
+        y: -20.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      monitor:
+        x: 155.0
+        y: 30.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+    connections:
+      c7:
+        route: [[368.0, 36.0], [376.0, 36.0], [376.0, 65.0], [-214.0, 65.0], [-214.0,
+            46.5], [-206.0, 46.5]]
+      c9:
+        route: [[368.0, 72.0], [376.0, 72.0], [376.0, 90.0], [-214.0, 90.0], [-214.0,
+            74.75], [-206.0, 74.75]]
+  groups:
+  - uid: df140fea1de3469c95fec651ffb8aa88
+    name: Regulator
+    parent_uid: 3729168ddf894f62a7b4f1633b4b3014
+    members:
+    - 41e669bef8b34c5c82859ef228798300
+    - 3643a75d10754f21afb56a8a24844cdb
+    layout:
+      x: -200.0
+      y: -10.0
+      width: 213.0
+      height: 113.0
+    boundary_ports:
+    - uid: 08f79e2164134e2c8ab06cfcd05550a2
+      direction: input
+      linked_port_uid: 41e669bef8b34c5c82859ef228798300:in1
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 99f6d3c88fd148f9894da926d23db49d:out->41e669bef8b34c5c82859ef228798300:in1
+      proxy_uid: 67d0670170ff4e3987328be0a602dd57
+      proxy_layout:
+        x: -270.0
+        y: -5.0
+    - uid: 38c21c64aacb4610bdf4d0c7c0da5dba
+      direction: output
+      linked_port_uid: 3643a75d10754f21afb56a8a24844cdb:u
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3643a75d10754f21afb56a8a24844cdb:u->db6d7d946a14478fa5fed05018e0a64a:in1
+      proxy_uid: 5742f80d4bbd41e292ee8b3b70a14329
+      proxy_layout:
+        x: 302.0
+        y: 74.0
+    - uid: ac6c2cd7c54a4ead86c817d54809eae3
+      direction: input
+      linked_port_uid: 3643a75d10754f21afb56a8a24844cdb:x
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3f552e25cb9647bba4ce08cf897de600:x->3643a75d10754f21afb56a8a24844cdb:x
+      proxy_uid: 2d016beee74c4c26be65953288f9c879
+      proxy_layout:
+        x: -40.0
+        y: 60.0
+    - uid: ac83d89c4ab54857b0efca7bc0fbf245
+      direction: input
+      linked_port_uid: 41e669bef8b34c5c82859ef228798300:in2
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3f552e25cb9647bba4ce08cf897de600:y->41e669bef8b34c5c82859ef228798300:in2
+      proxy_uid: 0517465a5a4944449899eca849cbd0bd
+      proxy_layout:
+        x: -250.0
+        y: 45.0
+    child_group_uids: []
+    member_layouts:
+      41e669bef8b34c5c82859ef228798300:
+        x: -120.0
+        y: -20.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      3643a75d10754f21afb56a8a24844cdb:
+        x: 80.0
+        y: -20.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+  - uid: 00adc8fcee504a3cb1e38ce68b2e1abe
+    name: Plant
+    parent_uid: 3729168ddf894f62a7b4f1633b4b3014
+    members:
+    - db6d7d946a14478fa5fed05018e0a64a
+    - 3f552e25cb9647bba4ce08cf897de600
+    layout:
+      x: 170.0
+      y: 0.0
+      width: 183.0
+      height: 108.0
+    boundary_ports:
+    - uid: 5a91745e91ef4a7cad101ad596d27f2f
+      direction: input
+      linked_port_uid: db6d7d946a14478fa5fed05018e0a64a:in1
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3643a75d10754f21afb56a8a24844cdb:u->db6d7d946a14478fa5fed05018e0a64a:in1
+      proxy_uid: d48a66209a8a4d01989c198ba6c0b017
+      proxy_layout:
+        x: -355.0
+        y: -75.0
+    - uid: 092bf439152c4dc5b044bbb5c7b52cec
+      direction: input
+      linked_port_uid: db6d7d946a14478fa5fed05018e0a64a:in2
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 936e4fe7174b44bda9b1d3d08bfdaf10:out->db6d7d946a14478fa5fed05018e0a64a:in2
+      proxy_uid: fea1ec7b46d04a0fbbf9748935f13bfe
+      proxy_layout:
+        x: -330.0
+        y: -20.0
+    - uid: cd7a4d785d9847708bab0c993ae90a2d
+      direction: output
+      linked_port_uid: 3f552e25cb9647bba4ce08cf897de600:x
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3f552e25cb9647bba4ce08cf897de600:x->3643a75d10754f21afb56a8a24844cdb:x
+      proxy_uid: 4ed0bac4df17420eaddb138dde7d7486
+      proxy_layout:
+        x: 225.0
+        y: -65.0
+    - uid: 4509861d585f48afbb33d26161148b27
+      direction: output
+      linked_port_uid: 3f552e25cb9647bba4ce08cf897de600:y
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3f552e25cb9647bba4ce08cf897de600:y->5417b603712a41db8d3ef5d0df87b393:in
+      proxy_uid: d9c727c58bc94de0a3c8b131f937abac
+      proxy_layout:
+        x: 240.0
+        y: -15.0
+    child_group_uids: []
+    member_layouts:
+      db6d7d946a14478fa5fed05018e0a64a:
+        x: -210.0
+        y: -65.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      3f552e25cb9647bba4ce08cf897de600:
+        x: -50.0
+        y: -50.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+  - uid: 3729168ddf894f62a7b4f1633b4b3014
+    name: ControlLoop
+    parent_uid: null
+    members: []
+    layout:
+      x: -170.0
+      y: -15.0
+      width: 236.0
+      height: 111.0
+    boundary_ports:
+    - uid: 638da3ee3cce4a7b92e8166c1e549a1f
+      direction: input
+      linked_port_uid: 41e669bef8b34c5c82859ef228798300:in1
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 99f6d3c88fd148f9894da926d23db49d:out->41e669bef8b34c5c82859ef228798300:in1
+      proxy_uid: b5fc602472d34016842a0c7639b2bc4b
+      proxy_layout:
+        x: -370.0
+        y: -85.0
+    - uid: c8796c93c6514e638cda4450cf860449
+      direction: input
+      linked_port_uid: db6d7d946a14478fa5fed05018e0a64a:in2
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 936e4fe7174b44bda9b1d3d08bfdaf10:out->db6d7d946a14478fa5fed05018e0a64a:in2
+      proxy_uid: 4e7aa520fe664695a9a0820fc17a4b3b
+      proxy_layout:
+        x: 40.0
+        y: 100.0
+    - uid: 0cb3d8ef367845439a6f2ee922e19528
+      direction: output
+      linked_port_uid: 3f552e25cb9647bba4ce08cf897de600:y
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 3f552e25cb9647bba4ce08cf897de600:y->5417b603712a41db8d3ef5d0df87b393:in
+      proxy_uid: e28a0652c51f4f59a0d4e0360728e6bb
+      proxy_layout:
+        x: 420.0
+        y: -5.0
+    child_group_uids:
+    - df140fea1de3469c95fec651ffb8aa88
+    - 00adc8fcee504a3cb1e38ce68b2e1abe
+    member_layouts: {}
+  - uid: f670518bf86645199e288e7828da1735
+    name: Disturbance
+    parent_uid: null
+    members:
+    - f8a5da1628a042c49ea65e9eb688e7e3
+    - 936e4fe7174b44bda9b1d3d08bfdaf10
+    layout:
+      x: -400.0
+      y: 285.0
+      width: 368.0
+      height: 108.0
+    boundary_ports:
+    - uid: e0d819822a4048ca9f21b4c544c4c7ad
+      direction: output
+      linked_port_uid: 936e4fe7174b44bda9b1d3d08bfdaf10:out
+      external_port_uid: ''
+      origin: auto
+      linked_connection_uid: 936e4fe7174b44bda9b1d3d08bfdaf10:out->db6d7d946a14478fa5fed05018e0a64a:in2
+      proxy_uid: bdd4c962e4a34698846ecf6fd6935847
+      proxy_layout:
+        x: 302.0
+        y: 74.0
+    child_group_uids: []
+    member_layouts:
+      f8a5da1628a042c49ea65e9eb688e7e3:
+        x: -360.0
+        y: 180.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
+      936e4fe7174b44bda9b1d3d08bfdaf10:
+        x: -160.0
+        y: 180.0
+        orientation: normal
+        width: 120.0
+        height: 60.0
