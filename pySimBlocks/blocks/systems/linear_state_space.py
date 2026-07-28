@@ -29,20 +29,25 @@ from pySimBlocks.core.block import Block
 class LinearStateSpace(Block):
     """Discrete-time linear state-space system block.
 
-    Implements a strictly proper discrete-time linear system:
+    Implements a discrete-time linear system:
 
         x[k+1] = A x[k] + B u[k]
-         
-        y[k]   = C x[k]
 
-    The D matrix is intentionally not supported to avoid algebraic loops.
+        y[k]   = C x[k]          (if D is None)
+        y[k]   = C x[k] + D u[k] (if D is provided)
+
+    When D is None the block is strictly proper (no direct feedthrough).
+    When D is provided the block has direct feedthrough and algebraic loops
+    involving this block will be detected and rejected at compile time.
 
     Attributes:
         A: State transition matrix of shape (n, n).
         B: Input matrix of shape (n, m).
         C: Output matrix of shape (p, n).
+        D: Feedthrough matrix of shape (p, m), or None.
     """
 
+    # Default at class level; overridden per-instance when D is provided.
     direct_feedthrough = False
 
     def __init__(
@@ -51,6 +56,7 @@ class LinearStateSpace(Block):
         A: ArrayLike,
         B: ArrayLike,
         C: ArrayLike,
+        D: ArrayLike | None = None,
         x0: ArrayLike | None = None,
         sample_time: float | None = None,
     ):
@@ -61,6 +67,9 @@ class LinearStateSpace(Block):
             A: State transition matrix, array-like of shape (n, n).
             B: Input matrix, array-like of shape (n, m).
             C: Output matrix, array-like of shape (p, n).
+            D: Feedthrough matrix, array-like of shape (p, m), or None.
+                When provided, the block gains direct feedthrough and
+                y[k] = C x[k] + D u[k].
             x0: Initial state vector, array-like of shape (n, 1) or (n,).
                 Defaults to zeros.
             sample_time: Sampling period in seconds, or None to use the
@@ -101,6 +110,23 @@ class LinearStateSpace(Block):
         self._m = self.B.shape[1]
         self._p = self.C.shape[0]
 
+        # --- D matrix (optional) ---
+        if D is not None:
+            self.D = np.asarray(D, dtype=float)
+            if self.D.ndim != 2:
+                raise ValueError(f"[{self.name}] D must be 2D. Got shape {self.D.shape}.")
+            if self.D.shape != (self._p, self._m):
+                raise ValueError(
+                    f"[{self.name}] D must have shape ({self._p}, {self._m}). "
+                    f"Got {self.D.shape}."
+                )
+            # Override direct_feedthrough at the instance level so the
+            # scheduler sees this block as having direct feedthrough.
+            self.direct_feedthrough = True
+        else:
+            self.D = None
+
+        # --- Initial state ---
         if x0 is None:
             x0_arr = np.zeros((n, 1), dtype=float)
         else:
@@ -143,12 +169,21 @@ class LinearStateSpace(Block):
     def output_update(self, t: float, dt: float) -> None:
         """Compute y and x outputs from the committed state.
 
+        When D is provided, u[k] is read at this step (direct feedthrough).
+
         Args:
             t: Current simulation time in seconds.
             dt: Current time step in seconds.
         """
         x = self.state["x"]
-        self.outputs["y"] = self.C @ x
+        if self.D is not None:
+            u = self.inputs["u"]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
+            u_vec = self._to_col_vec("u", u, self._m)
+            self.outputs["y"] = self.C @ x + self.D @ u_vec
+        else:
+            self.outputs["y"] = self.C @ x
         self.outputs["x"] = x.copy()
 
     def state_update(self, t: float, dt: float) -> None:
