@@ -45,8 +45,10 @@ class LinearStateSpaceMeta(BlockMeta):
             "x[k+1] = A x[k] + B u[k]\n"
             "$$\n"
             "$$\n"
-            "y[k] = C x[k]\n"
+            "y[k] = C x[k] + D u[k]\n"
             "$$\n"
+            "When D is omitted the system is strictly proper (no direct feedthrough).\n"
+            "When D is provided the block has direct feedthrough.\n"
         )
 
         self.parameters = [
@@ -73,6 +75,12 @@ class LinearStateSpaceMeta(BlockMeta):
                 autofill=True,
                 default=[[1.0]],
                 description="Output matrix."
+            ),
+            ParameterMeta(
+                name="D",
+                type="matrix",
+                required=False,
+                description="Feedthrough matrix. If provided, y[k] = C x[k] + D u[k] (direct feedthrough)."
             ),
             ParameterMeta(
                 name="x0",
