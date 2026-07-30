@@ -38,9 +38,12 @@ class FileSource(BlockSource):
 
     - ``.npz`` / ``.npy``: 1D ``(N,)`` treated as ``(N, 1)``, or 2D ``(N, n)``
       where N is the number of samples and n the signal dimension. Each step
-      outputs a ``(n, 1)`` column vector.
+      outputs a ``(n, 1)`` column vector. If the stored array is instead
+      ``(n, N)`` (signals in rows, samples in columns), set ``transpose=True``
+      to have it transposed to ``(N, n)`` before use.
     - ``.csv``: a single column is selected by ``key``, always producing shape
-      ``(N, 1)``. Output per step is ``(1, 1)``.
+      ``(N, 1)``. Output per step is ``(1, 1)``. ``transpose`` is not
+      applicable to CSV input.
 
     Alternatively, when ``use_time=True``, the output is selected by
     looking up the closest past timestamp in a time column bundled with
@@ -52,6 +55,8 @@ class FileSource(BlockSource):
         key: Array key (NPZ) or column name (CSV) to load. None for NPY files.
         repeat: If True, restart from the first sample after the last one.
         use_time: If True, select samples by time lookup instead of index.
+        transpose: If True (NPZ/NPY only), transpose the loaded 2D array
+            before use, i.e. treat it as ``(n, N)`` instead of ``(N, n)``.
     """
 
     VALID_FILE_TYPES = {"npz", "npy", "csv"}
@@ -63,6 +68,7 @@ class FileSource(BlockSource):
         key: str | None = None,
         repeat: bool = False,
         use_time: bool = False,
+        transpose: bool = False,
         sample_time: float | None = None,
     ):
         """Initialize a FileSource block.
@@ -77,13 +83,18 @@ class FileSource(BlockSource):
             use_time: If True, select samples by nearest past timestamp
                 instead of advancing by step index. Requires a ``"time"``
                 key or column in the file.
+            transpose: If True, transpose the loaded 2D array before use.
+                Only supported for NPZ and NPY inputs, where it allows
+                loading data stored as ``(n, N)`` (signals in rows) instead
+                of the expected ``(N, n)`` (samples in rows).
             sample_time: Sampling period in seconds, or None to use the
                 global simulation dt.
 
         Raises:
             ValueError: If the file extension is unsupported, if ``use_time``
-                is combined with an NPY file or with ``repeat=True``, or if
-                the loaded data is invalid.
+                is combined with an NPY file or with ``repeat=True``, if
+                ``transpose`` is combined with a CSV file, or if the loaded
+                data is invalid.
             FileNotFoundError: If the file does not exist.
         """
         super().__init__(name, sample_time)
@@ -93,6 +104,7 @@ class FileSource(BlockSource):
         self.key = key
         self.repeat = self._to_bool(repeat, "repeat")
         self.use_time = self._to_bool(use_time, "use_time")
+        self.transpose = self._to_bool(transpose, "transpose")
 
         if self.use_time and self.file_type == "npy":
             raise ValueError(
@@ -101,6 +113,10 @@ class FileSource(BlockSource):
         if self.use_time and self.repeat:
             raise ValueError(
                 f"[{self.name}] repeat cannot be used when use_time=True."
+            )
+        if self.transpose and self.file_type == "csv":
+            raise ValueError(
+                f"[{self.name}] transpose is supported only for NPZ and NPY inputs."
             )
 
         self._time: np.ndarray | None = None
@@ -198,13 +214,22 @@ class FileSource(BlockSource):
 
         if arr.ndim == 1:
             arr = arr.reshape(-1, 1)
-        elif arr.ndim != 2:
+        elif arr.ndim == 2:
+            if self.transpose:
+                arr = arr.T
+        else:
             raise ValueError(
                 f"[{self.name}] Loaded data must be 1D or 2D. Got shape {arr.shape}."
             )
 
         if arr.shape[0] == 0:
             raise ValueError(f"[{self.name}] Loaded file contains no samples.")
+
+        if time is not None and time.shape[0] != arr.shape[0]:
+            raise ValueError(
+                f"[{self.name}] time length ({time.shape[0]}) must match number "
+                f"of samples ({arr.shape[0]}) after applying transpose."
+            )
 
         self._time = time
 

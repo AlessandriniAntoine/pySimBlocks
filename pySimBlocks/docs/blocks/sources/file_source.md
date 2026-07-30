@@ -19,6 +19,7 @@ Supported file formats:
 | `key` | str | Mandatory for `*.npz` (array key) and `*.csv` (column name). Unused for `*.npy`. | True |
 | `repeat` | bool | End-of-file behavior. If `false`, outputs zeros after the last sample. If `true`, restarts from the first sample. | True (default: `False`) |
 | `use_time` | bool | If `true` (only for `*.npz` and `*.csv`), uses a `time` signal and applies ZOH: at time `t`, output sample at largest index `i` such that `T[i] <= t`. | True (default: `False`) |
+| `transpose` | bool | If `true` (only for `*.npz` and `*.npy`), transposes the loaded 2D array before use, i.e. treats data stored as `(n, N)` (signals in rows, samples in columns) as `(N, n)`. Not applicable to `*.csv`. | True (default: `False`) |
 | `sample_time` | float | Block sample time. If omitted, global simulation step is used. | True |
 
 ---
@@ -41,10 +42,12 @@ None.
 
 - File format is inferred from `file_path` extension (`.npz`, `.npy`, `.csv`).
 - `npz` / `npy`: array must be 1D `(N,)` or 2D `(N, n)` — N samples, n signal dimension. Output per step: `(n, 1)`.
-- `csv`: `key` selects a single named column, always `(N, 1)`. Output per step: `(1, 1)`.
+  - If your array is stored as `(n, N)` instead (e.g. exported from MATLAB as `states x time`), set `transpose=true` to have it converted to `(N, n)` before use.
+- `csv`: `key` selects a single named column, always `(N, 1)`. Output per step: `(1, 1)`. `transpose` is not applicable.
 - With `use_time=true`, `time` must exist and be strictly increasing.
   - `npz`: requires key `time`.
   - `csv`: requires column `time`.
+- `transpose` is applied before the `time` length check, so `time` must match the number of samples along the resulting first axis (after transpose, if enabled).
 
 ---
 © 2026 Université de Lille & INRIA - Licensed under LGPL-3.0-or-later

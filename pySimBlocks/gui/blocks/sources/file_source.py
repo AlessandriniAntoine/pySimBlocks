@@ -84,6 +84,17 @@ class FileSourceMeta(BlockMeta):
                 description="If true (NPZ/CSV), use 'time' data and apply ZOH at simulation time t."
             ),
             ParameterMeta(
+                name="transpose",
+                type="enum",
+                autofill=True,
+                default=False,
+                enum=[False, True],
+                description=(
+                    "If true (NPZ/NPY only), transpose the loaded array before use, "
+                    "i.e. treat data stored as (n, N) as (N, n)."
+                )
+            ),
+            ParameterMeta(
                 name="sample_time",
                 type="float",
                 description="Block execution period."
@@ -122,6 +133,9 @@ class FileSourceMeta(BlockMeta):
 
         if param_name == "use_time":
             return ext != "npy"
+
+        if param_name == "transpose":
+            return ext != "csv"
 
         return super().is_parameter_active(param_name, instance_params)
 
