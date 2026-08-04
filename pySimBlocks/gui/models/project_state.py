@@ -59,6 +59,7 @@ class ProjectState:
         self.visual_groups: list[VisualGroup] = []
         self.npz_export_path: str | None = None
         self.npz_key_names: dict[str, str] = {}
+        self.npz_decimation: int = 1
 
     # --- Public methods ---
 
@@ -77,10 +78,12 @@ class ProjectState:
         self.external = None
         self.npz_export_path = None
         self.npz_key_names = {}
+        self.npz_decimation = 1
 
     def load_simulation(self, sim_data: dict, external = None, 
                         npz_export_path: str | None = None,
-                        npz_key_names: dict[str, str] | None = None
+                        npz_key_names: dict[str, str] | None = None,
+                        npz_decimation: int | None = None
                         ) -> None:
         """Load simulation settings into the project state.
 
@@ -98,6 +101,8 @@ class ProjectState:
             self.npz_export_path = npz_export_path
         if npz_key_names:
             self.npz_key_names = npz_key_names
+        if npz_decimation is not None:
+            self.npz_decimation = npz_decimation
 
     def get_block(self, name:str):
         """Return the block with the given name if it exists.

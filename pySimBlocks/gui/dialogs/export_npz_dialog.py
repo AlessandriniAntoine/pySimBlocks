@@ -23,13 +23,8 @@ from __future__ import annotations
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QDialog,
-    QDialogButtonBox,
-    QHeaderView,
-    QTableWidget,
-    QTableWidgetItem,
-    QVBoxLayout,
+    QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHeaderView,
+    QLabel, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
 from pySimBlocks.project.plot_series import stack_logged_signal
@@ -48,7 +43,9 @@ class ExportNpzDialog(QDialog):
     """
 
     def __init__(self, logs: dict[str, np.ndarray], 
-                 key_names: dict[str, str], parent=None):
+                 key_names: dict[str, str], 
+                 decimation: int = 1,
+                 parent=None):
         """Initialize the export dialog and populate it from the logs.
 
         Args:
@@ -65,6 +62,18 @@ class ExportNpzDialog(QDialog):
         self.logs = logs
 
         layout = QVBoxLayout(self)
+
+        # -------- Decimation --------
+        deci_row = QWidget()
+        deci_layout = QFormLayout(deci_row)
+        deci_layout.setContentsMargins(0, 0, 0, 8)
+        self.decimation_spin = QSpinBox()
+        self.decimation_spin.setMinimum(1)
+        self.decimation_spin.setMaximum(1_000_000)
+        self.decimation_spin.setValue(max(1, decimation))
+        self.decimation_spin.setToolTip("Keep 1 sample every N (1 = no decimation)")
+        deci_layout.addRow("Decimation (keep 1 in N):", self.decimation_spin)
+        layout.addWidget(deci_row)
 
         self.table = QTableWidget(len(logs), 3, self)
         self.table.setHorizontalHeaderLabels(["Export", "Variable", "Key name"])
@@ -99,6 +108,10 @@ class ExportNpzDialog(QDialog):
     # --------------------------------------------------------------------------
     # Public Methods
     # --------------------------------------------------------------------------
+
+    def decimation_value(self) -> int:
+        """Return the decimation factor entered by the user."""
+        return self.decimation_spin.value()
 
     def selected_arrays(self) -> dict[str, np.ndarray]:
         """Return the arrays selected for export, keyed by their edited name.
@@ -146,10 +159,12 @@ class ExportNpzDialog(QDialog):
             Stacked array, ``(T,)`` for ``time`` and ``(T, *sample_shape)``
             (trailing size-1 axis squeezed) for every other signal.
         """
+        n = self.decimation_spin.value()
         if original_key == "time":
-            return np.asarray(self.logs[original_key]).flatten()
+            arr = np.asarray(self.logs[original_key]).flatten()
+            return arr[::n]
 
         arr = stack_logged_signal(self.logs, original_key)
         if arr.ndim >= 2 and arr.shape[-1] == 1:
             arr = arr.squeeze(-1)
-        return arr
+        return arr[::n]

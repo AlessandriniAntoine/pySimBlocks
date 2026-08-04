@@ -1175,6 +1175,18 @@ class ProjectController(QObject):
         self.project_state.npz_key_names = cleaned
         self.make_dirty()
 
+    def update_npz_decimation(self, value: int) -> None:
+        """Update the default decimation factor for .npz exports.
+
+        Args:
+            value: Keep 1 sample every `value` (>=1, 1 = no decimation).
+        """
+        new_value = max(1, int(value))
+        if new_value == self.project_state.npz_decimation:
+            return
+        self.project_state.npz_decimation = new_value
+        self.make_dirty()
+
     # --------------------------------------------------------------------------
     # Plot methods
     # --------------------------------------------------------------------------

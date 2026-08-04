@@ -240,7 +240,11 @@ class ToolBarView(QToolBar):
         if not logs:
             QMessageBox.warning(self, "Export .npz", "No simulation logs available.")
             return
-        dlg = ExportNpzDialog(logs, self.project_controller.project_state.npz_key_names, self)
+        dlg = ExportNpzDialog(
+                logs, 
+                self.project_controller.project_state.npz_key_names, 
+                self.project_controller.project_state.npz_decimation,
+                self)
         if dlg.exec() != QDialog.Accepted:
             return
         to_save = dlg.selected_arrays()
@@ -259,6 +263,7 @@ class ToolBarView(QToolBar):
         np.savez(path, **to_save)
         self.project_controller.update_npz_export_path(path)
         self.project_controller.update_npz_key_names(dlg.key_mapping())
+        self.project_controller.update_npz_decimation(dlg.decimation_value())
 
     def set_running(self, running: bool) -> None:
         """Enable or disable all toolbar actions based on the running state.

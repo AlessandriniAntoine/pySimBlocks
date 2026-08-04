@@ -108,6 +108,7 @@ class ProjectLoaderYaml(ProjectLoader):
             sim_data.get("external_module", None),
             sim_data.get("npz_export_path", None),
             sim_data.get("npz_key_names", None),
+            sim_data.get("npz_decimation", None)
         )
 
     def _load_blocks(

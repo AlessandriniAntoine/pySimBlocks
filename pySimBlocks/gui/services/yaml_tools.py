@@ -187,6 +187,8 @@ def _build_simulation_section(project_state: ProjectState) -> dict:
         simulation["npz_export_path"] = project_state.npz_export_path
     if project_state.npz_key_names:
         simulation["npz_key_names"] = dict(project_state.npz_key_names)
+    if project_state.npz_decimation:
+        simulation["npz_decimation"] = project_state.npz_decimation
 
     simulation["logging"] = list(project_state.logging)
     simulation["plots"] = list(project_state.plots)
