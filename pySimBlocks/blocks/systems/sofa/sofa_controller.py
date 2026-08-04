@@ -69,10 +69,11 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         verbose: If True, print logged variables at each control step.
     """
 
-    def __init__(self, name: str = "SofaControllerGui"):
+    def __init__(self, project_yaml: str, name: str = "SofaControllerGui"):
         """Initialize the SOFA–pySimBlocks controller.
 
         Args:
+            project_yaml: Path to the pySimBlocks YAML project file.
             name: Name passed to the SOFA controller base class.
         """
         super().__init__(name=name)
@@ -91,9 +92,10 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.sim: Simulator | None = None
         self.step_index: int = 0
 
-        self.project_yaml: str | None = None
+        self.project_yaml: str = project_yaml
         self._init_failed = False
 
+        print(f"[pySimBlocks] Controller using project_yaml: {project_yaml}")
 
     # --------------------------------------------------------------------------
     # Public methods

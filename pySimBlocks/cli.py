@@ -36,22 +36,12 @@ def _run_gui(project_dir: str | None) -> None:
 
 
 def _run_export(args: argparse.Namespace) -> None:
+    from pySimBlocks.project import generate_run_script
+
     project_yaml = Path(args.project_file) if args.project_file else None
     project_dir = Path(args.project_dir) if args.project_dir else Path(".")
     output = Path(args.out) if args.out else None
-
-    if args.sofa_controller:
-        try:
-            from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
-            generate_sofa_controller(project_dir=project_dir, project_yaml=project_yaml)
-        except Exception as e:
-            print(f"Error generating SOFA controller: {e}")
-            print("See SOFA integration documentation for troubleshooting.")
-            sys.exit(1)
-    else:
-        from pySimBlocks.project import generate_run_script
-
-        generate_run_script(project_dir=project_dir, project_yaml=project_yaml, output=output)
+    generate_run_script(project_dir=project_dir, project_yaml=project_yaml, output=output)
 
 
 def _run_update() -> None:
@@ -60,6 +50,15 @@ def _run_update() -> None:
     print("Running pySimBlocks index update...")
     generate_blocks_index()
     print("pySimBlocks update complete.")
+
+def _run_sofa_init(args: argparse.Namespace) -> None:
+    from pySimBlocks.project.generate_sofa_scaffold import generate_sofa_scaffold
+
+    generate_sofa_scaffold(
+        name=args.name,
+        output_dir=args.directory,
+        force=args.force,
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -98,11 +97,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Project directory containing project.yaml",
     )
     export_parser.add_argument("-o", "--out", help="Output run.py path")
-    export_parser.add_argument(
-        "-s",
-        "--sofa-controller",
+
+    sofa_init_parser = subparsers.add_parser(
+        "sofa-init",
+        help="Generate a starter SOFA scene + controller pair.",
+    )
+    sofa_init_parser.add_argument("name", help="Base name for the generated files (e.g. 'finger').")
+    sofa_init_parser.add_argument(
+        "-d", "--directory",
+        dest="directory",
+        default=None,
+        help="Output directory. Defaults to the current directory.",
+    )
+    sofa_init_parser.add_argument(
+        "-f", "--force",
         action="store_true",
-        help="Update SOFA controller from project.yaml instead of generating run.py.",
+        help="Overwrite existing files.",
     )
 
     subparsers.add_parser("update", help="Regenerate pySimBlocks blocks index.")
@@ -119,6 +129,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_export(args)
     elif args.command == "update":
         _run_update()
+    elif args.command == "sofa-init":
+        _run_sofa_init(args)
     else:
         parser.print_help()
 
