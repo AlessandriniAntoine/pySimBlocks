@@ -20,12 +20,18 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication, QToolButton
+import numpy as np
+
+from PySide6.QtWidgets import (
+        QToolBar, QMessageBox, QProgressDialog, QApplication, QToolButton,
+        QFileDialog, QDialog
+)
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 from shiboken6 import isValid
 
 from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
+from pySimBlocks.gui.dialogs.export_npz_dialog import ExportNpzDialog
 from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
 from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_saver import ProjectSaver
@@ -101,7 +107,7 @@ class ToolBarView(QToolBar):
 
         self.addSeparator()
 
-        export_action = QAction("Export", self)
+        export_action = QAction("Export .py", self)
         export_action.triggered.connect(self.on_export_project)
         self.addAction(export_action)
 
@@ -120,6 +126,11 @@ class ToolBarView(QToolBar):
         plot_action = QAction("Plot", self)
         plot_action.triggered.connect(self.on_plot_logs)
         self.addAction(plot_action)
+
+
+        export_npz_action = QAction("Export .npz", self)
+        export_npz_action.triggered.connect(self.on_export_npz)
+        self.addAction(export_npz_action)
 
         # add ons
         self.sofa_service = SofaService(self.project_controller.project_state, self.project_controller)
@@ -222,6 +233,32 @@ class ToolBarView(QToolBar):
             self._plot_dialog = dlg
 
         dlg.present()
+
+    def on_export_npz(self) -> None:
+        """Export selected logged signals to a .npz file chosen by the user."""
+        logs = self.project_controller.project_state.logs
+        if not logs:
+            QMessageBox.warning(self, "Export .npz", "No simulation logs available.")
+            return
+        dlg = ExportNpzDialog(logs, self.project_controller.project_state.npz_key_names, self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        to_save = dlg.selected_arrays()
+        if not to_save:
+            return
+
+        start_path = self.project_controller.project_state.npz_export_path or "."
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save .npz", start_path, "NumPy archive (*.npz)"
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".npz"):
+            path += ".npz"
+
+        np.savez(path, **to_save)
+        self.project_controller.update_npz_export_path(path)
+        self.project_controller.update_npz_key_names(dlg.key_mapping())
 
     def set_running(self, running: bool) -> None:
         """Enable or disable all toolbar actions based on the running state.

@@ -1155,6 +1155,25 @@ class ProjectController(QObject):
             self.apply_member_layouts(group)
         self.view.refresh_visual_groups()
 
+    def update_npz_export_path(self, path: str) -> None:
+        """Update the last/default .npz export path.
+
+        Args:
+            path: New export file path, or '' to clear it.
+        """
+        new_value = None if path == "" else path
+        if new_value == self.project_state.npz_export_path:
+            return
+        self.project_state.npz_export_path = new_value
+        self.make_dirty()
+
+    def update_npz_key_names(self, mapping: dict[str, str]) -> None:
+        """Persist the variable → export-key renaming for next time."""
+        cleaned = {k: v for k, v in mapping.items() if v and v != k}
+        if cleaned == self.project_state.npz_key_names:
+            return
+        self.project_state.npz_key_names = cleaned
+        self.make_dirty()
 
     # --------------------------------------------------------------------------
     # Plot methods
