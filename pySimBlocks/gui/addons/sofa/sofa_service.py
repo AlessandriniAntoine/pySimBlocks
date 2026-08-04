@@ -21,6 +21,9 @@
 import os
 import shutil
 from pathlib import Path
+from typing import Callable
+
+import numpy as np
 
 from PySide6.QtCore import QProcess, QProcessEnvironment
 
@@ -31,6 +34,19 @@ from pySimBlocks.gui.services.yaml_tools import (
     runtime_project_yaml_path,
     save_yaml,
 )
+
+
+def sofa_logs_npz_path(project_dir: Path) -> Path:
+    """Path to the temporary logs dump written by the SOFA controller."""
+    return project_dir / ".sofa_logs.npz"
+
+
+def cleanup_sofa_logs_npz(project_dir: Path | None) -> None:
+    if project_dir is None:
+        return
+    npz = sofa_logs_npz_path(project_dir)
+    if npz.exists():
+        npz.unlink(missing_ok=True)
 
 
 class SofaService:
@@ -61,6 +77,8 @@ class SofaService:
         self.gui = "imgui"
         self.scene_file = ""
         self.on_early_warning = None
+        self.logs: dict = {}
+        self.on_finished: Callable | None = None
 
         self._detect_sofa()
 
@@ -133,6 +151,7 @@ class SofaService:
         save_yaml(project_state=self.project_state, runtime=True)
         self._expected_yaml = runtime_yaml
         self._project_yaml_checked = False
+        self.logs = {}
 
         # set command
         plugins = "SofaPython3"
@@ -145,6 +164,7 @@ class SofaService:
 
         self.process = QProcess()
         env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYSIMBLOCKS_SOFA_DUMP_LOGS", "1")
         self.process.setProcessEnvironment(env)
         self.process.setWorkingDirectory(str(Path(self.scene_file).parent))
         self.process.setProgram(self.sofa_path)
@@ -176,6 +196,10 @@ class SofaService:
             warning = self._check_project_yaml_used(full_log, runtime_yaml)
             if warning:
                 return False, "Project YAML mismatch", warning
+
+            load_status, msg = self._load_logs(project_dir)
+            if not load_status:
+                return False, "SOFA finished but logs not found", msg
 
             return True, "SOFA finished", "Process terminated correctly"
 
@@ -286,3 +310,24 @@ class SofaService:
         warning = self._check_project_yaml_used(self._full_log, self._expected_yaml)
         if warning and self.on_early_warning:
             self.on_early_warning(warning)
+
+    def _load_logs(self, project_dir: Path) -> tuple[bool, str]:
+        """Load logs dumped by the SOFA controller, if present."""
+        npz_path = sofa_logs_npz_path(project_dir)
+        if not npz_path.exists():
+            self.logs = {}
+            return False, "No logs found"
+        try:
+            with np.load(npz_path, allow_pickle=True) as data:
+                logs = {}
+                for k in data.files:
+                    arr = data[k]
+                    if k == "time":
+                        logs[k] = arr
+                    else:
+                        logs[k] = [arr[i] for i in range(arr.shape[0])]
+                self.logs = logs
+                return True, "Logs loaded"
+        except Exception as e:
+            self.logs = {}
+            return False, f"Failed to load logs: {e}"

@@ -159,7 +159,12 @@ class SofaDialog(QDialog):
             ok, title, details = False, "Error launching SOFA", str(e)
         finally:
             progress.close()
-        if not ok:
+
+        if ok:
+            self.sofa_service.project_state.logs = self.sofa_service.logs
+            if self.sofa_service.on_finished:
+                self.sofa_service.on_finished()
+        else :
             dialog = LogDialog(
                 title=f"SOFA error – {title}",
                 content=details,

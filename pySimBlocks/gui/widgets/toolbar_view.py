@@ -126,6 +126,7 @@ class ToolBarView(QToolBar):
         self.sofa_action = QAction("Sofa", self)
         self.sofa_action.triggered.connect(self.on_open_sofa_dialog)
         self.addAction(self.sofa_action)
+        self.sofa_service.on_finished = self._refresh_plot_after_sofa
 
 
     # --------------------------------------------------------------------------
@@ -240,10 +241,6 @@ class ToolBarView(QToolBar):
             if self.sofa_action in self.actions():
                 self.removeAction(self.sofa_action)
 
-    def _focus_view_after_history_action(self) -> None:
-        """Return keyboard focus to the canvas after undo/redo from toolbar."""
-        self.project_controller.view.setFocus()
-
     def on_open_sofa_dialog(self) -> None:
         """Open the SOFA dialog if SOFA prerequisites are satisfied."""
         ok, msg, details = self.sofa_service.can_use_sofa()
@@ -257,3 +254,16 @@ class ToolBarView(QToolBar):
             return
         dialog = SofaDialog(self.sofa_service, self.parent())
         dialog.exec()
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
+    def _focus_view_after_history_action(self) -> None:
+        """Return keyboard focus to the canvas after undo/redo from toolbar."""
+        self.project_controller.view.setFocus()
+
+    def _refresh_plot_after_sofa(self):
+        dlg = self._plot_dialog
+        if dlg is not None and isValid(dlg):
+            dlg.present()
