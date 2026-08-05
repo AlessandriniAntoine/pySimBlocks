@@ -141,8 +141,10 @@ def eval_value(value: Any, scope: dict) -> Any:
     Returns:
         Evaluated Python object, or ``value`` unchanged if evaluation fails.
     """
-    if isinstance(value, str) and _is_hex_color_literal(value):
-        return value
+    if isinstance(value, str):
+        stripped = value.lstrip("#")
+        if _is_hex_color_literal(value) and stripped not in scope:
+            return value
     try:
         expr = str(value)
         expr = expr.replace("#", "")
