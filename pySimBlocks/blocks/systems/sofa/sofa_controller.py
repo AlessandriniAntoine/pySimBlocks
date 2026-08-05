@@ -29,7 +29,7 @@ import numpy as np
 import Sofa
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.project.load_project_config import load_project_config
+from pySimBlocks.project.load_project_config import load_project_config, get_plot_signals
 from pySimBlocks.project.build_model import build_model_from_dict
 
 
@@ -338,14 +338,12 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """Set up ImGui plotting nodes for the configured signals."""
         if not self._imgui:
             return
-
         if self.sim is None:
             raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
-
         self._plot_node = self.node.addChild("PLOT")
         self._plot_data = {}
         for plot in self.plot_cfg.plots:
-            for var in plot["signals"]:
+            for var in get_plot_signals(plot):
                 block_name, _, key = var.split(".")
                 block = self.get_block(block_name)
                 self._plot_data[f"{block_name}.{key}"] = self._plot_node.addChild(f"{block_name}_{key}")

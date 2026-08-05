@@ -199,36 +199,18 @@ class ProjectController(QObject):
 
     def rename_block(self, block_instance: BlockInstance, new_name: str) -> None:
         """Rename a block and update all references in logging and plot signals.
-
         Args:
             block_instance: The block to rename.
             new_name: Desired new name. A unique suffix is appended if the name
                 is already taken.
         """
         old_name = block_instance.name
-
         if old_name == new_name:
             return
-
         self.make_dirty()
         new_name = self.make_unique_name(new_name)
-
         block_instance.name = new_name
-        prefix_old = f"{old_name}.outputs."
-        prefix_new = f"{new_name}.outputs."
-
-        self.project_state.logging = [
-            s.replace(prefix_old, prefix_new)
-            if s.startswith(prefix_old) else s
-            for s in self.project_state.logging
-        ]
-
-        for plot in self.project_state.plots:
-            plot["signals"] = [
-                s.replace(prefix_old, prefix_new)
-                if s.startswith(prefix_old) else s
-                for s in plot["signals"]
-            ]
+        self._rename_signal_references(old_name, new_name)
 
     def update_block_param(self, block_instance: BlockInstance, params: dict[str, Any]) -> None:
         """Apply new parameter values to a block, refreshing ports and connections as needed.
@@ -1714,19 +1696,7 @@ class ProjectController(QObject):
         if old_name != new_name:
             new_name = self.make_unique_name(new_name)
             block_instance.name = new_name
-            prefix_old = f"{old_name}.outputs."
-            prefix_new = f"{new_name}.outputs."
-            self.project_state.logging = [
-                s.replace(prefix_old, prefix_new)
-                if s.startswith(prefix_old) else s
-                for s in self.project_state.logging
-            ]
-            for plot in self.project_state.plots:
-                plot["signals"] = [
-                    s.replace(prefix_old, prefix_new)
-                    if s.startswith(prefix_old) else s
-                    for s in plot["signals"]
-                ]
+            self._rename_signal_references(old_name, new_name)
 
         if params != block_instance.parameters:
             block_instance.update_params(params)
@@ -1735,6 +1705,24 @@ class ProjectController(QObject):
             self.view.refresh_block_port(block_instance)
             return removed
         return []
+
+    def _rename_signal_references(self, old_name: str, new_name: str) -> None:
+        """Update logging and plot signal references after a block rename."""
+        prefix_old = f"{old_name}.outputs."
+        prefix_new = f"{new_name}.outputs."
+
+        def _rename(s: str) -> str:
+            return s.replace(prefix_old, prefix_new) if s.startswith(prefix_old) else s
+
+        self.project_state.logging = [_rename(s) for s in self.project_state.logging]
+
+        for plot in self.project_state.plots:
+            if "signals" in plot:
+                plot["signals"] = [_rename(s) for s in plot["signals"]]
+            for panel in plot.get("panels", []):
+                selection = panel.get("selection")
+                if isinstance(selection, dict):
+                    panel["selection"] = {_rename(k): v for k, v in selection.items()}
 
     def _create_visual_group(
         self,

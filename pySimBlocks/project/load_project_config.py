@@ -220,3 +220,12 @@ def load_project_config(
     model_dict = _adapt_diagram_to_model_dict(diagram_data, scope)
 
     return sim_cfg, model_dict, plot_cfg, project_name, project_yaml.parent.resolve()
+    
+def get_plot_signals(plot: dict) -> list[str]:
+    """Return the flat list of signal names referenced by a plot, whatever its layout."""
+    if "signals" in plot:
+        return list(plot["signals"])
+    signals = []
+    for panel in plot.get("panels", []):
+        signals.extend(panel.get("selection", {}).keys())
+    return signals

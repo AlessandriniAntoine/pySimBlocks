@@ -26,6 +26,9 @@ from pySimBlocks.gui.graphics.block_item import BlockItem
 from pySimBlocks.gui.models.project_state import ProjectState
 
 
+# ------------------------------------------------------------------------------
+# PUBLIC METHODS
+# ------------------------------------------------------------------------------
 def load_yaml_file(path: str) -> dict:
     """Load a YAML file and return its top-level mapping.
 
@@ -174,7 +177,62 @@ def cleanup_runtime_project_yaml(project_dir: Path | None) -> None:
     if runtime_yaml.exists():
         runtime_yaml.unlink(missing_ok=True)
 
+def build_project_yaml(
+    project_state: ProjectState,
+    block_items: dict[str, BlockItem] | None = None,
+) -> dict:
+    """Build the full raw project mapping before YAML serialization.
 
+    Args:
+        project_state: Project state to serialize.
+        block_items: Optional GUI block items used to persist layout data.
+
+    Returns:
+        Raw project mapping ready for YAML serialization.
+    """
+    block_items = block_items if block_items is not None else {}
+    project_name = (
+        project_state.directory_path.name
+        if project_state.directory_path is not None
+        else "project"
+    )
+
+    blocks = _build_blocks_section(project_state)
+    connections, conn_name_map = _build_connections_section(project_state)
+    hidden_member_uids: set[str] = set()
+    for group in project_state.visual_groups:
+        hidden_member_uids.update(group.members)
+    layout = _build_layout_section(block_items, conn_name_map, hidden_member_uids)
+    groups = _build_groups_section(project_state)
+
+    return {
+        "schema_version": 1,
+        "project": {
+            "name": project_name,
+        },
+        "simulation": _build_simulation_section(project_state),
+        "diagram": {
+            "blocks": blocks,
+            "connections": connections,
+        },
+        "gui": {
+            "layout": layout,
+            "groups": groups,
+        },
+    }
+
+def get_plot_signals(plot: dict) -> list[str]:
+    """Return the flat list of signal names referenced by a plot, whatever its layout."""
+    if "signals" in plot:
+        return list(plot["signals"])
+    signals = []
+    for panel in plot.get("panels", []):
+        signals.extend(panel.get("selection", {}).keys())
+    return signals
+
+# ------------------------------------------------------------------------------
+# PRIVATE METHODS
+# ------------------------------------------------------------------------------
 def _build_simulation_section(project_state: ProjectState) -> dict:
     """Build the simulation section for a project YAML document."""
     simulation = project_state.simulation.__dict__.copy()
@@ -293,47 +351,3 @@ def _build_groups_section(project_state: ProjectState) -> list[dict]:
     """Build serialized visual groups for the GUI section."""
     return [group.to_dict() for group in project_state.visual_groups]
 
-
-def build_project_yaml(
-    project_state: ProjectState,
-    block_items: dict[str, BlockItem] | None = None,
-) -> dict:
-    """Build the full raw project mapping before YAML serialization.
-
-    Args:
-        project_state: Project state to serialize.
-        block_items: Optional GUI block items used to persist layout data.
-
-    Returns:
-        Raw project mapping ready for YAML serialization.
-    """
-    block_items = block_items if block_items is not None else {}
-    project_name = (
-        project_state.directory_path.name
-        if project_state.directory_path is not None
-        else "project"
-    )
-
-    blocks = _build_blocks_section(project_state)
-    connections, conn_name_map = _build_connections_section(project_state)
-    hidden_member_uids: set[str] = set()
-    for group in project_state.visual_groups:
-        hidden_member_uids.update(group.members)
-    layout = _build_layout_section(block_items, conn_name_map, hidden_member_uids)
-    groups = _build_groups_section(project_state)
-
-    return {
-        "schema_version": 1,
-        "project": {
-            "name": project_name,
-        },
-        "simulation": _build_simulation_section(project_state),
-        "diagram": {
-            "blocks": blocks,
-            "connections": connections,
-        },
-        "gui": {
-            "layout": layout,
-            "groups": groups,
-        },
-    }
