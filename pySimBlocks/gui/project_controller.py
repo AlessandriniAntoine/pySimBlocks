@@ -1155,6 +1155,37 @@ class ProjectController(QObject):
             self.apply_member_layouts(group)
         self.view.refresh_visual_groups()
 
+    def update_npz_export_path(self, path: str) -> None:
+        """Update the last/default .npz export path.
+
+        Args:
+            path: New export file path, or '' to clear it.
+        """
+        new_value = None if path == "" else path
+        if new_value == self.project_state.npz_export_path:
+            return
+        self.project_state.npz_export_path = new_value
+        self.make_dirty()
+
+    def update_npz_key_names(self, mapping: dict[str, str]) -> None:
+        """Persist the variable → export-key renaming for next time."""
+        cleaned = {k: v for k, v in mapping.items() if v and v != k}
+        if cleaned == self.project_state.npz_key_names:
+            return
+        self.project_state.npz_key_names = cleaned
+        self.make_dirty()
+
+    def update_npz_decimation(self, value: int) -> None:
+        """Update the default decimation factor for .npz exports.
+
+        Args:
+            value: Keep 1 sample every `value` (>=1, 1 = no decimation).
+        """
+        new_value = max(1, int(value))
+        if new_value == self.project_state.npz_decimation:
+            return
+        self.project_state.npz_decimation = new_value
+        self.make_dirty()
 
     # --------------------------------------------------------------------------
     # Plot methods
@@ -2034,6 +2065,12 @@ class ProjectController(QObject):
         """Assign proxy ids and default layouts for each group boundary port."""
         inputs = [port for port in group.boundary_ports if port.direction == "input"]
         outputs = [port for port in group.boundary_ports if port.direction == "output"]
+
+        # Assign unique labels to auto ports without custom labels
+        for port in group.boundary_ports:
+            if not port.label.strip() and port.origin == "auto":
+                port.label = self._make_unique_boundary_label(group, port.direction)
+
         for index, port in enumerate(inputs):
             self._ensure_boundary_proxy(port, "input", index, len(inputs), group)
         for index, port in enumerate(outputs):
@@ -2205,7 +2242,7 @@ class ProjectController(QObject):
         base = self._proxy_default_label(direction)
         used: set[str] = set()
         for port in group.boundary_ports:
-            if port.uid == exclude_uid or port.origin != "manual":
+            if port.uid == exclude_uid:
                 continue
             if port.direction != direction:
                 continue
@@ -2427,6 +2464,7 @@ class ProjectController(QObject):
                 port.proxy_uid = previous.proxy_uid
                 port.proxy_layout = dict(previous.proxy_layout)
                 port.external_port_uid = previous.external_port_uid
+                port.label = previous.label
                 if previous.linked_port_uid:
                     port.linked_port_uid = previous.linked_port_uid
                 if not port.linked_connection_uid:

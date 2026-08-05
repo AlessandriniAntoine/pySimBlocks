@@ -107,12 +107,6 @@ class SofaDialog(QDialog):
         run_btn.clicked.connect(self.run)
         form.addRow(label, run_btn)
 
-        label = QLabel("Export Controller")
-        label.setToolTip("Modify Sofa controller to run on cli.")
-        export_btn = QPushButton("Export Controller")
-        export_btn.clicked.connect(self.export)
-        form.addRow(label, export_btn)
-
         layout.addLayout(form)
 
     def apply(self):
@@ -145,6 +139,8 @@ class SofaDialog(QDialog):
         if not self._update_scene_file():
             return
 
+        self.sofa_service.on_early_warning = self._show_early_warning
+
         progress = QDialog(self)
         progress.setWindowTitle("SOFA running")
         progress.setModal(True)
@@ -163,22 +159,18 @@ class SofaDialog(QDialog):
             ok, title, details = False, "Error launching SOFA", str(e)
         finally:
             progress.close()
-        if not ok:
+
+        if ok:
+            self.sofa_service.project_state.logs = self.sofa_service.logs
+            if self.sofa_service.on_finished:
+                self.sofa_service.on_finished()
+        else :
             dialog = LogDialog(
                 title=f"SOFA error – {title}",
                 content=details,
                 parent=self
             )
             dialog.exec()
-
-    def export(self):
-        """Export the SOFA controller for the current project."""
-        if not self.apply():
-            return
-        if not self._update_scene_file():
-            return
-        window = self.parent()
-        self.sofa_service.export_controller(window, window.saver)
 
     # --------------------------------------------------------------------------
     # Private Methods
@@ -199,6 +191,10 @@ class SofaDialog(QDialog):
                 QMessageBox.Ok
             )
         return ok
+
+    def _show_early_warning(self, message: str):
+        """Show an immediate warning while SOFA is still running."""
+        QMessageBox.warning(self, "Project YAML mismatch", message)
 
 
 

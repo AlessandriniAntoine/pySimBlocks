@@ -104,7 +104,11 @@ class ProjectLoaderYaml(ProjectLoader):
         if not isinstance(sim_data, dict):
             sim_data = {}
         controller.project_state.load_simulation(
-            sim_data, sim_data.get("external_module", None)
+            sim_data, 
+            sim_data.get("external_module", None),
+            sim_data.get("npz_export_path", None),
+            sim_data.get("npz_key_names", None),
+            sim_data.get("npz_decimation", None)
         )
 
     def _load_blocks(

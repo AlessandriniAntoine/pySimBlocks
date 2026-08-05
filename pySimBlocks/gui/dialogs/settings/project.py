@@ -90,6 +90,18 @@ class ProjectSettingsWidget(QWidget):
         label.setToolTip("Relative path from project directory")
         layout.addRow(label, external_layout)
 
+        export_path = project_state.npz_export_path or ""
+        self.npz_export_path_edit = QLineEdit(export_path)
+        self.npz_export_path_browse_btn = QPushButton("...")
+        self.npz_export_path_browse_btn.setToolTip("Select default .npz export path")
+        self.npz_export_path_browse_btn.clicked.connect(self.browse_npz_export_path)
+
+        npz_layout = QHBoxLayout()
+        npz_layout.setContentsMargins(0, 0, 0, 0)
+        npz_layout.addWidget(self.npz_export_path_edit)
+        npz_layout.addWidget(self.npz_export_path_browse_btn)
+
+        layout.addRow("Default .npz export path:", npz_layout)
 
 
     # --------------------------------------------------------------------------
@@ -112,6 +124,7 @@ class ProjectSettingsWidget(QWidget):
             return False
         ext = self.external_edit.text().strip()
         self.project_controller.update_project_param(path, ext)
+        self.project_controller.update_npz_export_path(self.npz_export_path_edit.text().strip())
         return True
 
     def browse_external_file(self):
@@ -174,3 +187,13 @@ class ProjectSettingsWidget(QWidget):
         ext = self.project_state.external
         self.external_edit.setText("" if ext is None else ext)
         self.settings_dialog.refresh_tabs_from_project()
+
+    def browse_npz_export_path(self):
+        """Select the default .npz export file path from the filesystem."""
+        current = Path(self.npz_export_path_edit.text()).expanduser()
+        start = str(current) if current.parent.is_dir() else str(Path.cwd())
+        selected_path, _ = QFileDialog.getSaveFileName(
+            self, "Select default .npz export path", start, "NumPy archive (*.npz)"
+        )
+        if selected_path:
+            self.npz_export_path_edit.setText(str(Path(selected_path).resolve()))

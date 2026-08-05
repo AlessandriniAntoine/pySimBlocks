@@ -183,6 +183,12 @@ def _build_simulation_section(project_state: ProjectState) -> dict:
 
     if project_state.external is not None:
         simulation["external_module"] = project_state.external
+    if project_state.npz_export_path is not None:
+        simulation["npz_export_path"] = project_state.npz_export_path
+    if project_state.npz_key_names:
+        simulation["npz_key_names"] = dict(project_state.npz_key_names)
+    if project_state.npz_decimation:
+        simulation["npz_decimation"] = project_state.npz_decimation
 
     simulation["logging"] = list(project_state.logging)
     simulation["plots"] = list(project_state.plots)

@@ -30,9 +30,10 @@ from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
 from pySimBlocks.gui.models import BlockInstance, PortInstance
+from pySimBlocks.gui.addons.sofa.slider_params_dialog import SliderParamsRowMixin
 
 
-class SofaPlantMeta(BlockMeta):
+class SofaPlantMeta(SliderParamsRowMixin, BlockMeta):
     """Describe the GUI metadata of the SOFA plant block."""
 
     def __init__(self):
@@ -179,6 +180,9 @@ class SofaPlantMeta(BlockMeta):
                     readonly=readonly,
                     file_filter="SOFA scene files (*.py);;All files (*)",
                 )
+                continue
+            if pmeta.name == "slider_params":
+                self._build_slider_params_row(session, form, pmeta, readonly=readonly)
                 continue
 
             label, widget = self._create_param_row(session, pmeta, readonly)

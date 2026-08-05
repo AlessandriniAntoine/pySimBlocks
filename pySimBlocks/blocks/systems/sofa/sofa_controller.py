@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import atexit
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -69,10 +71,11 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         verbose: If True, print logged variables at each control step.
     """
 
-    def __init__(self, name: str = "SofaControllerGui"):
+    def __init__(self, project_yaml: str, name: str = "SofaControllerGui"):
         """Initialize the SOFA–pySimBlocks controller.
 
         Args:
+            project_yaml: Path to the pySimBlocks YAML project file.
             name: Name passed to the SOFA controller base class.
         """
         super().__init__(name=name)
@@ -91,9 +94,16 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.sim: Simulator | None = None
         self.step_index: int = 0
 
-        self.project_yaml: str | None = None
+        self.project_yaml: str = project_yaml
         self._init_failed = False
 
+        print(f"[pySimBlocks] Controller using project_yaml: {project_yaml}")
+
+        # --- dump des logs, uniquement si lancé depuis pySimBlocks GUI ---
+        self._dump_logs_path: Path | None = None
+        if os.environ.get("PYSIMBLOCKS_SOFA_DUMP_LOGS") == "1" and project_yaml is not None:
+            self._dump_logs_path = Path(project_yaml).parent / ".sofa_logs.npz"
+            atexit.register(self._dump_logs)
 
     # --------------------------------------------------------------------------
     # Public methods
@@ -427,3 +437,19 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         adapted["blocks"] = adapted_blocks
         return adapted
+
+    def _dump_logs(self) -> None:
+        """Serialize self.sim.logs to .npz at process exit (GUI-triggered runs only)."""
+        if self._dump_logs_path is None or self.sim is None:
+            return
+        try:
+            arrays = {}
+            for var in self.sim.logs:
+                if var == "time":
+                    arrays["time"] = np.asarray(self.sim.logs["time"])
+                    continue
+                arrays[var] = self.sim.get_data(variable=var)
+            np.savez(self._dump_logs_path, **arrays)
+            print(f"[pySimBlocks] Logs dumped to {self._dump_logs_path}")
+        except Exception as e:
+            print(f"[pySimBlocks] WARNING: failed to dump logs: {e}")
