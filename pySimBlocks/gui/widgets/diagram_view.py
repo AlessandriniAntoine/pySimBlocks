@@ -1348,14 +1348,17 @@ class DiagramView(QGraphicsView):
         )
 
     def _center_on_diagram(self) -> None:
-        """Fit the view to the bounding rect of all scene items with a small margin."""
+        """Fit the view to the bounding rect of visible scene items, with a margin."""
         scene = self.diagram_scene
-        items_rect = scene.itemsBoundingRect()
+        items_rect = QRectF()
+        for item in scene.items():
+            if not item.isVisible():
+                continue
+            items_rect = items_rect.united(item.sceneBoundingRect())
 
         if items_rect.isNull():
             return
 
-        # Un peu de marge pour éviter que ça colle aux bords
         margin = 40
         items_rect.adjust(-margin, -margin, margin, margin)
 
