@@ -5,6 +5,7 @@ simulation:
   dt: 0.01
   T: 10.0
   solver: fixed
+  npz_decimation: 1
   logging:
   - ref.outputs.out
   - Sofa.outputs.measure
@@ -18,16 +19,19 @@ diagram:
   - name: ref
     category: sources
     type: constant
+    uid: 7a3b845cf6eb4e78809cd594fe3f0e8b
     parameters:
       value: [[1.0]]
   - name: error
     category: operators
     type: sum
+    uid: 0f553c21f3a4483eb02e3c54337798f1
     parameters:
       signs: +-
   - name: PID
     category: controllers
     type: pid
+    uid: 612be45ad86648479a0a803b112e129c
     parameters:
       controller: PI
       Kp: 0.2
@@ -35,6 +39,7 @@ diagram:
   - name: Sofa
     category: systems
     type: sofa_plant
+    uid: 6c5581699b874141a749bfb042896448
     parameters:
       scene_file: finger/Finger.py
       input_keys:
@@ -95,3 +100,4 @@ gui:
         orientation: normal
         width: 155.0
         height: 60.0
+  groups: []

@@ -1,17 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 
 from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
-BASE_DIR = Path(__file__).resolve().parent
-
 
 class FingerController(SofaPysimBlocksController):
 
-    def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(name=name)
-        self.project_yaml = str((BASE_DIR / '../project.yaml').resolve())
+    def __init__(self, actuator, mo, tip_index=121, project_yaml="",
+                 name="FingerController"):
+        super().__init__(project_yaml=project_yaml, name=name)
 
         self.mo = mo
         self.actuator = actuator

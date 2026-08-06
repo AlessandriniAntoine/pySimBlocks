@@ -1,13 +1,18 @@
+import sys, argparse
 from pathlib import Path
 
 import Sofa
+
+from FingerController import FingerController
 
 dir_path = Path(__file__).parent.absolute()
 mesh_path = dir_path / "mesh"
 
 
 def createScene(rootNode):
-    from FingerController import FingerController
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    parser.add_argument("--project-yaml", type=str, default=None, dest="project_yaml")
+    args, _ = parser.parse_known_args() 
 
     # --------------------------------------------------------------------------
     # Scene setup
@@ -114,7 +119,10 @@ def createScene(rootNode):
     # --------------------------------------------------------------------------
     # Controller
     # --------------------------------------------------------------------------
-    controller = FingerController(cable.aCableActuator, finger.tetras)
+    controller = FingerController(
+            cable.aCableActuator, finger.tetras,
+            project_yaml=args.project_yaml,
+            )
     finger.addObject(controller)
 
     return rootNode, controller
