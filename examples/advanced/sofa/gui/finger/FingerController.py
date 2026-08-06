@@ -1,22 +1,18 @@
-from pathlib import Path
 import numpy as np
+
 from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
-
-
-BASE_DIR = Path(__file__).resolve().parent
-
 
 
 class FingerController(SofaPysimBlocksController):
 
-    def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(name=name)
-        self.project_yaml = str((BASE_DIR / '../sofa_exchange/project.yaml').resolve())
+    def __init__(self, actuator, mo, tip_index=121, project_yaml="",
+                 name="FingerController"):
+        super().__init__(project_yaml=project_yaml, name=name)
 
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
-        self.verbose = True
+        self.verbose = False # Set to True to print debug information at each step
 
         # Inputs & outputs dictionaries
         self.inputs = { "cable": None }
@@ -29,21 +25,7 @@ class FingerController(SofaPysimBlocksController):
         self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)
 
     def set_inputs(self):
-        # 1. READ INPUT -------------------------------------
         val = self.inputs["cable"]
-
-        # Safe default for first initialization call
         if val is None:
-            # ↓↓↓ Valeur par défaut pour l’initialisation
-            val = 0.0
-
-        # Convert input to Sofa format
-        if isinstance(val, np.ndarray):
-            processed = val.flatten().tolist()
-        elif isinstance(val, (list, tuple)):
-            processed = val
-        else:
-            processed = [float(val)]
-
-        # Apply to actuator
-        self.actuator.value = processed
+            raise ValueError("Input 'cable' is not set")
+        self.actuator.value = [val.item()]

@@ -1,20 +1,28 @@
-import os
+import sys, argparse
+from pathlib import Path
 
-import numpy as np
 import Sofa
 
-dir_path = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(dir_path, 'mesh')
+from FingerController import FingerController
+
+dir_path = Path(__file__).parent.absolute()
+mesh_path = dir_path / "mesh"
 
 
 def createScene(rootNode):
-    from FingerController import FingerController
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    parser.add_argument("--project-yaml", type=str, default=None, dest="project_yaml")
+    args, _ = parser.parse_known_args() 
 
+    # --------------------------------------------------------------------------
+    # Scene setup
+    # --------------------------------------------------------------------------
     rootNode.addObject("RequiredPlugin", name='SoftRobots')
     rootNode.addObject("RequiredPlugin", name='SofaPython3')
     rootNode.addObject('RequiredPlugin', pluginName=[
                             "Sofa.Component.AnimationLoop",  # Needed to use components FreeMotionAnimationLoop
                             "Sofa.Component.Constraint.Lagrangian.Correction",  # Needed to use components GenericConstraintCorrection
+                            "Sofa.Component.LinearSolver.Iterative",
                             "Sofa.Component.Constraint.Lagrangian.Solver",  # Needed to use components GenericConstraintSolver
                             "Sofa.Component.Engine.Select",  # Needed to use components BoxROI
                             "Sofa.Component.IO.Mesh",  # Needed to use components MeshSTLLoader, MeshVTKLoader
@@ -36,20 +44,29 @@ def createScene(rootNode):
     rootNode.addObject('FreeMotionAnimationLoop')
     rootNode.addObject('DefaultVisualManagerLoop')
 
-    rootNode.addObject('GenericConstraintSolver', tolerance=1e-5, maxIterations=100)
+    try: # Compatible with SOFA <= 25.06
+        rootNode.addObject('GenericConstraintSolver', tolerance=1e-5, maxIterations=100)
+    except Exception as e: # Fallback for SOFA >= 25.12 
+        print("GenericConstraintSolver not available, falling back to CGLinearSolver")
+        try:
+            rootNode.addObject('CGLinearSolver', name='solver', iterations=500, tolerance=1e-10, threshold=1e-10)
+            rootNode.addObject('BlockGaussSeidelConstraintSolver', maxIterations=100, tolerance=1e-5)
+        except Exception as e: # Error in both versions
+            print("Error adding CGLinearSolver:", e)
+            raise e
 
     rootNode.gravity = [0, -9810, 0]
     rootNode.dt = 0.01
 
-    ##########################################
-    # FEM Model                              #
-    ##########################################
+    # --------------------------------------------------------------------------
+    # FEM Model                              
+    # --------------------------------------------------------------------------
     finger = rootNode.addChild('finger')
     finger.addObject('EulerImplicitSolver', name='odesolver', rayleighMass=0.1, rayleighStiffness=0.1)
     finger.addObject('SparseLDLSolver', template='CompressedRowSparseMatrixMat3x3d')
 
     # Add a component to load a VTK tetrahedral mesh and expose the resulting topology in the scene .
-    finger.addObject('MeshVTKLoader', name='loader', filename=os.path.join(path, 'finger.vtk'))
+    finger.addObject('MeshVTKLoader', name='loader', filename=str(mesh_path / "finger.vtk"))
     finger.addObject('MeshTopology', src='@loader', name='container')
 
     # Create a MechanicaObject component to stores the DoFs of the model
@@ -62,10 +79,9 @@ def createScene(rootNode):
     finger.addObject('RestShapeSpringsForceField', points=finger.roi.indices.getLinkPath(), stiffness=1e12)
     finger.addObject('GenericConstraintCorrection')
 
-    ##########################################
-    # Cable                                  #
-    ##########################################
-
+    # --------------------------------------------------------------------------
+    # Cable                                  
+    # --------------------------------------------------------------------------
     cable = finger.addChild('cable')
     cable.addObject('MechanicalObject',
                     position=[
@@ -92,17 +108,21 @@ def createScene(rootNode):
                     pullPoint=[0.0, 12.5, 2.5])
     cable.addObject('BarycentricMapping')
 
-    controller = FingerController(cable.aCableActuator, finger.tetras)
-    finger.addObject(controller)
-
-    ##########################################
-    # Visualization                          #
-    ##########################################
+    # --------------------------------------------------------------------------
+    # Visualization                          
+    # --------------------------------------------------------------------------
     fingerVisu = finger.addChild('visu')
-
-    # Add to this empty node a rendering model made of triangles and loaded from a stl file.
-    fingerVisu.addObject('MeshSTLLoader', filename=os.path.join(path, "finger.stl"), name="loader")
+    fingerVisu.addObject('MeshSTLLoader', filename=str(mesh_path / "finger.stl"), name="loader")
     fingerVisu.addObject('OglModel', src="@loader", color=[0.0, 0.7, 0.7, 1])
     fingerVisu.addObject('BarycentricMapping')
+
+    # --------------------------------------------------------------------------
+    # Controller
+    # --------------------------------------------------------------------------
+    controller = FingerController(
+            cable.aCableActuator, finger.tetras,
+            project_yaml=args.project_yaml,
+            )
+    finger.addObject(controller)
 
     return rootNode, controller
