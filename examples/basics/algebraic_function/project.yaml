@@ -5,6 +5,7 @@ simulation:
   dt: 0.1
   T: 10.0
   solver: fixed
+  npz_decimation: 1
   logging:
   - Algebraic Function.outputs.y1
   - Algebraic Function.outputs.y2
@@ -16,6 +17,7 @@ diagram:
   - name: Algebraic Function
     category: operators
     type: algebraic_function
+    uid: 150f4f4b6bb9430ab880d143018a1794
     parameters:
       file_path: g.py
       function_name: g
@@ -28,11 +30,13 @@ diagram:
   - name: Constant
     category: sources
     type: constant
+    uid: 4148c7f8333344fbb94c98efd76507d9
     parameters:
       value: [[1.0]]
   - name: Step
     category: sources
     type: step
+    uid: d37ce2f72ff3480e90b5b0589868a57b
     parameters:
       value_before: [[0.0]]
       value_after: [[1.0]]
@@ -67,3 +71,4 @@ gui:
         orientation: normal
         width: 120.0
         height: 60.0
+  groups: []

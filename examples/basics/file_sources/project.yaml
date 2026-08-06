@@ -1,45 +1,57 @@
 schema_version: 1
-
 project:
   name: file_sources
-
 simulation:
-  dt: 0.05
+  dt: 0.1
   T: 10.0
   solver: fixed
-  clock: internal
+  npz_decimation: 1
   logging:
-    - npz.outputs.out
-    - npy.outputs.out
-    - csv.outputs.out
-  plots: []
-
+  - npz.outputs.out
+  - npy.outputs.out
+  - csv.outputs.out
+  plots:
+  - title: Plot 1
+    layout: manual
+    panels:
+    - title: Plot 1
+      selection:
+        csv.outputs.out:
+        - csv.outputs.out
+        npy.outputs.out:
+        - npy.outputs.out
+        npz.outputs.out:
+        - npz.outputs.out
 diagram:
   blocks:
-    - name: npz
-      category: sources
-      type: file_source
-      parameters:
-        file_path: data.npz
-        key: y
-        repeat: 'False'
-        use_time: 'True'
-    - name: npy
-      category: sources
-      type: file_source
-      parameters:
-        file_path: data.npy
-        repeat: 'True'
-    - name: csv
-      category: sources
-      type: file_source
-      parameters:
-        file_path: data.csv
-        key: y
-        repeat: 'False'
-        use_time: false
+  - name: npz
+    category: sources
+    type: file_source
+    uid: a3955306aba0406e9c8a06a92c094a12
+    parameters:
+      file_path: data.npz
+      key: y
+      repeat: 'False'
+      use_time: false
+      transpose: false
+  - name: npy
+    category: sources
+    type: file_source
+    uid: ecbdafd396eb44048edb4a33d322ebe8
+    parameters:
+      file_path: data.npy
+      repeat: 'True'
+      transpose: false
+  - name: csv
+    category: sources
+    type: file_source
+    uid: 8316d252c98f4b83b7e01a36ea5c9080
+    parameters:
+      file_path: data.csv
+      key: y
+      repeat: 'False'
+      use_time: false
   connections: []
-
 gui:
   layout:
     blocks:
@@ -61,3 +73,4 @@ gui:
         orientation: normal
         width: 120.0
         height: 60.0
+  groups: []

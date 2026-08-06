@@ -1,64 +1,75 @@
 schema_version: 1
-
 project:
   name: external
-
 simulation:
   dt: 0.01
   T: 3.0
   solver: fixed
-  clock: internal
   external_module: parameters.py
+  npz_decimation: 1
   logging:
+  - ref.outputs.out
+  - plant.outputs.y
+  - pid.outputs.u
+  plots:
+  - title: Ref vs Output
+    signals:
     - ref.outputs.out
     - plant.outputs.y
+  - title: Command
+    signals:
     - pid.outputs.u
-  plots:
-    - title: Ref vs Output
-      signals: [ref.outputs.out, plant.outputs.y]
-    - title: Command
-      signals: [pid.outputs.u]
-
 diagram:
   blocks:
-    - name: ref
-      category: sources
-      type: step
-      parameters:
-        value_before: [[0.0]]
-        value_after: [[1.0]]
-        start_time: 0.5
-    - name: error
-      category: operators
-      type: sum
-      parameters:
-        signs: +-
-    - name: pid
-      category: controllers
-      type: pid
-      parameters:
-        controller: PI
-        Kp: '#Kp'
-        Ki: '#Ki'
-        integration_method: euler forward
-    - name: plant
-      category: systems
-      type: linear_state_space
-      parameters:
-        A: [[0.95]]
-        B: [[0.5]]
-        C: [[1.0]]
-        x0: [[0.0]]
+  - name: ref
+    category: sources
+    type: step
+    uid: b1d330c8809a4513a34df3f910240ce9
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[1.0]]
+      start_time: 0.5
+  - name: error
+    category: operators
+    type: sum
+    uid: d709cda23d1b4291a42aef8628120dd9
+    parameters:
+      signs: +-
+  - name: pid
+    category: controllers
+    type: pid
+    uid: 6d29d96a26a94fcb8ab44d46c0e4074f
+    parameters:
+      controller: PI
+      Kp: '#Kp'
+      Ki: '#Ki'
+      integration_method: euler forward
+  - name: plant
+    category: systems
+    type: linear_state_space
+    uid: edc4cb288f634d71bdc4d806debb3b8e
+    parameters:
+      A: [[0.95]]
+      B: [[0.5]]
+      C: [[1.0]]
+      x0: [[0.0]]
   connections:
-    - name: c1
-      ports: [ref.out, error.in1]
-    - name: c2
-      ports: [plant.y, error.in2]
-    - name: c3
-      ports: [error.out, pid.e]
-    - name: c4
-      ports: [pid.u, plant.u]
-
+  - name: c1
+    ports:
+    - ref.out
+    - error.in1
+  - name: c2
+    ports:
+    - plant.y
+    - error.in2
+  - name: c3
+    ports:
+    - error.out
+    - pid.e
+  - name: c4
+    ports:
+    - pid.u
+    - plant.u
 gui:
   layout:
     blocks:
@@ -86,3 +97,4 @@ gui:
         orientation: normal
         width: 120.0
         height: 60.0
+  groups: []
