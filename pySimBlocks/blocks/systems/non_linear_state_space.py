@@ -22,6 +22,7 @@ import importlib.util
 import inspect
 from pathlib import Path
 from typing import Any, Callable, Dict, List
+from numpy.typing import ArrayLike
 
 import numpy as np
 
@@ -87,10 +88,7 @@ class NonLinearStateSpace(Block):
         self.input_keys = list(input_keys)
         self.output_keys = list(output_keys)
 
-        if not isinstance(x0, np.ndarray):
-            raise TypeError(
-                f"{self.name}: x0 must be a numpy array"
-            )
+        x0 = np.asarray(x0, dtype=float)   # <-- conversion, comme dans les autres blocs
         if x0.ndim == 1:
             x0 = x0.reshape(-1, 1)
         elif x0.ndim != 2 or x0.shape[1] != 1:
