@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -55,6 +56,13 @@ NUMERIC_PARAM_TYPES = {
 # own attributes does not make sense (it is the block driving the sliders).
 _EXCLUDED_BLOCK_TYPES = {"sofa_plant", "sofa_exchange_i_o"}
 
+# Color used to flag slider entries whose target no longer exists. Fixed value
+# rather than a palette role, so it stays readable on light and dark themes.
+STALE_COLOR = "#D9534F"
+
+_MISSING_BLOCK = "block '{block}' no longer exists in the project"
+_MISSING_PARAM = "block '{block}' has no numeric parameter '{param}'"
+
 
 def collect_slider_candidates(project_state) -> List[Tuple[str, str, str]]:
     """List every block/parameter pair eligible as a SOFA slider.
@@ -80,6 +88,57 @@ def collect_slider_candidates(project_state) -> List[Tuple[str, str, str]]:
 
     candidates.sort(key=lambda c: (c[0].lower(), c[1].lower()))
     return candidates
+
+
+def build_slider_index(project_state) -> Dict[str, str]:
+    """Map every eligible ``"block.param"`` key to its description.
+
+    Args:
+        project_state: Project state holding the current block instances.
+
+    Returns:
+        Mapping of candidate key to parameter description.
+    """
+    return {
+        f"{block}.{param}": description
+        for block, param, description in collect_slider_candidates(project_state)
+    }
+
+
+def classify_slider_params(
+    project_state,
+    value: Dict[str, Any] | None,
+) -> Tuple[List[str], Dict[str, str]]:
+    """Split configured slider keys into valid ones and orphaned ones.
+
+    A key is orphaned when its block has been deleted or renamed, or when the
+    referenced parameter is no longer declared as a numeric parameter.
+
+    Args:
+        project_state: Project state used to enumerate candidate variables.
+        value: Current ``slider_params`` mapping.
+
+    Returns:
+        Tuple of the valid keys and of a mapping from orphaned key to the
+        reason it is no longer resolvable.
+    """
+    index = build_slider_index(project_state)
+    known_blocks = {block.name for block in getattr(project_state, "blocks", [])}
+
+    valid: List[str] = []
+    stale: Dict[str, str] = {}
+    for key in value or {}:
+        if key in index:
+            valid.append(key)
+            continue
+        block, _, param = str(key).partition(".")
+        stale[key] = (
+            _MISSING_PARAM.format(block=block, param=param)
+            if block in known_blocks
+            else _MISSING_BLOCK.format(block=block)
+        )
+
+    return valid, stale
 
 
 class SliderParamsDialog(QDialog):
@@ -151,7 +210,7 @@ class SliderParamsDialog(QDialog):
         return result
 
     def accept(self) -> None:
-        """Validate ranges before closing the dialog."""
+        """Validate ranges and confirm orphaned entries before closing."""
         for key, widgets in self.rows.items():
             if not widgets["check"].isChecked():
                 continue
@@ -162,6 +221,24 @@ class SliderParamsDialog(QDialog):
                     f"'{key}': min must be strictly less than max.",
                 )
                 return
+
+        kept_stale = [
+            key for key, widgets in self.rows.items()
+            if widgets["stale"] and widgets["check"].isChecked()
+        ]
+        if kept_stale:
+            details = "\n".join(f"  - {key}" for key in kept_stale)
+            answer = QMessageBox.question(
+                self,
+                "Missing variables",
+                "The following slider variables no longer exist in the "
+                f"project:\n{details}\n\nKeep them anyway?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if answer == QMessageBox.No:
+                return
+
         super().accept()
 
     # --------------------------------------------------------------------------
@@ -207,11 +284,22 @@ class SliderParamsDialog(QDialog):
         layout.addLayout(buttons_layout)
 
     def _populate_table(self) -> None:
-        """Fill the table with one row per candidate variable."""
+        """Fill the table with orphaned entries first, then candidates."""
         candidates = collect_slider_candidates(self.project_state)
-        self.table.setRowCount(len(candidates))
+        _, stale = classify_slider_params(self.project_state, self._current_value)
 
-        for row, (block_name, param_name, description) in enumerate(candidates):
+        entries: List[Tuple[str, str, str, bool]] = []
+        for key, reason in sorted(stale.items(), key=lambda item: item[0].lower()):
+            block_name, _, param_name = key.partition(".")
+            entries.append((block_name, param_name, reason, True))
+        entries.extend(
+            (block_name, param_name, description, False)
+            for block_name, param_name, description in candidates
+        )
+
+        self.table.setRowCount(len(entries))
+
+        for row, (block_name, param_name, hint, is_stale) in enumerate(entries):
             key = f"{block_name}.{param_name}"
             checked = key in self._current_value
             bounds = self._current_value.get(key, [0.0, 1.0])
@@ -225,10 +313,12 @@ class SliderParamsDialog(QDialog):
             check_layout.addWidget(check)
             self.table.setCellWidget(row, 0, check_container)
 
-            name_item = QTableWidgetItem(key)
+            name_item = QTableWidgetItem(f"⚠ {key}" if is_stale else key)
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-            if description:
-                name_item.setToolTip(description)
+            if is_stale:
+                name_item.setForeground(QBrush(QColor(STALE_COLOR)))
+            if hint:
+                name_item.setToolTip(hint)
             self.table.setItem(row, 1, name_item)
 
             range_widget = QWidget()
@@ -261,6 +351,7 @@ class SliderParamsDialog(QDialog):
                 "max": max_spin,
                 "block": block_name,
                 "param": param_name,
+                "stale": is_stale,
             }
 
     def _apply_filter(self, text: str) -> None:
@@ -319,12 +410,31 @@ class SliderParamsRowMixin:
         self._refresh_slider_summary(session, summary)
 
     def _refresh_slider_summary(self, session, summary_label: QLabel) -> None:
-        """Update the summary label from the current local parameter state."""
+        """Update the summary label, flagging orphaned entries in red."""
         value = session.local_params.get("slider_params") or {}
         count = len(value) if isinstance(value, dict) else 0
-        summary_label.setText(
-            f"{count} variable(s) configured" if count else "No sliders configured"
-        )
+
+        summary_label.setTextFormat(Qt.RichText)
+        if not count:
+            summary_label.setText("No sliders configured")
+            summary_label.setToolTip("")
+            return
+
+        text = f"{count} variable(s) configured"
+        tooltip = ""
+        if session.project_state is not None:
+            _, stale = classify_slider_params(session.project_state, value)
+            if stale:
+                text += (
+                    f' \u2014 <span style="color:{STALE_COLOR};">'
+                    f"{len(stale)} missing</span>"
+                )
+                tooltip = "\n".join(
+                    f"{key}: {reason}" for key, reason in sorted(stale.items())
+                )
+
+        summary_label.setText(text)
+        summary_label.setToolTip(tooltip)
 
     def _open_slider_params_dialog(self, session, summary_label: QLabel) -> None:
         """Open the slider-params table dialog and apply the result."""
