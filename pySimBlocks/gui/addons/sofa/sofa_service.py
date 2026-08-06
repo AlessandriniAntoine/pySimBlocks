@@ -205,6 +205,7 @@ class SofaService:
 
         finally:
             cleanup_runtime_project_yaml(project_dir)
+            cleanup_sofa_logs_npz(project_dir)
 
     # --------------------------------------------------------------------------
     # Private Methods
