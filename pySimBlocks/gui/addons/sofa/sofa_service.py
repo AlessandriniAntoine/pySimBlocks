@@ -80,6 +80,13 @@ class SofaService:
         self.logs: dict = {}
         self.on_finished: Callable | None = None
 
+        self._on_output: Callable[[str], None] | None = None
+        self._on_result: Callable[[bool, str, str], None] | None = None
+        self._project_dir: Path | None = None
+        self._full_log = ""
+        self._project_yaml_checked = True
+        self._expected_yaml: Path | None = None
+
         self._detect_sofa()
 
 
@@ -126,12 +133,30 @@ class SofaService:
         else:
             return True, "Sofa can be master", "Only one system found. Diagram can be used from controller."
 
-    def run(self):
-        """Run the configured SOFA scene and collect its execution output.
+    def start(self, on_output: Callable[[str], None] | None = None,
+              on_result: Callable[[bool, str, str], None] | None = None):
+        """Launch the configured SOFA scene asynchronously.
+
+        Unlike the previous synchronous ``run()``, this method never blocks
+        the Qt event loop: it starts the process and returns immediately.
+        Output is streamed to ``on_output`` as it arrives, and the final
+        outcome is reported to ``on_result`` once the process terminates.
+
+        Args:
+            on_output: Called with each chunk of merged stdout/stderr text
+                as soon as it is available.
+            on_result: Called once with (ok, title, details) when the run
+                completes, whether it succeeded or failed. Not called if
+                the process never launched (see the returned tuple).
 
         Returns:
-            Tuple containing success flag, title, and details message.
+            Tuple (started, title, details). ``started`` is False when a
+            pre-flight check failed and the process was never launched; in
+            that case ``on_result`` will not be called.
         """
+        self._on_output = on_output
+        self._on_result = on_result
+
         env_ok, msg = self._check_sofa_environnment()
         if not env_ok:
             return False, "Environment error", msg
@@ -144,14 +169,17 @@ class SofaService:
 
         project_dir = self.project_state.directory_path
         if project_dir is None:
-            return {}, False, "Project directory is not set.\nPlease define it in settings."
+            return False, "Project directory not set", \
+                "Project directory is not set.\nPlease define it in settings."
 
+        self._project_dir = project_dir
         runtime_yaml = runtime_project_yaml_path(project_dir)
         cleanup_runtime_project_yaml(project_dir)
         save_yaml(project_state=self.project_state, runtime=True)
         self._expected_yaml = runtime_yaml
         self._project_yaml_checked = False
         self.logs = {}
+        self._full_log = ""
 
         # set command
         plugins = "SofaPython3"
@@ -159,8 +187,6 @@ class SofaService:
             plugins += ",SofaImgui"
         args = ["-l", plugins, "-g", self.gui, self.scene_file,
             "--argv", f"--project-yaml,{runtime_yaml}"]
-
-        self._full_log = ""
 
         self.process = QProcess()
         env = QProcessEnvironment.systemEnvironment()
@@ -170,52 +196,84 @@ class SofaService:
         self.process.setProgram(self.sofa_path)
         self.process.setArguments(args)
         self.process.setProcessChannelMode(QProcess.MergedChannels)
-        self.process.readyReadStandardOutput.connect(
-            lambda: self._accumulate_output()
-        )
+        self.process.readyReadStandardOutput.connect(self._accumulate_output)
+        self.process.errorOccurred.connect(self._on_process_error)
+        self.process.finished.connect(self._on_process_finished)
 
+        self.process.start()
+        return True, "", ""
+
+    # --------------------------------------------------------------------------
+    # Async completion handlers
+    # --------------------------------------------------------------------------
+    def _on_process_error(self, error):
+        """Report an immediate launch failure (e.g. executable not found)."""
+        if error == QProcess.FailedToStart:
+            cleanup_runtime_project_yaml(self._project_dir)
+            cleanup_sofa_logs_npz(self._project_dir)
+            self._report_result(False, "Launch failed", "runSofa could not start")
+
+    def _on_process_finished(self, exit_code, exit_status):
+        """Handle process termination: validate output and load logs."""
+        project_dir = self._project_dir
         try:
-            self.process.start()
-            if not self.process.waitForStarted():
-                return False, "Launch failed", "runSofa could not start"
-            self.process.waitForFinished(-1)
-
-            # get output results
             full_log = self._full_log
-            exit_code = self.process.exitCode()
             if exit_code != 0:
-                return False, "SOFA exited with error", f"exit code = {exit_code}\n\n{full_log}"
+                self._report_result(
+                    False, "SOFA exited with error",
+                    f"exit code = {exit_code}\n\n--- Full log ---\n{full_log}"
+                )
+                return
 
             pysimblocks_errors = [
                 line for line in full_log.splitlines()
                 if "[pySimBlocks] ERROR" in line
             ]
             if pysimblocks_errors:
-                return False, "pySimBlocks configuration error", "\n".join(pysimblocks_errors)
+                self._report_result(
+                    False, "pySimBlocks configuration error",
+                    "\n".join(pysimblocks_errors) + "\n\n--- Full log ---\n" + full_log
+                )
+                return
 
-            warning = self._check_project_yaml_used(full_log, runtime_yaml)
+            warning = self._check_project_yaml_used(full_log, self._expected_yaml)
             if warning:
-                return False, "Project YAML mismatch", warning
+                self._report_result(
+                    False, "Project YAML mismatch",
+                    warning + "\n\n--- Full log ---\n" + full_log
+                )
+                return
 
             load_status, msg = self._load_logs(project_dir)
             if not load_status:
-                return False, "SOFA finished but logs not found", msg
+                self._report_result(
+                    False, "SOFA finished but logs not found",
+                    msg + "\n\n--- Full log ---\n" + full_log
+                )
+                return
 
-            return True, "SOFA finished", "Process terminated correctly"
+            self._report_result(True, "SOFA finished", "Process terminated correctly")
 
         finally:
             cleanup_runtime_project_yaml(project_dir)
             cleanup_sofa_logs_npz(project_dir)
+
+    def _report_result(self, ok: bool, title: str, details: str):
+        """Forward the final outcome to the registered callback, if any."""
+        if self._on_result:
+            self._on_result(ok, title, details)
 
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
     def _accumulate_output(self):
         """Append the latest process output chunk to the accumulated log."""
-        chunk = self.process.readAllStandardOutput().data().decode()
-        print(chunk, end="")
+        chunk = self.process.readAllStandardOutput().data().decode(errors="replace")
         self._full_log += chunk
-        
+
+        if self._on_output:
+            self._on_output(chunk)
+
         if not self._project_yaml_checked:
             self._maybe_check_project_yaml_now()
 

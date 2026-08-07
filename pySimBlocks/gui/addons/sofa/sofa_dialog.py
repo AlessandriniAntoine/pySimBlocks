@@ -20,6 +20,7 @@
 
 from pathlib import Path
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QDialog,
     QLabel,
@@ -31,6 +32,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit
 )
+from PySide6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont
 
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
@@ -141,36 +143,31 @@ class SofaDialog(QDialog):
 
         self.sofa_service.on_early_warning = self._show_early_warning
 
-        progress = QDialog(self)
-        progress.setWindowTitle("SOFA running")
-        progress.setModal(True)
-        progress.setMinimumWidth(300)
+        # Non-modal window: stays open, streams stdout/stderr live, and
+        # remains available after completion to read/copy the full log.
+        self.log_window = SofaLogWindow(parent=self)
 
-        layout = QVBoxLayout(progress)
-        layout.addWidget(QLabel(
-            "SOFA is running.\n\n"
-            "Close the SOFA GUI to return to pySimBlocks."
-        ))
-
-        progress.show()
         try:
-            ok, title, details = self.sofa_service.run()
+            started, title, details = self.sofa_service.start(
+                on_output=self.log_window.append_log,
+                on_result=self._on_sofa_result,
+            )
         except Exception as e:
-            ok, title, details = False, "Error launching SOFA", str(e)
-        finally:
-            progress.close()
+            started, title, details = False, "Error launching SOFA", str(e)
 
+        if not started:
+            QMessageBox.warning(self, title, details)
+            return
+
+        self.log_window.show()
+
+    def _on_sofa_result(self, ok: bool, title: str, details: str):
+        """Handle the final outcome reported by the SOFA service."""
+        self.log_window.set_finished(ok, title, details)
         if ok:
             self.sofa_service.project_state.logs = self.sofa_service.logs
             if self.sofa_service.on_finished:
                 self.sofa_service.on_finished()
-        else :
-            dialog = LogDialog(
-                title=f"SOFA error – {title}",
-                content=details,
-                parent=self
-            )
-            dialog.exec()
 
     # --------------------------------------------------------------------------
     # Private Methods
@@ -198,37 +195,106 @@ class SofaDialog(QDialog):
 
 
 
-class LogDialog(QDialog):
-    """Display execution logs in a read-only dialog.
+class SofaLogWindow(QDialog):
+    """Non-modal window streaming SOFA's stdout/stderr in real time.
+
+    Stays open after the run finishes (success or failure) so the user
+    can scroll back through the full log and copy it for a bug report.
+    Error/warning lines are highlighted as they arrive.
 
     Attributes:
-        text: Read-only text area showing the log content.
+        text: Read-only text area showing the accumulated log content.
+        status_label: One-line status shown above the log area.
     """
 
-    def __init__(self, title: str, content: str, parent=None):
-        """Initialize the log dialog.
+    def __init__(self, parent=None):
+        """Initialize the log window.
 
         Args:
-            title: Dialog title.
-            content: Log text to display.
             parent: Optional parent widget.
 
         Raises:
             None.
         """
         super().__init__(parent)
-        self.setWindowTitle(title)
-        self.resize(800, 500)
+        self.setWindowTitle("SOFA running…")
+        self.setModal(False)
+        self.resize(900, 550)
 
         layout = QVBoxLayout(self)
 
+        self.status_label = QLabel(
+            "SOFA is running. Close the SOFA GUI window to finish."
+        )
+        layout.addWidget(self.status_label)
+
         self.text = QPlainTextEdit()
         self.text.setReadOnly(True)
-        self.text.setPlainText(content)
         self.text.setLineWrapMode(QPlainTextEdit.NoWrap)
-
+        self.text.setFont(QFont("Monospace"))
         layout.addWidget(self.text)
 
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn)
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+
+        copy_btn = QPushButton("Copy log")
+        copy_btn.clicked.connect(self._copy_log)
+        buttons_layout.addWidget(copy_btn)
+
+        self.close_btn = QPushButton("Close")
+        self.close_btn.setEnabled(False)
+        self.close_btn.clicked.connect(self.accept)
+        buttons_layout.addWidget(self.close_btn)
+
+        layout.addLayout(buttons_layout)
+
+    # --------------------------------------------------------------------------
+    # Public Methods
+    # --------------------------------------------------------------------------
+
+    def append_log(self, chunk: str):
+        """Append a chunk of streamed output, highlighting error/warning lines.
+
+        Args:
+            chunk: Raw text chunk emitted by the running process.
+        """
+        cursor = self.text.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        for line in chunk.splitlines(keepends=True):
+            fmt = QTextCharFormat()
+            if "ERROR" in line:
+                fmt.setForeground(QColor("#d63031"))
+            elif "WARN" in line or "DEPRECATED" in line:
+                fmt.setForeground(QColor("#e08e0b"))
+            cursor.setCharFormat(fmt)
+            cursor.insertText(line)
+        self.text.setTextCursor(cursor)
+        self.text.ensureCursorVisible()
+
+    def set_finished(self, ok: bool, title: str, details: str):
+        """Mark the run as finished and update the status banner.
+
+        Args:
+            ok: Whether the run succeeded.
+            title: Short outcome title.
+            details: Full details/log to append if not already shown.
+        """
+        self.close_btn.setEnabled(True)
+        if ok:
+            self.setWindowTitle("SOFA finished")
+            self.status_label.setText(f"✔ {title}")
+            self.status_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        else:
+            self.setWindowTitle(f"SOFA error – {title}")
+            self.status_label.setText(f"✘ {title}")
+            self.status_label.setStyleSheet("color: #d63031; font-weight: bold;")
+            if details and details not in self.text.toPlainText():
+                self.append_log("\n" + details + "\n")
+
+    # --------------------------------------------------------------------------
+    # Private Methods
+    # --------------------------------------------------------------------------
+
+    def _copy_log(self):
+        """Copy the full log content to the clipboard."""
+        QApplication.clipboard().setText(self.text.toPlainText())

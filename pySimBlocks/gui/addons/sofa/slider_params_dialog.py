@@ -27,7 +27,6 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
-    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
@@ -40,6 +39,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from pySimBlocks.project.load_simulation_config import extract_external_refs
 
 # Parameter types (see ParameterMeta.type) considered numeric enough to be
 # exposed as an ImGui slider at runtime.
@@ -62,6 +63,41 @@ STALE_COLOR = "#D9534F"
 
 _MISSING_BLOCK = "block '{block}' no longer exists in the project"
 _MISSING_PARAM = "block '{block}' has no numeric parameter '{param}'"
+
+
+def parse_bound_text(text: str) -> Tuple[float | str | None, str | None]:
+    """Parse a min/max field into a float or a ``#variable`` reference.
+
+    Mirrors the ``#name`` external-reference syntax accepted everywhere else
+    in ``project.yaml`` (see ``load_simulation_config.eval_value``): any text
+    containing a ``#name`` token is kept as-is and left for the project's
+    external-parameters resolver to evaluate at load time, instead of being
+    forced into a literal number here.
+
+    Args:
+        text: Raw field content, e.g. ``"0.5"`` or ``"#Kp_min"``.
+
+    Returns:
+        A ``(value, error)`` tuple: ``value`` is a ``float`` or the original
+        reference string on success, ``None`` on failure, in which case
+        ``error`` describes why.
+    """
+    text = text.strip()
+    if not text:
+        return None, "must not be empty"
+    if extract_external_refs(text):
+        return text, None
+    try:
+        return float(text), None
+    except ValueError:
+        return None, "must be a number or contain a '#variable' reference"
+
+
+def format_bound_value(value: Any) -> str:
+    """Render a stored min/max value back into its editable text form."""
+    if isinstance(value, str):
+        return value
+    return f"{float(value):g}"
 
 
 def collect_slider_candidates(project_state) -> List[Tuple[str, str, str]]:
@@ -196,17 +232,25 @@ class SliderParamsDialog(QDialog):
     # Public Methods
     # --------------------------------------------------------------------------
 
-    def slider_params(self) -> Dict[str, List[float]]:
+    def slider_params(self) -> Dict[str, List[float | str]]:
         """Build the ``slider_params`` dict from the checked rows.
+
+        Bounds are returned as ``float`` when the field holds a literal
+        number, or as the raw ``"#variable"`` string when it references an
+        external parameter (resolved later by the project's YAML loader).
+        Call this only after :meth:`accept` has validated the rows.
 
         Returns:
             Mapping of ``"block_name.param_name"`` to ``[min, max]`` for
             every row whose checkbox is checked.
         """
-        result: Dict[str, List[float]] = {}
+        result: Dict[str, List[float | str]] = {}
         for key, widgets in self.rows.items():
-            if widgets["check"].isChecked():
-                result[key] = [widgets["min"].value(), widgets["max"].value()]
+            if not widgets["check"].isChecked():
+                continue
+            min_val, _ = parse_bound_text(widgets["min"].text())
+            max_val, _ = parse_bound_text(widgets["max"].text())
+            result[key] = [min_val, max_val]
         return result
 
     def accept(self) -> None:
@@ -214,7 +258,25 @@ class SliderParamsDialog(QDialog):
         for key, widgets in self.rows.items():
             if not widgets["check"].isChecked():
                 continue
-            if widgets["min"].value() >= widgets["max"].value():
+
+            min_val, min_err = parse_bound_text(widgets["min"].text())
+            max_val, max_err = parse_bound_text(widgets["max"].text())
+            if min_err or max_err:
+                QMessageBox.warning(
+                    self,
+                    "Invalid range",
+                    f"'{key}': min {min_err or 'ok'}; max {max_err or 'ok'}.",
+                )
+                return
+
+            # Ordering can only be checked when both bounds are literal
+            # numbers; a "#variable" bound is resolved later, at project
+            # load time, so it is trusted as-is here.
+            if (
+                isinstance(min_val, float)
+                and isinstance(max_val, float)
+                and min_val >= max_val
+            ):
                 QMessageBox.warning(
                     self,
                     "Invalid range",
@@ -325,30 +387,28 @@ class SliderParamsDialog(QDialog):
             range_layout = QHBoxLayout(range_widget)
             range_layout.setContentsMargins(0, 0, 0, 0)
 
-            min_spin = QDoubleSpinBox()
-            min_spin.setRange(-1e6, 1e6)
-            min_spin.setDecimals(4)
-            min_spin.setValue(float(bounds[0]))
-            min_spin.setEnabled(checked)
+            min_edit = QLineEdit(format_bound_value(bounds[0]))
+            min_edit.setPlaceholderText("0.0 or #var")
+            min_edit.setFixedWidth(90)
+            min_edit.setEnabled(checked)
 
-            max_spin = QDoubleSpinBox()
-            max_spin.setRange(-1e6, 1e6)
-            max_spin.setDecimals(4)
-            max_spin.setValue(float(bounds[1]))
-            max_spin.setEnabled(checked)
+            max_edit = QLineEdit(format_bound_value(bounds[1]))
+            max_edit.setPlaceholderText("1.0 or #var")
+            max_edit.setFixedWidth(90)
+            max_edit.setEnabled(checked)
 
-            range_layout.addWidget(min_spin)
+            range_layout.addWidget(min_edit)
             range_layout.addWidget(QLabel("–"))
-            range_layout.addWidget(max_spin)
+            range_layout.addWidget(max_edit)
             self.table.setCellWidget(row, 2, range_widget)
 
-            check.toggled.connect(min_spin.setEnabled)
-            check.toggled.connect(max_spin.setEnabled)
+            check.toggled.connect(min_edit.setEnabled)
+            check.toggled.connect(max_edit.setEnabled)
 
             self.rows[key] = {
                 "check": check,
-                "min": min_spin,
-                "max": max_spin,
+                "min": min_edit,
+                "max": max_edit,
                 "block": block_name,
                 "param": param_name,
                 "stale": is_stale,
