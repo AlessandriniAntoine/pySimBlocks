@@ -225,8 +225,8 @@ class PlotDialog(QDialog):
         self._load_active_manual_title()
         self._sync_manual_controls_enabled()
 
-    def present(self) -> None:
-        """Show this window and refresh the preview from the latest logs."""
+    def refresh_data(self) -> None:
+        """Refresh the preview from the latest logs, without showing the window."""
         self._flush_active_preset_working()
         self._populate_signals()
         self._populate_plot_presets()
@@ -243,6 +243,10 @@ class PlotDialog(QDialog):
                 self._load_mode_preset(idx)
         self._last_preset_index = self._selected_preset_index()
         self._update_preview_plot()
+
+    def present(self) -> None:
+        """Refresh the preview from the latest logs and show this window."""
+        self.refresh_data()
         self.show()
         self.raise_()
         self.activateWindow()

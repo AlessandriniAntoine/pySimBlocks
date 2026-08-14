@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit
 )
 from PySide6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont
+from shiboken6 import isValid
 
 from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 
@@ -40,8 +41,13 @@ from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 class SofaDialog(QDialog):
     """Configure and launch SOFA integration actions from the GUI.
 
+    Non-modal: the dialog is shown/hidden (never exec'd), and is meant to
+    be created once and reused (see ToolBarView.on_open_sofa_dialog) so it
+    keeps its state and position across multiple runs.
+
     Attributes:
         sofa_service: Service handling SOFA detection, export, and execution.
+        log_window: Reused, non-modal window streaming SOFA's stdout/stderr.
     """
 
     def __init__(self, sofa_service: SofaService, parent=None):
@@ -59,6 +65,7 @@ class SofaDialog(QDialog):
         self.setMinimumWidth(300)
 
         self.sofa_service = sofa_service
+        self.log_window: SofaLogWindow | None = None
 
         main_layout = QVBoxLayout(self)
         self.build_form(main_layout)
@@ -105,9 +112,9 @@ class SofaDialog(QDialog):
 
         label = QLabel("Run diagram from Sofa:")
         label.setToolTip("Run simulation with sofa gui")
-        run_btn = QPushButton("runSofa")
-        run_btn.clicked.connect(self.run)
-        form.addRow(label, run_btn)
+        self.run_btn = QPushButton("runSofa")
+        self.run_btn.clicked.connect(self.run)
+        form.addRow(label, self.run_btn)
 
         layout.addLayout(form)
 
@@ -129,10 +136,10 @@ class SofaDialog(QDialog):
         return True
 
     def ok(self):
-        """Apply the current values and close the dialog."""
+        """Apply the current values and hide the dialog (instance is reused)."""
         if not self.apply():
             return
-        self.accept()
+        self.hide()
 
     def run(self):
         """Run the current SOFA scene through the configured service."""
@@ -141,11 +148,13 @@ class SofaDialog(QDialog):
         if not self._update_scene_file():
             return
 
-        self.sofa_service.on_early_warning = self._show_early_warning
+        if self.log_window is None or not isValid(self.log_window):
+            self.log_window = SofaLogWindow(parent=self)
+        else:
+            self.log_window.reset()
 
-        # Non-modal window: stays open, streams stdout/stderr live, and
-        # remains available after completion to read/copy the full log.
-        self.log_window = SofaLogWindow(parent=self)
+        self.run_btn.setEnabled(False)
+        self.sofa_service.on_early_warning = self._show_early_warning
 
         try:
             started, title, details = self.sofa_service.start(
@@ -156,13 +165,17 @@ class SofaDialog(QDialog):
             started, title, details = False, "Error launching SOFA", str(e)
 
         if not started:
+            self.run_btn.setEnabled(True)
             QMessageBox.warning(self, title, details)
             return
 
         self.log_window.show()
+        self.log_window.raise_()
+        self.log_window.activateWindow()
 
     def _on_sofa_result(self, ok: bool, title: str, details: str):
         """Handle the final outcome reported by the SOFA service."""
+        self.run_btn.setEnabled(True)
         self.log_window.set_finished(ok, title, details)
         if ok:
             self.sofa_service.project_state.logs = self.sofa_service.logs
@@ -200,11 +213,14 @@ class SofaLogWindow(QDialog):
 
     Stays open after the run finishes (success or failure) so the user
     can scroll back through the full log and copy it for a bug report.
-    Error/warning lines are highlighted as they arrive.
+    Error/warning lines are highlighted as they arrive. The window is
+    meant to be created once by SofaDialog and reused across runs via
+    ``reset()``.
 
     Attributes:
         text: Read-only text area showing the accumulated log content.
         status_label: One-line status shown above the log area.
+        close_btn: Button enabled once the current run has finished.
     """
 
     def __init__(self, parent=None):
@@ -217,15 +233,12 @@ class SofaLogWindow(QDialog):
             None.
         """
         super().__init__(parent)
-        self.setWindowTitle("SOFA running…")
         self.setModal(False)
         self.resize(900, 550)
 
         layout = QVBoxLayout(self)
 
-        self.status_label = QLabel(
-            "SOFA is running. Close the SOFA GUI window to finish."
-        )
+        self.status_label = QLabel()
         layout.addWidget(self.status_label)
 
         self.text = QPlainTextEdit()
@@ -242,15 +255,26 @@ class SofaLogWindow(QDialog):
         buttons_layout.addWidget(copy_btn)
 
         self.close_btn = QPushButton("Close")
-        self.close_btn.setEnabled(False)
-        self.close_btn.clicked.connect(self.accept)
+        self.close_btn.clicked.connect(self.hide)
         buttons_layout.addWidget(self.close_btn)
 
         layout.addLayout(buttons_layout)
 
+        self.reset()
+
     # --------------------------------------------------------------------------
     # Public Methods
     # --------------------------------------------------------------------------
+
+    def reset(self):
+        """Clear the log and status to prepare the window for a new run."""
+        self.setWindowTitle("SOFA running…")
+        self.status_label.setText(
+            "SOFA is running. Close the SOFA GUI window to finish."
+        )
+        self.status_label.setStyleSheet("")
+        self.text.clear()
+        self.close_btn.setEnabled(False)
 
     def append_log(self, chunk: str):
         """Append a chunk of streamed output, highlighting error/warning lines.
