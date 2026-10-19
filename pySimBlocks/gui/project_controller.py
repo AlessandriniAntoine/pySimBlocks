@@ -199,6 +199,7 @@ class ProjectController(QObject):
 
     def rename_block(self, block_instance: BlockInstance, new_name: str) -> None:
         """Rename a block and update all references in logging and plot signals.
+
         Args:
             block_instance: The block to rename.
             new_name: Desired new name. A unique suffix is appended if the name

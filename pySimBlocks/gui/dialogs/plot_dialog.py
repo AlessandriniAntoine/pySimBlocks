@@ -227,7 +227,8 @@ class PlotDialog(QDialog):
 
     def refresh_data(self) -> None:
         """Refresh the preview from the latest logs, without showing the window."""
-        self._flush_active_preset_working()
+        prev_idx = self._selected_preset_index()
+        self._flush_preset_working_for(prev_idx)
         self._populate_signals()
         self._populate_plot_presets()
         if self._uses_manual_layout():
@@ -1252,16 +1253,19 @@ class PlotDialog(QDialog):
         self._load_active_manual_title()
         self._load_manual_selection_to_tree(self._manual.selections[self._manual.active])
 
-    def _flush_active_preset_working(self) -> None:
-        """Persist in-memory edits for the active preset before rebuilding the UI."""
-        idx = self._selected_preset_index()
-        if idx is None:
+    def _flush_preset_working_for(self, idx: int | None) -> None:
+        """Persist in-memory edits for idx, validé contre la liste de plots actuelle."""
+        if idx is None or idx >= len(self.project_state.plots):
             return
         if is_manual_layout_plot(self.project_state.plots[idx]):
             self._save_active_manual_selection()
             self._save_active_manual_title()
         else:
             self._store_mode_preset_working(idx)
+
+    def _flush_active_preset_working(self) -> None:
+        """Délègue à _flush_preset_working_for avec l'index lu depuis la combo box."""
+        self._flush_preset_working_for(self._selected_preset_index())
 
     def _current_mode_preset_mode(self) -> str:
         data = self.mode_preset_combo.currentData()

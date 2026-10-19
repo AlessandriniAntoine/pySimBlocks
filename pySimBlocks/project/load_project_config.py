@@ -30,6 +30,7 @@ from pySimBlocks.project.load_simulation_config import (
     _load_yaml,
     _resolve_external_refs,
     eval_recursive,
+    invalidate_declared_modules
 )
 
 
@@ -42,6 +43,35 @@ def _validate_schema_version(raw: Dict[str, Any]) -> None:
             "Expected: 1"
         )
 
+def _collect_declared_module_paths(raw: Dict[str, Any], params_dir: Path) -> list[Path]:
+    """Gather every external .py file path declared in project.yaml."""
+    paths: list[Path] = []
+
+    simulation = raw.get("simulation", {})
+    if isinstance(simulation, dict):
+        external_module_path = simulation.get("external_module")
+        if isinstance(external_module_path, str):
+            p = Path(external_module_path).expanduser()
+            if not p.is_absolute():
+                p = params_dir / p
+            paths.append(p)
+
+    diagram = raw.get("diagram", {})
+    blocks = diagram.get("blocks", []) if isinstance(diagram, dict) else []
+    for desc in blocks:
+        if not isinstance(desc, dict):
+            continue
+        parameters = desc.get("parameters", {})
+        if not isinstance(parameters, dict):
+            continue
+        file_path = parameters.get("file_path")
+        if isinstance(file_path, str):
+            p = Path(file_path).expanduser()
+            if not p.is_absolute():
+                p = params_dir / p
+            paths.append(p)
+
+    return paths
 
 def _load_scope(raw: Dict[str, Any], project_yaml: Path) -> Tuple[Any, Dict[str, Any]]:
     """Load the external parameters module and return (module, scope dict)."""
@@ -177,6 +207,9 @@ def load_project_config(
     raw = _load_yaml(project_yaml)
 
     _validate_schema_version(raw)
+
+    declared_paths = _collect_declared_module_paths(raw, project_yaml.parent.resolve()) 
+    invalidate_declared_modules(declared_paths) 
 
     external_module, scope = _load_scope(raw, project_yaml)
 

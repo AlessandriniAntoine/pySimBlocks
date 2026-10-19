@@ -1,4 +1,4 @@
 import numpy as np
 
-Kp = np.array([[2.]])
+Kp = np.array([[0.1]])
 Ki = np.array([[1.]])
