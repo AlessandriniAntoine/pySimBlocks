@@ -20,24 +20,34 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
+# The entry point is wrapped in main() under an ``if __name__ == "__main__"``
+# guard: on Windows and macOS, multiprocessing uses the "spawn" start method
+# (needed by SofaPlant), which re-imports the main script in the child process.
 RUN_TEMPLATE = """\
 from pathlib import Path
 from pySimBlocks.project import load_simulator_from_project
 from pySimBlocks.project.plot_from_config import plot_from_config
 
-try:
-    BASE_DIR = Path(__file__).parent.resolve()
-except Exception:
-    BASE_DIR = Path("")
 
-sim, plot_cfg = load_simulator_from_project(BASE_DIR / {project_path!r})
+def main():
+    try:
+        BASE_DIR = Path(__file__).parent.resolve()
+    except Exception:
+        BASE_DIR = Path("")
 
-logs = sim.run()
-if {enable_plots} and plot_cfg is not None:
-    plot_from_config(logs, plot_cfg)
+    sim, plot_cfg = load_simulator_from_project(BASE_DIR / {project_path!r})
+
+    logs = sim.run()
+    if {enable_plots} and plot_cfg is not None:
+        plot_from_config(logs, plot_cfg)
+
+
+if __name__ == "__main__":
+    main()
 """
 
 
@@ -49,7 +59,8 @@ def generate_python_content(
 
     Args:
         project_yaml_path: Path string to the project YAML file, embedded
-            verbatim into the generated script.
+            verbatim into the generated script. It is resolved at runtime
+            relative to the directory of the generated script.
         enable_plots: Whether to include the plotting call in the script.
 
     Returns:
@@ -59,6 +70,31 @@ def generate_python_content(
         project_path=project_yaml_path,
         enable_plots=enable_plots,
     )
+
+
+def _path_relative_to_script(project_yaml: Path, output: Path) -> str:
+    """Return the project path as seen from the directory of the run script.
+
+    The generated script resolves the project path relative to its own
+    location, so the embedded path must be computed from the output
+    directory, not from the current working directory. Falls back to the
+    absolute path when no relative path exists (e.g. different drives on
+    Windows).
+
+    Args:
+        project_yaml: Path to the project YAML file.
+        output: Path where the run script will be written.
+
+    Returns:
+        A POSIX-style path string to embed in the script.
+    """
+    project_abs = project_yaml.resolve()
+    script_dir = output.resolve().parent
+    try:
+        rel = os.path.relpath(project_abs, script_dir)
+    except ValueError:
+        return project_abs.as_posix()
+    return Path(rel).as_posix()
 
 
 def generate_run_script(
@@ -99,19 +135,18 @@ def generate_run_script(
     if project_dir:
         project_dir = Path(project_dir)
         project_yaml = project_dir / "project.yaml"
-        output = output or (project_dir / "run.py")
-        if not project_yaml.exists():
-            raise FileNotFoundError(f"project.yaml not found: {project_yaml}")
-
-        content = generate_python_content(project_yaml_path=project_yaml.name)
-
-    elif has_project_yaml_mode:
+        output = Path(output or (project_dir / "run.py"))
+    else:
         project_yaml = Path(project_yaml)
         output = Path(output or "run.py")
-        if not project_yaml.exists():
-            raise FileNotFoundError(f"project.yaml not found: {project_yaml}")
 
-        content = generate_python_content(project_yaml_path=str(project_yaml))
+    if not project_yaml.exists():
+        raise FileNotFoundError(f"project.yaml not found: {project_yaml}")
 
+    content = generate_python_content(
+        project_yaml_path=_path_relative_to_script(project_yaml, output)
+    )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content)
     print(f"[pySimBlocks] run script generated: {output}")

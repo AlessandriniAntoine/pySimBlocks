@@ -50,26 +50,59 @@ Choose an explicit output path:
 pysimblocks export --file path/to/project.yaml --out path/to/run.py
 ```
 
-This generated script rebuilds the model and runs the simulation from the
-command line.
+Without `--directory` or `--file`, the current directory is used as the
+project directory. The two options cannot be combined. By default, the script
+is written to `run.py` in the project directory (with `--directory`) or in the
+current directory (with `--file`).
 
-## Export a SOFA Controller
+The generated script loads the project and runs the simulation from the command
+line. It locates `project.yaml` relative to its own position, so you can move
+the script together with its project as long as their relative position does
+not change.
 
-If your project uses SOFA integration, you can update the SOFA controller
-generated from `project.yaml`:
+The script also works for projects using a `SofaPlant` block (see
+[Tutorial 3](./tutorials/tutorial_3_sofa.md)), in which case `pySimBlocks` is the
+master and SOFA runs in a separate process.
+
+## Create a SOFA Scene and Controller
+
+Use the `sofa-init` command to generate a starter SOFA scene and controller
+pair:
 
 ```bash
-pysimblocks export --directory path/to/project_dir --sofa-controller
+pysimblocks sofa-init finger
 ```
 
-You can also target a specific project file:
+This creates two files in the current directory:
+
+- `finger_scene.py` — a SOFA scene containing the `--project-yaml` argument
+  parsing, with `TODO` markers for your scene graph and the controller
+  constructor arguments
+- `finger_controller.py` — a `FingerController` class deriving from
+  `SofaPysimBlocksController`, with empty `inputs` / `outputs` dictionaries and
+  `set_inputs()` / `get_outputs()` to implement
+
+Choose another output directory:
 
 ```bash
-pysimblocks export --file path/to/project.yaml --sofa-controller
+pysimblocks sofa-init finger --directory path/to/finger
 ```
 
-If this command fails, check your SOFA integration setup and the associated
-project files.
+Overwrite existing files:
+
+```bash
+pysimblocks sofa-init finger --force
+```
+
+The name is used for the file names and the class name. Hyphens are converted
+to underscores (`my-robot` gives `my_robot_scene.py` and `MyRobotController`).
+The name must be a valid Python module name once converted, otherwise the
+command stops with an error.
+
+The generated files are a starting point: fill in the scene, check that the
+scene time step (`rootnode.dt`) is compatible with your project time step, and
+adapt the controller to your own signals. See
+[Tutorial 3](./tutorials/tutorial_3_sofa.md) for the full workflow.
 
 ## Update the Block Index
 

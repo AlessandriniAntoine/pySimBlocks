@@ -61,7 +61,7 @@ class SofaDialog(QDialog):
             None.
         """
         super().__init__(parent)
-        self.setWindowTitle("Edit block")
+        self.setWindowTitle("SOFA settings")
         self.setMinimumWidth(300)
 
         self.sofa_service = sofa_service

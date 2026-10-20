@@ -38,6 +38,9 @@ cd tutorial-gui
 pysimblocks gui
 ```
 
+The folder from which you start the GUI is the project directory. It can be
+changed in the Settings dialog (Project section).
+
 The main window opens, with the toolbar at the top, the block list on the
 left, and the diagram view on the right.
 
@@ -53,10 +56,10 @@ Add the required blocks to the diagram:
 
 ![Drag and drop blocks](../../images/user_guide/tutorial_2-drag_drop.gif)
 
-Notes:
-
+```{note}
 - Press `Space` in the diagram view to center the view on all blocks.
 - Select a block and press `Ctrl+R` to rotate it.
+```
 
 ### Connect the Blocks
 
@@ -82,6 +85,9 @@ Set the following parameters:
 
 | Block | Parameter | Value |
 | --- | --- | --- |
+| Step | value_before | 0.0 |
+| Step | value_after | 1.0 |
+| Step | start_time | 1.0 |
 | LinearStateSpace | A | 0.9 |
 | LinearStateSpace | B | 0.5 |
 | LinearStateSpace | C | 1.0 |
@@ -107,9 +113,11 @@ Notes:
 
 Open the simulation settings from the toolbar and configure:
 
-- Sample time: `0.01` s
-- Duration: `5` s
-- Signals to log: `system.outputs.y`, `PID.outputs.u`, and `ref.outputs.out`
+| Setting | Value |
+| --- | --- |
+| Sample time | `0.01` s |
+| Duration | `5` s |
+| Signals to log | `system.outputs.y`, `PID.outputs.u`, `ref.outputs.out` |
 
 You can also define custom plots in the plots panel for quick access after the
 simulation.

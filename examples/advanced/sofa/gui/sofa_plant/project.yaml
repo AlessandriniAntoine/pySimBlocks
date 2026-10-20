@@ -5,6 +5,7 @@ simulation:
   dt: 0.01
   T: 5.0
   solver: fixed
+  npz_decimation: 1
   logging:
   - sum.outputs.out
   - sofa.outputs.measure
@@ -22,34 +23,40 @@ diagram:
   - name: error
     category: operators
     type: sum
+    uid: c6bab231f37c45caa784dd9c03f829ef
     parameters:
       signs: +-
   - name: Kp
     category: operators
     type: gain
+    uid: 40a87934609741679a9d9cd5a722cc43
     parameters:
       gain: [[0.5]]
       multiplication: Element wise (K * u)
   - name: Ki
     category: operators
     type: gain
+    uid: 9a27b8241a97449bb352a16306bae4f9
     parameters:
       gain: [[0.8]]
       multiplication: Element wise (K * u)
   - name: integrator
     category: operators
     type: discrete_integrator
+    uid: 51abe35bd3704bb1a806e89bfdb4d1cd
     parameters:
       initial_state: [[0.0]]
       method: euler forward
   - name: sum
     category: operators
     type: sum
+    uid: 0244b63908194325ae41457b859e1469
     parameters:
       signs: ++
   - name: sofa
     category: systems
     type: sofa_plant
+    uid: c8b05555139047a893e4a59a7d688c61
     parameters:
       scene_file: ../finger/Finger.py
       input_keys:
@@ -70,6 +77,7 @@ diagram:
   - name: ref
     category: sources
     type: constant
+    uid: 9870fec5db1748b19dea1c0439163dff
     parameters:
       value: [[1.0]]
   connections:
@@ -152,8 +160,8 @@ gui:
         height: 60.0
     connections:
       c1:
-        route: [[-110.0, -5.0], [-102.0, -5.0], [-75.0, -5.0], [-75.0, -55.0], [-44.0,
-            -55.0], [-36.0, -55.0]]
+        route: [[-110.0, -5.0], [-75.0, -5.0], [-75.0, -55.0], [-36.0, -55.0]]
       c6:
         route: [[625.0, -35.0], [633.0, -35.0], [633.0, 100.0], [-259.0, 100.0], [
             -259.0, 5.0], [-251.0, 5.0]]
+  groups: []

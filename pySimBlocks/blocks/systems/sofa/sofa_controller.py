@@ -316,7 +316,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         if len(candidates) > 1:
             self._init_failed = True
             raise RuntimeError(
-                "[pySimBlocks] ERROR: Multiple SofaExchangeIO blocks found ({len(candidates)}).\n"
+                f"[pySimBlocks] ERROR: Multiple SofaExchangeIO blocks found ({len(candidates)}).\n"
                 "Only one SOFA IO block is allowed."
             )
 

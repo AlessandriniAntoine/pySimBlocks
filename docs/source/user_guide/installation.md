@@ -19,13 +19,13 @@ pip install git+https://github.com/AlessandriniAntoine/pySimBlocks
 ```bash
 git clone https://github.com/AlessandriniAntoine/pySimBlocks.git
 cd pySimBlocks
-pip install .
+pip install -e .
 ```
 
 To also build the documentation locally:
 
 ```bash
-pip install pySimBlocks[docs]
+pip install ".[docs]"
 cd docs
 make html
 ```
