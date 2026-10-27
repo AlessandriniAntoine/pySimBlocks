@@ -194,35 +194,11 @@ are created from them):
 | `scene_file` | `finger/Finger.py` |
 | `input_keys` | `["cable"]` |
 | `output_keys` | `["measure"]` |
-| `slider_params` | see below |
 
 The key names must match the dictionaries declared in the SOFA controller.
 
-`slider_params` is edited with the **Configure sliders…** button, which opens a
-table of the numeric parameters of the diagram. Tick the ones you want and set
-a min and a max for each:
-
-| Parameter | Min | Max |
-| --- | --- | --- |
-| `ref.value` | -10.0 | 50.0 |
-| `PID.Kp` | 0.01 | 3.0 |
-| `PID.Ki` | 0.01 | 3.0 |
-
-Bounds can also be `#variable` references. If a block is renamed or deleted
-later, its entry is flagged in red as missing.
-
-Finally, adapt the rest of the diagram:
-
-- Replace the `Step` block with a `Constant` block named `ref` (value `1.0`).
-  The slider on `ref.value` needs a source that has a `value` parameter.
-- Set the PID gains to `Kp = 0.2` and `Ki = 1.3`, and the simulation time to
-  `T = 10`.
-- Connect `PID.u` to `Sofa.cable` and `Sofa.measure` to the second input of the
-  `error` sum.
-- Log and plot `ref.outputs.out` and `Sofa.outputs.measure` instead of the
+Finally, log and plot `ref.outputs.out` and `Sofa.outputs.measure` instead of the
   signals of the old plant.
-
-Compare your result with `project_solution.yaml`.
 
 > **Note:** Time step constraint  
 > The SOFA scene dt (set in `createScene` via `rootNode.dt`) must be a positive
@@ -284,28 +260,53 @@ time step…), or a project YAML mismatch.
 
 ## Live Sliders and Plots
 
-The parameters selected in the **Configure sliders…** dialog of the `SofaPlant`
-block (see [Configure the SofaPlant Block](#configure-the-sofaplant-block))
-become live sliders in SOFA. The plots defined in the `pySimBlocks` project are
-displayed live in the same window.
+Live sliders and plots are only available with the
+[Compliance Robotics GUI](https://github.com/SofaComplianceRobotics/SofaGLFW/tree/robotics)
+(`robotics` branch of SofaGLFW). They require:
+
+- SOFA as the master,
+- the `imgui` GUI selected in the SOFA panel,
+- a SOFA installation that includes the Compliance Robotics GUI.
+
+Without these conditions the simulation still runs normally, but the sliders are
+ignored and the plots are only available after the run.
+
+Since the reference will be tuned live, it is more convenient to use a constant
+than a step. Replace the Step block with a Constant block named ref (value 1.0).
+
+### Configure the Sliders
+
+In the dialog of the `SofaPlant` block, click **Configure sliders…**. A table
+lists the numeric parameters of every block in the diagram. Tick the ones you
+want to tune and set a min and a max for each:
+
+| Parameter | Min | Max |
+| --- | --- | --- |
+| `ref.value` | -10.0 | 50.0 |
+| `PID.Kp` | 0.01 | 3.0 |
+| `PID.Ki` | 0.01 | 3.0 |
+
+Use the filter field to narrow the list. Bounds can also be `#variable`
+references. If a block is renamed or deleted later, its entry is flagged in red
+as missing.
+
+### Configure the Plots
+
+Define the plots in the plots panel of the simulation settings, for example
+`ref.outputs.out` and `Sofa.outputs.measure` on the same graph. They are
+displayed live in the SOFA window.
+
+### Run
+
+Open the SOFA panel, select the `imgui` GUI and click `runSofa`. The configured
+parameters appear as sliders in SOFA after the first step.
 
 ![Enhanced SOFA GUI](../../images/user_guide/tutorial_3-sofa_gui_enhanced.gif)
 
 This makes it possible to tune `ref.value`, `PID.Kp`, and `PID.Ki` while the
-simulation is running. Moving a slider changes the parameter of the
-corresponding block immediately, so you can see its effect on the fingertip
-response right away.
-
-Live sliders and plots are available when:
-
-- SOFA is the master,
-- the `imgui` GUI is selected in the SOFA panel,
-- your SOFA installation includes the Compliance Robotics GUI.
-
-Sliders are created when the simulation starts. To add or remove one, update
-the selection in **Configure sliders…** and launch SOFA again. Without the
-conditions above, the simulation still runs normally, but the sliders are
-ignored and the plots are only available after the run.
+simulation is running. Sliders are created when the simulation starts: to add or
+remove one, update the selection in **Configure sliders…** and launch SOFA
+again.
 
 ## Try It Yourself
 

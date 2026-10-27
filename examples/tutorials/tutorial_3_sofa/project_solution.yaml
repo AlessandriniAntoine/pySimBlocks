@@ -3,43 +3,42 @@ project:
   name: tutorial_3_sofa
 simulation:
   dt: 0.01
-  T: 10.0
+  T: 5.0
   solver: fixed
   npz_decimation: 1
   logging:
-  - ref.outputs.out
+  - PID.outputs.u
   - Sofa.outputs.measure
+  - ref.outputs.out
   plots:
-  - title: Ref vs Output
+  - title: Command
     signals:
-    - ref.outputs.out
+    - PID.outputs.u
+  - title: ref vs output
+    signals:
     - Sofa.outputs.measure
+    - ref.outputs.out
+    mode: auto
 diagram:
   blocks:
-  - name: ref
-    category: sources
-    type: constant
-    uid: 7a3b845cf6eb4e78809cd594fe3f0e8b
-    parameters:
-      value: [[1.0]]
-  - name: error
-    category: operators
-    type: sum
-    uid: 0f553c21f3a4483eb02e3c54337798f1
-    parameters:
-      signs: +-
   - name: PID
     category: controllers
     type: pid
-    uid: 612be45ad86648479a0a803b112e129c
+    uid: fc680fc4e4b3435097a8eb6cd4503af0
     parameters:
       controller: PI
-      Kp: 0.2
-      Ki: 1.3
+      Kp: 0.5
+      Ki: 2.0
+  - name: error
+    category: operators
+    type: sum
+    uid: e068b2dff7124695ad5ec0d87f191e36
+    parameters:
+      signs: +-
   - name: Sofa
     category: systems
     type: sofa_plant
-    uid: 6c5581699b874141a749bfb042896448
+    uid: 23349f14ba9a4593a95b7c50282829aa
     parameters:
       scene_file: finger/Finger.py
       input_keys:
@@ -47,15 +46,21 @@ diagram:
       output_keys:
       - measure
       slider_params:
+        PID.Ki:
+        - 0.02
+        - 3.0
+        PID.Kp:
+        - 0.02
+        - 3.0
         ref.value:
         - -10.0
         - 50.0
-        PID.Kp:
-        - 0.01
-        - 3.0
-        PID.Ki:
-        - 0.01
-        - 3.0
+  - name: ref
+    category: sources
+    type: constant
+    uid: 4d3d39e277344dd5a3b57dffd5d906ab
+    parameters:
+      value: [[1.0]]
   connections:
   - name: c1
     ports:
@@ -63,41 +68,41 @@ diagram:
     - PID.e
   - name: c2
     ports:
-    - ref.out
-    - error.in1
-  - name: c3
-    ports:
     - PID.u
     - Sofa.cable
-  - name: c4
+  - name: c3
     ports:
     - Sofa.measure
     - error.in2
+  - name: c4
+    ports:
+    - ref.out
+    - error.in1
 gui:
   layout:
     blocks:
-      ref:
-        x: -480.0
-        y: -45.0
+      PID:
+        x: -220.0
+        y: -600.0
         orientation: normal
         width: 120.0
         height: 60.0
       error:
-        x: -265.0
-        y: -35.0
-        orientation: normal
-        width: 120.0
-        height: 60.0
-      PID:
-        x: -95.0
-        y: -35.0
+        x: -415.0
+        y: -600.0
         orientation: normal
         width: 120.0
         height: 60.0
       Sofa:
-        x: 95.0
-        y: -35.0
+        x: -30.0
+        y: -600.0
         orientation: normal
-        width: 155.0
+        width: 120.0
+        height: 60.0
+      ref:
+        x: -590.0
+        y: -610.0
+        orientation: normal
+        width: 120.0
         height: 60.0
   groups: []
