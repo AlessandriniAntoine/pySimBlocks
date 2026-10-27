@@ -75,6 +75,7 @@ class ToolBarView(QToolBar):
         self.runner = runner
         self.project_controller = project_controller
         self._plot_dialog = None
+        self._sofa_dialog = None
 
         save_action = QAction("Save", self)
         save_action.triggered.connect(self.on_save)
@@ -199,7 +200,10 @@ class ToolBarView(QToolBar):
 
         dlg = self._plot_dialog
         if dlg is not None and isValid(dlg):
-            dlg.present()
+            if dlg.isVisible():
+                dlg.present()
+            else:
+                dlg.refresh_data()
 
     def discard_plot_dialog(self) -> None:
         """Destroy the plot window (e.g. after loading another project)."""
@@ -287,16 +291,17 @@ class ToolBarView(QToolBar):
         """Open the SOFA dialog if SOFA prerequisites are satisfied."""
         ok, msg, details = self.sofa_service.can_use_sofa()
         if not ok:
-            QMessageBox.warning(
-                self,
-                msg,
-                details,
-                QMessageBox.Ok
-            )
+            QMessageBox.warning(self, msg, details, QMessageBox.Ok)
             return
-        dialog = SofaDialog(self.sofa_service, self.parent())
-        dialog.exec()
+        dlg = self._sofa_dialog
+        if dlg is None or not isValid(dlg):
+            dlg = SofaDialog(self.sofa_service, self.parent())
+            self._sofa_dialog = dlg
 
+        dlg.show()
+        dlg.raise_()
+        dlg.activateWindow()
+        
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
@@ -308,4 +313,7 @@ class ToolBarView(QToolBar):
     def _refresh_plot_after_sofa(self):
         dlg = self._plot_dialog
         if dlg is not None and isValid(dlg):
-            dlg.present()
+            if dlg.isVisible():
+                dlg.present()
+            else:
+                dlg.refresh_data()

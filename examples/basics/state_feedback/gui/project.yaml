@@ -1,67 +1,95 @@
 schema_version: 1
-
 project:
-  name: state_feedback_gui
-
+  name: gui
 simulation:
   dt: 0.02
   T: 2.0
   solver: fixed
-  clock: internal
   external_module: parameters.py
+  npz_decimation: 1
   logging:
-    - controller.outputs.u
-    - step.outputs.out
-    - system.outputs.x
-    - system.outputs.y
+  - controller.outputs.u
+  - step.outputs.out
+  - system.outputs.x
+  - system.outputs.y
   plots:
-    - title: Ref vs Output
-      mode: overlay
-      signals: [step.outputs.out, system.outputs.y]
-    - title: Command
-      mode: overlay
-      signals: [controller.outputs.u]
-    - title: Full closed-loop (components)
-      mode: split_components
-      signals: [step.outputs.out, system.outputs.y, controller.outputs.u, system.outputs.x]
-    - title: Tracking and states
-      mode: split_signals
-      signals: [step.outputs.out, system.outputs.y, system.outputs.x]
-    - title: States only
-      mode: split_components
-      signals: [system.outputs.x]
-
+  - title: Ref vs Output
+    mode: overlay
+    signals:
+    - step.outputs.out
+    - system.outputs.y
+  - title: Command
+    mode: overlay
+    signals:
+    - controller.outputs.u
+  - title: Full closed-loop (components)
+    mode: split_components
+    signals:
+    - step.outputs.out
+    - system.outputs.y
+    - controller.outputs.u
+    - system.outputs.x
+  - title: Tracking and states
+    mode: split_signals
+    signals:
+    - step.outputs.out
+    - system.outputs.y
+    - system.outputs.x
+  - title: States only
+    mode: split_components
+    signals:
+    - system.outputs.x
+  - title: Outputs
+    layout: manual
+    panels:
+    - title: Outputs
+      selection:
+        step.outputs.out:
+        - step.outputs.out
+        system.outputs.y:
+        - system.outputs.y
+    - title: Commands
+      selection:
+        controller.outputs.u:
+        - controller.outputs.u
 diagram:
   blocks:
-    - name: controller
-      category: controllers
-      type: state_feedback
-      parameters:
-        K: '#K'
-        G: '#G'
-    - name: step
-      category: sources
-      type: step
-      parameters:
-        value_before: [[0.0]]
-        value_after: [[1.0]]
-        start_time: 0.5
-    - name: system
-      category: systems
-      type: linear_state_space
-      parameters:
-        A: '#A'
-        B: '#B'
-        C: '#C'
-
+  - name: controller
+    category: controllers
+    type: state_feedback
+    uid: aa8af68614284d47adcaaf4bdf010b3d
+    parameters:
+      K: '#K'
+      G: '#G'
+  - name: step
+    category: sources
+    type: step
+    uid: 547319963ff54c46b0dcbeaec2c4646c
+    parameters:
+      value_before: [[0.0]]
+      value_after: [[1.0]]
+      start_time: 0.5
+  - name: system
+    category: systems
+    type: linear_state_space
+    uid: 15ba4e6a4acb44c5bb91cefd1f28c9e2
+    parameters:
+      A: '#A'
+      B: '#B'
+      C: '#C'
   connections:
-    - name: c1
-      ports: [controller.u, system.u]
-    - name: c2
-      ports: [system.x, controller.x]
-    - name: c3
-      ports: [step.out, controller.r]
-
+  - name: c1
+    ports:
+    - controller.u
+    - system.u
+  - name: c2
+    ports:
+    - system.x
+    - controller.x
+  - name: c3
+    ports:
+    - step.out
+    - controller.r
 gui:
   layout:
     blocks:
@@ -85,4 +113,6 @@ gui:
         height: 60.0
     connections:
       c2:
-        route: [[330.0, 5.0], [338.0, 5.0], [338.0, 70.0], [11.0, 70.0], [11.0, 22.0], [19.0, 22.0]]
+        route: [[330.0, 5.0], [338.0, 5.0], [338.0, 70.0], [11.0, 70.0], [11.0, 22.0],
+          [19.0, 22.0]]
+  groups: []

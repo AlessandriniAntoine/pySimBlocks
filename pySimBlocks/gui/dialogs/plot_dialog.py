@@ -225,9 +225,10 @@ class PlotDialog(QDialog):
         self._load_active_manual_title()
         self._sync_manual_controls_enabled()
 
-    def present(self) -> None:
-        """Show this window and refresh the preview from the latest logs."""
-        self._flush_active_preset_working()
+    def refresh_data(self) -> None:
+        """Refresh the preview from the latest logs, without showing the window."""
+        prev_idx = self._selected_preset_index()
+        self._flush_preset_working_for(prev_idx)
         self._populate_signals()
         self._populate_plot_presets()
         if self._uses_manual_layout():
@@ -243,6 +244,10 @@ class PlotDialog(QDialog):
                 self._load_mode_preset(idx)
         self._last_preset_index = self._selected_preset_index()
         self._update_preview_plot()
+
+    def present(self) -> None:
+        """Refresh the preview from the latest logs and show this window."""
+        self.refresh_data()
         self.show()
         self.raise_()
         self.activateWindow()
@@ -419,9 +424,9 @@ class PlotDialog(QDialog):
                     child.setData(0, Qt.UserRole, ("component", sig, label))
                     parent.addChild(child)
                     self._attach_style_button(child, label)
+            self._refresh_all_tree_style_labels()
         finally:
             self._updating_signal_tree = False
-        self._refresh_all_tree_style_labels()
 
     def _add_scalar_signal_tree_row(self, sig: str, label: str) -> None:
         """Add one top-level row for a scalar signal (single component, no expand)."""
@@ -481,20 +486,35 @@ class PlotDialog(QDialog):
                     return
 
     def _refresh_all_tree_style_labels(self) -> None:
-        """Refresh visible names in the tree (needed when subplot context changes)."""
-        for i in range(self.signal_tree.topLevelItemCount()):
-            item = self.signal_tree.topLevelItem(i)
-            data = item.data(0, Qt.UserRole)
-            if isinstance(data, tuple) and len(data) == 3 and data[0] == "component":
-                lbl = str(data[2])
-                item.setText(0, self._tree_label_for_component(lbl))
-                continue
-            for c in range(item.childCount()):
-                child = item.child(c)
-                cdata = child.data(0, Qt.UserRole)
-                if isinstance(cdata, tuple) and len(cdata) == 3 and cdata[0] == "component":
-                    lbl = str(cdata[2])
-                    child.setText(0, self._tree_label_for_component(lbl))
+        """Refresh visible names in the tree (needed when subplot context changes).
+
+        Item text updates emit ``itemChanged``; suppress the handler so that
+        relabelling never triggers a full preview rebuild.
+        """
+        was_updating = self._updating_signal_tree
+        self._updating_signal_tree = True
+        try:
+            for i in range(self.signal_tree.topLevelItemCount()):
+                item = self.signal_tree.topLevelItem(i)
+                data = item.data(0, Qt.UserRole)
+                if isinstance(data, tuple) and len(data) == 3 and data[0] == "component":
+                    lbl = str(data[2])
+                    self._set_tree_item_text(item, self._tree_label_for_component(lbl))
+                    continue
+                for c in range(item.childCount()):
+                    child = item.child(c)
+                    cdata = child.data(0, Qt.UserRole)
+                    if isinstance(cdata, tuple) and len(cdata) == 3 and cdata[0] == "component":
+                        lbl = str(cdata[2])
+                        self._set_tree_item_text(child, self._tree_label_for_component(lbl))
+        finally:
+            self._updating_signal_tree = was_updating
+
+    @staticmethod
+    def _set_tree_item_text(item: QTreeWidgetItem, text: str) -> None:
+        """Write item text only when it actually changes (avoids useless repaints)."""
+        if item.text(0) != text:
+            item.setText(0, text)
 
     def _attach_style_button(self, item: QTreeWidgetItem, label: str) -> None:
         """Add a style editor button on the right of a signal tree row."""
@@ -777,9 +797,9 @@ class PlotDialog(QDialog):
                     item.setCheckState(0, Qt.Checked)
                 else:
                     item.setCheckState(0, Qt.Unchecked)
+            self._refresh_all_tree_style_labels()
         finally:
             self._updating_signal_tree = False
-        self._refresh_all_tree_style_labels()
 
     def _on_subplot_toggled(self, _checked: bool):
         """Redraw preview when subplot filters change."""
@@ -788,8 +808,9 @@ class PlotDialog(QDialog):
         self._update_preview_plot()
 
     def _autoscale_preview(self):
-        """Autoscale all preview axes."""
+        """Autoscale all preview axes (re-enables autoscaling after a manual zoom)."""
         for ax in self.figure.axes:
+            ax.autoscale(enable=True, axis="both")
             ax.relim()
             ax.autoscale_view()
         self.canvas.draw_idle()
@@ -798,34 +819,78 @@ class PlotDialog(QDialog):
         """Select manual plot on click; double-click toggles enlarged view."""
         if event.inaxes is None:
             return
+        if self._nav_tool_active():
+            # Zoom rect / pan are driven by the toolbar: never alter the layout.
+            return
         key = self._axis_to_panel_key.get(id(event.inaxes))
         if key is None:
             return
+        is_dblclick = bool(getattr(event, "dblclick", False))
         if self._uses_manual_layout() and key.startswith("manual::"):
             try:
                 plot_idx = int(key.split("::", 1)[1])
             except ValueError:
                 return
-            if getattr(event, "dblclick", False):
-                self._select_manual_plot(plot_idx)
-                if self._focused_panel_key == key:
-                    self._focused_panel_key = None
-                else:
-                    self._focused_panel_key = key
-                self._update_preview_plot()
-                return
-            if self._focused_panel_key is not None:
-                self._focused_panel_key = None
-                self._update_preview_plot()
             self._select_manual_plot(plot_idx)
+            if is_dblclick:
+                self._toggle_focused_panel(key)
             return
-        if not getattr(event, "dblclick", False):
-            return
-        if self._focused_panel_key == key:
-            self._focused_panel_key = None
-        else:
-            self._focused_panel_key = key
+        if is_dblclick:
+            self._toggle_focused_panel(key)
+
+    def _toggle_focused_panel(self, key: str) -> None:
+        """Enlarge ``key`` alone, or restore the full grid when already focused.
+
+        Axis limits are carried across the rebuild so that a zoom made before
+        the double-click survives entering and leaving the enlarged view.
+        """
+        limits = self._capture_axis_limits()
+        self._focused_panel_key = None if self._focused_panel_key == key else key
         self._update_preview_plot()
+        self._apply_axis_limits(limits)
+        self.nav_toolbar.push_current()
+        self.canvas.draw_idle()
+
+    def _capture_axis_limits(self) -> dict[str, tuple[tuple[float, float], tuple[float, float]]]:
+        """Snapshot current x/y limits of every panel, keyed by panel key."""
+        limits: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {}
+        for ax in self.figure.axes:
+            key = self._axis_to_panel_key.get(id(ax))
+            if key is not None:
+                limits[key] = (ax.get_xlim(), ax.get_ylim())
+        return limits
+
+    def _apply_axis_limits(
+        self,
+        limits: dict[str, tuple[tuple[float, float], tuple[float, float]]],
+    ) -> None:
+        """Re-apply snapshotted limits to panels that still exist after a rebuild."""
+        if not limits:
+            return
+        for ax in self.figure.axes:
+            key = self._axis_to_panel_key.get(id(ax))
+            saved = limits.get(key) if key is not None else None
+            if saved is None:
+                continue
+            ax.set_xlim(*saved[0])
+            ax.set_ylim(*saved[1])
+
+    def _reset_nav_history(self) -> None:
+        """Redraw and re-seed the toolbar history for the freshly built axes.
+
+        ``figure.clear()`` destroys the axes the navigation stack refers to, so
+        the stack must be rebuilt or Home/Back/Forward silently do nothing.
+        """
+        self.canvas.draw()
+        self.nav_toolbar.update()
+        self.nav_toolbar.push_current()
+
+    def _nav_tool_active(self) -> bool:
+        """True when the matplotlib toolbar owns the mouse (zoom rect or pan)."""
+        if str(getattr(self.nav_toolbar, "mode", "")):
+            return True
+        # Fallback for older matplotlib releases.
+        return bool(getattr(self.nav_toolbar, "_active", None))
 
     def _populate_plot_presets(self):
         """Populate the plot preset dropdown from project-defined plots."""
@@ -881,7 +946,7 @@ class PlotDialog(QDialog):
                 ):
                     self._save_active_manual_selection()
             self._render_manual_plots_preview()
-            self.canvas.draw()
+            self._reset_nav_history()
             return
 
         preset_plot = self.project_state.plots[preset_index]
@@ -889,7 +954,7 @@ class PlotDialog(QDialog):
 
         if not active_signals:
             self._refresh_subplot_filter([], keep_current=False)
-            self.canvas.draw()
+            self._reset_nav_history()
             return
 
         time = np.asarray(self.project_state.logs["time"]).flatten()
@@ -932,7 +997,7 @@ class PlotDialog(QDialog):
             )
             ax.set_axis_off()
 
-        self.canvas.draw()
+        self._reset_nav_history()
 
     def _series_from_manual_selection(
         self, selection: dict[str, set[str]], time: np.ndarray
@@ -1188,16 +1253,19 @@ class PlotDialog(QDialog):
         self._load_active_manual_title()
         self._load_manual_selection_to_tree(self._manual.selections[self._manual.active])
 
-    def _flush_active_preset_working(self) -> None:
-        """Persist in-memory edits for the active preset before rebuilding the UI."""
-        idx = self._selected_preset_index()
-        if idx is None:
+    def _flush_preset_working_for(self, idx: int | None) -> None:
+        """Persist in-memory edits for idx, validé contre la liste de plots actuelle."""
+        if idx is None or idx >= len(self.project_state.plots):
             return
         if is_manual_layout_plot(self.project_state.plots[idx]):
             self._save_active_manual_selection()
             self._save_active_manual_title()
         else:
             self._store_mode_preset_working(idx)
+
+    def _flush_active_preset_working(self) -> None:
+        """Délègue à _flush_preset_working_for avec l'index lu depuis la combo box."""
+        self._flush_preset_working_for(self._selected_preset_index())
 
     def _current_mode_preset_mode(self) -> str:
         data = self.mode_preset_combo.currentData()

@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import ast
+import sys
 import importlib.util
 from pathlib import Path
 from typing import Dict, Any, Tuple
@@ -55,6 +57,57 @@ def _load_external_module(path: Path):
     spec.loader.exec_module(module)
 
     return module, module.__dict__
+
+def _local_import_names(path: Path) -> set[str]:
+    """Return top-level module names ``path`` imports via plain import statements.
+
+    Parses the file's AST without executing it.
+    """
+    try:
+        tree = ast.parse(path.read_text(), filename=str(path))
+    except (SyntaxError, OSError, UnicodeDecodeError):
+        return set()
+
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.level == 0 and node.module:
+                names.add(node.module.split(".")[0])
+    return names
+
+
+def invalidate_declared_modules(declared_paths: list[Path]) -> None:
+    """Evict stale sys.modules entries for files imported by declared external files.
+
+    ``declared_paths`` are the external Python files named in a project's
+    YAML (simulation.external_module and each block's file_path). Those
+    files are always re-executed fresh on every run, but a plain import
+    inside one of them (e.g. mpc.py doing `from p import ...`) resolves
+    through the normal sys.modules cache, which silently outlives edits
+    to the sibling file in a long-lived process (pySimBlocks' GUI).
+    """
+    declared_dirs = {p.resolve().parent for p in declared_paths if p.exists()}
+    if not declared_dirs:
+        return
+
+    import_names: set[str] = set()
+    for p in declared_paths:
+        if p.exists():
+            import_names |= _local_import_names(p)
+
+    for name in import_names:
+        module = sys.modules.get(name)
+        module_file = getattr(module, "__file__", None)
+        if not module_file:
+            continue
+        try:
+            if Path(module_file).resolve().parent in declared_dirs:
+                del sys.modules[name]
+        except (OSError, ValueError):
+            continue
 
 
 _EXTERNAL_REF_PATTERN = re.compile(r"#([A-Za-z_][A-Za-z0-9_]*)")
@@ -141,8 +194,10 @@ def eval_value(value: Any, scope: dict) -> Any:
     Returns:
         Evaluated Python object, or ``value`` unchanged if evaluation fails.
     """
-    if isinstance(value, str) and _is_hex_color_literal(value):
-        return value
+    if isinstance(value, str):
+        stripped = value.lstrip("#")
+        if _is_hex_color_literal(value) and stripped not in scope:
+            return value
     try:
         expr = str(value)
         expr = expr.replace("#", "")

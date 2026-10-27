@@ -67,6 +67,7 @@ myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
 ]
+myst_heading_anchors = 3
 
 autosummary_generate = True
 autosummary_imported_members = False

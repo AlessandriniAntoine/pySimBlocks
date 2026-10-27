@@ -18,6 +18,8 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from __future__ import annotations
+
 import argparse
 import sys
 from pathlib import Path
@@ -39,7 +41,14 @@ def _run_export(args: argparse.Namespace) -> None:
     from pySimBlocks.project import generate_run_script
 
     project_yaml = Path(args.project_file) if args.project_file else None
-    project_dir = Path(args.project_dir) if args.project_dir else Path(".")
+    if args.project_dir:
+        project_dir = Path(args.project_dir)
+    elif project_yaml is None:
+        # No source given: default to the current directory.
+        project_dir = Path(".")
+    else:
+        # -f/--file given: project_dir must stay unset (exclusive modes).
+        project_dir = None
     output = Path(args.out) if args.out else None
     generate_run_script(project_dir=project_dir, project_yaml=project_yaml, output=output)
 
@@ -51,14 +60,19 @@ def _run_update() -> None:
     generate_blocks_index()
     print("pySimBlocks update complete.")
 
+
 def _run_sofa_init(args: argparse.Namespace) -> None:
     from pySimBlocks.project.generate_sofa_scaffold import generate_sofa_scaffold
 
-    generate_sofa_scaffold(
-        name=args.name,
-        output_dir=args.directory,
-        force=args.force,
-    )
+    try:
+        generate_sofa_scaffold(
+            name=args.name,
+            output_dir=args.directory,
+            force=args.force,
+        )
+    except (ValueError, FileExistsError) as e:
+        print(f"[pySimBlocks] ERROR: {e}")
+        sys.exit(1)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -80,7 +94,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     export_parser = subparsers.add_parser(
         "export",
-        help="Generate run.py or a SOFA controller from project.yaml.",
+        help="Generate run.py from project.yaml.",
     )
     source_group = export_parser.add_mutually_exclusive_group()
     source_group.add_argument(

@@ -110,3 +110,6 @@ systems:
   sofa_plant:
     class: SofaPlant
     module: pySimBlocks.blocks.systems.sofa.sofa_plant
+  transfer_function:
+    class: TransferFunction
+    module: pySimBlocks.blocks.systems.transfer_function

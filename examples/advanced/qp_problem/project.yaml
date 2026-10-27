@@ -6,6 +6,7 @@ simulation:
   T: 10.0
   solver: fixed
   external_module: params.py
+  npz_decimation: 1
   logging:
   - QuadraticProgram.outputs.x
   - QuadraticProgram.outputs.status
@@ -18,16 +19,19 @@ diagram:
   - name: QuadraticProgram
     category: optimizers
     type: quadratic_program
+    uid: 7fe2bffa54814118ad30071aa871504a
     parameters:
       solver: clarabel
   - name: P
     category: sources
     type: constant
+    uid: 20c20914f0ff40d8a68cd16e4825596e
     parameters:
       value: '#P'
   - name: q
     category: sources
     type: constant
+    uid: e982db7b3c6b4bfc81a9bec6a275cccd
     parameters:
       value: '#q'
   connections:
@@ -60,3 +64,4 @@ gui:
         orientation: normal
         width: 120.0
         height: 60.0
+  groups: []

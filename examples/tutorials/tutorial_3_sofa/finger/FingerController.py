@@ -1,29 +1,36 @@
-from pathlib import Path
-
 import numpy as np
 
 from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
-BASE_DIR = Path(__file__).resolve().parent
-
 
 class FingerController(SofaPysimBlocksController):
+    """Exchange signals between the finger scene and the pySimBlocks diagram.
 
-    def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
-        super().__init__(name=name)
-        self.project_yaml = str((BASE_DIR / '../project.yaml').resolve())
+    Input:
+        cable: displacement command applied to the cable actuator, shape (1, 1).
+
+    Outputs:
+        tip: 3D position of the fingertip, shape (3, 1).
+        measure: vertical (y) position of the fingertip, shape (1, 1).
+    """
+
+    def __init__(self, actuator, mo, tip_index=121, project_yaml=None,
+                 name="FingerController"):
+        # project_yaml is provided by the scene (--project-yaml argument).
+        super().__init__(project_yaml=project_yaml, name=name)
 
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
-        self.verbose = False # Set to True to print debug information at each step
+        self.verbose = False  # Set to True to print debug information at each step
 
-        # Inputs & outputs dictionaries
-        self.inputs = { "cable": None }
-        self.outputs = { "tip": None, "measure": None }
-
+        # Signals exchanged with pySimBlocks. The keys declared in the
+        # SofaPlant block (input_keys / output_keys) must be a subset of these.
+        self.inputs = {"cable": None}
+        self.outputs = {"tip": None, "measure": None}
 
     def get_outputs(self):
+        # Outputs must be column vectors, with the same shape at every call.
         tip = self.mo.position[self.tip_index].copy()
         self.outputs["tip"] = np.asarray(tip).reshape(-1, 1)
         self.outputs["measure"] = np.asarray(tip[1]).reshape(-1, 1)

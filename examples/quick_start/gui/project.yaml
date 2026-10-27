@@ -5,6 +5,7 @@ simulation:
   dt: 0.05
   T: 30.0
   solver: fixed
+  npz_decimation: 1
   logging:
   - noise.outputs.out
   - filtered.outputs.out
@@ -18,27 +19,32 @@ diagram:
   - name: noise
     category: sources
     type: white_noise
+    uid: 870efd16ccac45ed9782258d23d6d52a
     parameters:
       std: 1.0
   - name: alpha
     category: operators
     type: gain
+    uid: 58528358a51345cc8a0d61e02a36b570
     parameters:
       gain: 0.1
       multiplication: Element wise (K * u)
   - name: filtered
     category: operators
     type: sum
+    uid: 4d30580e748d4e308c5b2cc26fa21c7a
     parameters:
       signs: ++
   - name: Delay
     category: operators
     type: delay
+    uid: a870bfae5d7847bf84e5d789f9f64655
     parameters:
       num_delays: 1
   - name: 1-alpha
     category: operators
     type: gain
+    uid: 1bd4f331c69c49e3a7731ce93caf9bb7
     parameters:
       gain: 0.9
       multiplication: Element wise (K * u)
@@ -100,3 +106,4 @@ gui:
       c5:
         route: [[-355.0, -335.0], [-347.0, -335.0], [-347.0, -215.0], [-909.0, -215.0],
           [-909.0, -280.0], [-901.0, -280.0]]
+  groups: []

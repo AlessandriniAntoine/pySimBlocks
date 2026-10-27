@@ -81,6 +81,7 @@ class ExportNpzDialog(QDialog):
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
 
         for row, key in enumerate(self.logs.keys()):
             check_item = QTableWidgetItem()

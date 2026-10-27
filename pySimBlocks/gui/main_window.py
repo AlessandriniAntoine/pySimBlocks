@@ -257,7 +257,7 @@ class MainWindow(QMainWindow):
         result = dlg.exec()
 
         if result == UnsavedChangesDialog.SAVE:
-            self._on_save()
+            self.save_project()
             return True
         elif result == UnsavedChangesDialog.DISCARD:
             return True
