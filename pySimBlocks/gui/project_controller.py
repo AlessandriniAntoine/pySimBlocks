@@ -1354,6 +1354,19 @@ class ProjectController(QObject):
             if block_uid in group.members:
                 self._remove_boundaries_for_member(group, block_uid)
 
+        removed_set = set(removed_signals)
+        self._remove_signals_from_plots(lambda s: s in removed_set)
+
+        self.project_state.remove_block(block_instance)
+        self.view.remove_block(block_instance)
+        self._refresh_boundaries_for_member_uids({block_uid})
+
+    def _remove_signals_from_plots(self, is_removed: Callable[[str], bool]) -> None:
+        """Drop from every plot the signals for which ``is_removed`` is True.
+
+        Handles both plot formats (``signals`` + ``mode`` and manual layout
+        with ``panels``). Plots or panels left empty are deleted.
+        """
         for i in reversed(range(len(self.project_state.plots))):
             plot = self.project_state.plots[i]
             if str(plot.get("layout", "")).strip().lower() == "manual":
@@ -1367,9 +1380,9 @@ class ProjectController(QObject):
                     selection = panel.get("selection")
                     if isinstance(selection, dict):
                         new_sel = {
-                            sig: [lbl for lbl in labels if lbl not in removed_signals]
+                            sig: [lbl for lbl in labels if not is_removed(lbl)]
                             for sig, labels in selection.items()
-                            if sig not in removed_signals
+                            if not is_removed(sig)
                         }
                         new_sel = {sig: labels for sig, labels in new_sel.items() if labels}
                         if new_sel:
@@ -1379,7 +1392,7 @@ class ProjectController(QObject):
                         continue
                     signals = panel.get("signals", [])
                     if isinstance(signals, list):
-                        signals = [s for s in signals if s not in removed_signals]
+                        signals = [s for s in signals if not is_removed(s)]
                         if signals:
                             panel = dict(panel)
                             panel["signals"] = signals
@@ -1391,13 +1404,30 @@ class ProjectController(QObject):
                 continue
             if "signals" not in plot:
                 continue
-            plot["signals"] = [s for s in plot["signals"] if s not in removed_signals]
+            plot["signals"] = [s for s in plot["signals"] if not is_removed(s)]
             if not plot["signals"]:
                 del self.project_state.plots[i]
 
-        self.project_state.remove_block(block_instance)
-        self.view.remove_block(block_instance)
-        self._refresh_boundaries_for_member_uids({block_uid})
+    def prune_stale_signal_references(self) -> None:
+        """Drop references to output signals that no longer exist.
+
+        Cleans ``logging``, ``npz_key_names`` and plots. Only ``<block>.outputs.<port>``
+        entries are considered, so ``state`` signals are left untouched. Call it
+        whenever the set of output ports may have changed (block parameter edit,
+        project load).
+        """
+        valid = set(self.project_state.get_output_signals())
+
+        def is_stale(sig: str) -> bool:
+            parts = sig.split(".")
+            return len(parts) == 3 and parts[1] == "outputs" and sig not in valid
+
+        state = self.project_state
+        state.logging = [s for s in state.logging if not is_stale(s)]
+        state.npz_key_names = {
+            k: v for k, v in state.npz_key_names.items() if not is_stale(k)
+        }
+        self._remove_signals_from_plots(is_stale)
 
     def _remove_connection(
         self,
@@ -1704,6 +1734,7 @@ class ProjectController(QObject):
             block_instance.resolve_ports()
             removed = self._remove_connection_if_port_disapear(block_instance)
             self.view.refresh_block_port(block_instance)
+            self.prune_stale_signal_references()
             return removed
         return []
 

@@ -20,8 +20,10 @@
 
 from pySimBlocks.blocks.systems.linear_state_space import LinearStateSpace
 from pySimBlocks.blocks.systems.polytopic_state_space import PolytopicStateSpace
+from pySimBlocks.blocks.systems.transfer_function import TransferFunction
 
 __all__ = [
     "LinearStateSpace",
     "PolytopicStateSpace",
+    "TransferFunction"
 ]
