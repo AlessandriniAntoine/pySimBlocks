@@ -6,6 +6,7 @@ import types
 import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock
+from importlib.metadata import version as _pkg_version
 
 sys.modules["qpsolvers"] = MagicMock()
 
@@ -47,7 +48,7 @@ if "Sofa" not in sys.modules:
 project = "pySimBlocks"
 author = "Antoine Alessandrini"
 copyright = "2026, Universite de Lille & INRIA"
-release = "0.1.1"
+release = _pkg_version("pySimBlocks")
 
 extensions = [
     "myst_parser",
@@ -55,6 +56,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinxcontrib.video",
 ]
 
 templates_path = ["_templates"]
