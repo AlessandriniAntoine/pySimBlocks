@@ -184,7 +184,13 @@ paths such as `finger/Finger.py` are resolved against it.
 Then replace the `LinearStateSpace` block from the previous tutorials with a
 `SofaPlant` block from the Systems category, and name it `Sofa`.
 
-![SofaPlant block](../../images/user_guide/tutorial_3-sofa_block.gif)
+```{video} ../../videos/user_guide/tutorial_3-sofa_block.mp4
+:alt: SofaPlant block
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 Set the block parameters as follows (set the keys first: the ports of the block
 are created from them):
@@ -227,7 +233,13 @@ iteration.
 Run the model as you would in [Tutorial 2](./tutorial_2_gui.md), either from
 the GUI or from the exported Python runner.
 
-![pySimBlocks master run](../../images/user_guide/tutorial_3-run_psb_master.gif)
+```{video} ../../videos/user_guide/tutorial_3-run_psb_master.mp4
+:alt: pySimBlocks master run
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 ```{note}
 The exported `run.py` wraps its entry point in `if __name__ == "__main__":`.
@@ -248,7 +260,13 @@ Open the SOFA panel from the toolbar. It lets you check the path of `runSofa`,
 choose the SOFA GUI (`imgui`, `qglviewer`, `qt` or `custom`), and launch the
 scene with the `runSofa` button.
 
-![SOFA master run](../../images/user_guide/tutorial_3-run_sofa_master.gif)
+```{video} ../../videos/user_guide/tutorial_3-run_sofa_master.mp4
+:alt: SOFA master run
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 A log window streams the output of SOFA while it runs. Close the SOFA window to
 end the simulation: the logs are then loaded back into the GUI, so you can plot
@@ -301,7 +319,13 @@ displayed live in the SOFA window.
 Open the SOFA panel, select the `imgui` GUI and click `runSofa`. The configured
 parameters appear as sliders in SOFA after the first step.
 
-![Enhanced SOFA GUI](../../images/user_guide/tutorial_3-sofa_gui_enhanced.gif)
+```{video} ../../videos/user_guide/tutorial_3-sofa_gui_enhanced.mp4
+:alt: Enhanced SOFA GUI
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 This makes it possible to tune `ref.value`, `PID.Kp`, and `PID.Ki` while the
 simulation is running. Sliders are created when the simulation starts: to add or

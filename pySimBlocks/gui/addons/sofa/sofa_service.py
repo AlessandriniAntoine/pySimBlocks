@@ -41,12 +41,17 @@ def sofa_logs_npz_path(project_dir: Path) -> Path:
     return project_dir / ".sofa_logs.npz"
 
 
+def sofa_logs_tmp_npz_path(project_dir: Path) -> Path:
+    """Path to the temporary file used by the controller for atomic dumps."""
+    return project_dir / ".sofa_logs.tmp.npz"
+
+
 def cleanup_sofa_logs_npz(project_dir: Path | None) -> None:
+    """Remove the logs dump and any leftover temporary dump file."""
     if project_dir is None:
         return
-    npz = sofa_logs_npz_path(project_dir)
-    if npz.exists():
-        npz.unlink(missing_ok=True)
+    for path in (sofa_logs_npz_path(project_dir), sofa_logs_tmp_npz_path(project_dir)):
+        path.unlink(missing_ok=True)
 
 
 class SofaService:

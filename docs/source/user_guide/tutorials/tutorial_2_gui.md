@@ -54,7 +54,13 @@ Add the required blocks to the diagram:
 2. Drag the selected block into the diagram view.
 3. Repeat this for all required blocks and arrange them on the canvas.
 
-![Drag and drop blocks](../../images/user_guide/tutorial_2-drag_drop.gif)
+```{video} ../../videos/user_guide/tutorial_2-drag_drop.mp4
+:alt: Drag and drop blocks
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 ```{note}
 - Press `Space` in the diagram view to center the view on all blocks.
@@ -69,7 +75,13 @@ To create a connection, select a port and drag the connection to the target
 port. While dragging, a dashed line appears. The line becomes solid once the
 connection is valid.
 
-![Create connections](../../images/user_guide/tutorial_2-connections.gif)
+```{video} ../../videos/user_guide/tutorial_2-connections.mp4
+:alt: Create connections
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 The ports must be of different types: output to input.
 
@@ -100,7 +112,13 @@ Set the following parameters:
 If you rename the blocks, use the same names as in
 [Tutorial 1](./tutorial_1_python.md): `ref`, `error`, `PID`, and `system`.
 
-![Block dialog](../../images/user_guide/tutorial_2-block_dialog.gif)
+```{video} ../../videos/user_guide/tutorial_2-block_dialog.mp4
+:alt: Block dialog
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 Notes:
 
@@ -122,7 +140,13 @@ Open the simulation settings from the toolbar and configure:
 You can also define custom plots in the plots panel for quick access after the
 simulation.
 
-![Simulation settings](../../images/user_guide/tutorial_2-setting.gif)
+```{video} ../../videos/user_guide/tutorial_2-setting.mp4
+:alt: Simulation settings
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 Click `Apply` before switching panels, otherwise the changes are not saved.
 
@@ -136,7 +160,13 @@ Then open the plot dialog to either:
 - Plot selected logged signals in a single graph
 - Open one of your predefined plots
 
-![Plot dialog](../../images/user_guide/tutorial_2-plots.gif)
+```{video} ../../videos/user_guide/tutorial_2-plots.mp4
+:alt: Plot dialog
+:autoplay:
+:loop:
+:muted:
+:width: 100%
+```
 
 Under the hood, the GUI generates the same `Model` structure used in
 [Tutorial 1](./tutorial_1_python.md). The execution engine is the same.

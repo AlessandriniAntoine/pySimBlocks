@@ -118,7 +118,7 @@ A collection of basic and advanced examples is available in the
 [examples](./examples) directory, including:
 
 - Control system demonstrations
-- SOFA-based simulations (tested with SOFA v24.06 and later.)
+- SOFA-based simulations (tested with SOFA v26.06 and later.)
 - Hardware and real-time use cases
 - Comparisons with external tools
 

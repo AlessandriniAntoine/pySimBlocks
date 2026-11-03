@@ -92,7 +92,23 @@ class ProjectLoaderYaml(ProjectLoader):
         self._load_plots(controller, sim_data)
         self._load_groups(controller, gui_data)
 
+        # Repair projects saved with signals that no longer exist (e.g. after
+        # removing an output key from a block).
+        before = (
+            list(controller.project_state.logging),
+            dict(controller.project_state.npz_key_names),
+            len(controller.project_state.plots),
+        )
+        controller.prune_stale_signal_references()
+        after = (
+            controller.project_state.logging,
+            controller.project_state.npz_key_names,
+            len(controller.project_state.plots),
+        )
         controller.clear_dirty()
+        if before != after:
+            print("[Project warning] Removed references to signals that no longer exist.")
+            controller.make_dirty()  # so the repaired project.yaml gets saved
 
 
     # --------------------------------------------------------------------------

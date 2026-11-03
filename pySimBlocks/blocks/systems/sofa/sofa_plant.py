@@ -92,7 +92,8 @@ def sofa_worker(conn, scene_file, input_keys, output_keys, sample_time, block_na
     ratio = int(round(ratio))
 
     controller.SOFA_MASTER = False
-    Sofa.Simulation.initRoot(root)
+    init_root = getattr(Sofa.Simulation, "initRoot", None) or Sofa.Simulation.init
+    init_root(root)
 
     while not controller.IS_READY:
         controller.prepare_scene()

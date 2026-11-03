@@ -510,6 +510,12 @@ class EditBlockParamsCommand(QUndoCommand):
         self._new_name = new_params.get("name", block_instance.name)
         self._new_params = {k: v for k, v in new_params.items() if k != "name"}
         self._removed_connections: list[ConnectionSnapshot] = []
+        # Editing parameters can remove output ports, which prunes logging,
+        # plots and npz_key_names: snapshot them so undo restores them.
+        state = controller.project_state
+        self._logging_before = list(state.logging)
+        self._plots_before = copy.deepcopy(state.plots)
+        self._npz_key_names_before = dict(state.npz_key_names)
 
     def redo(self) -> None:
         self._removed_connections = self._controller._apply_block_update(
@@ -527,6 +533,10 @@ class EditBlockParamsCommand(QUndoCommand):
         )
         for snapshot in self._removed_connections:
             self._controller._add_connection_from_snapshot(snapshot)
+        state = self._controller.project_state
+        state.logging = list(self._logging_before)
+        state.plots = copy.deepcopy(self._plots_before)
+        state.npz_key_names = dict(self._npz_key_names_before)
         self._controller.make_dirty()
 
 
