@@ -268,10 +268,28 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
 
     def _build_model(self) -> None:
-        """Load the pySimBlocks model from ``project_yaml``."""
+        """Load the pySimBlocks model from ``project_yaml``.
+
+        Only called when SOFA is the time master. The file existence is
+        checked here (and not in ``__init__``) because in pySimBlocks-master
+        mode (SofaPlant worker) the project yaml is not needed and may
+        legitimately not exist.
+
+        Raises:
+            RuntimeError: If ``project_yaml`` is None or the file does not exist.
+        """
         project_path = self.project_yaml
         if project_path is None:
             raise RuntimeError("[pySimBlocks] ERROR: SOFA_MASTER=True requires project_yaml to be set.")
+
+        resolved = Path(project_path).expanduser().resolve()
+        if not resolved.is_file():
+            raise RuntimeError(
+                f"[pySimBlocks] ERROR: project.yaml not found: {resolved}\n"
+                "Pass it with: runSofa scene.py --argv --project-yaml,path/to/project.yaml\n"
+                "or place a 'project.yaml' next to the controller file."
+            )
+        project_path = str(resolved)
 
         self.sim_cfg, model_dict, self.plot_cfg, _, params_dir = load_project_config(project_path)
         model_dict = self._adapt_model_for_sofa(model_dict)
