@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import atexit
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -35,9 +36,22 @@ from pySimBlocks.project.build_model import build_model_from_dict
 
 try:
     import Sofa.ImGui as MyGui
-    _imgui = hasattr(MyGui, "MyRobotWindow")
 except ImportError:
-    _imgui = False
+    MyGui = None
+
+# The sliders / plots APIs only exist in recent SofaImGui builds (the ones
+# shipping the new docked GUI). Older builds (e.g. SOFA v24.06) expose the
+# ``MyRobotWindow`` module but without ``addSettingInGroup``, so each feature
+# is detected individually instead of testing the module alone.
+_imgui_slider = bool(
+    MyGui is not None
+    and hasattr(getattr(MyGui, "MyRobotWindow", None), "addSettingInGroup")
+)
+_imgui_plot = bool(
+    MyGui is not None
+    and hasattr(getattr(MyGui, "PlottingWindow", None), "addData")
+)
+_imgui = _imgui_slider or _imgui_plot
 
 
 class SofaPysimBlocksController(Sofa.Core.Controller):
@@ -83,6 +97,8 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.IS_READY = False
         self.SOFA_MASTER = True
         self._imgui = _imgui
+        self._imgui_slider = _imgui_slider
+        self._imgui_plot = _imgui_plot
 
         self.inputs: Dict[str, np.ndarray] = {}
         self.outputs: Dict[str, np.ndarray] = {}
@@ -97,10 +113,29 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.project_yaml: str = project_yaml
         self._init_failed = False
 
+        self._plot_data: Dict[str, Any] = {}
+        self._slider_data: Dict[str, Any] = {}
+
         print(f"[pySimBlocks] Controller using project_yaml: {project_yaml}")
+        if MyGui is not None and not (_imgui_slider and _imgui_plot):
+            print(
+                "[pySimBlocks] WARNING: this SofaImGui build does not provide the "
+                "full sliders/plots API (use a more recent SOFA version for it). "
+                f"sliders={'on' if _imgui_slider else 'off'}, "
+                f"plots={'on' if _imgui_plot else 'off'}."
+            )
 
         # --- dump des logs, uniquement si lancé depuis pySimBlocks GUI ---
+        # Some SOFA builds (e.g. v24.06) exit without finalizing the embedded
+        # Python interpreter, so ``atexit`` never fires. Logs are therefore also
+        # written periodically (wall-clock throttled) while the simulation runs.
         self._dump_logs_path: Path | None = None
+        # Minimum wall-clock delay between two dumps. The effective interval
+        # adapts to the measured dump cost (see _dump_logs_periodic).
+        self._min_dump_interval: float = 1.0
+        self._dump_interval: float = self._min_dump_interval
+        self._last_dump_time: float = time.monotonic()
+        self._dump_warned = False
         if os.environ.get("PYSIMBLOCKS_SOFA_DUMP_LOGS") == "1" and project_yaml is not None:
             self._dump_logs_path = Path(project_yaml).parent / ".sofa_logs.npz"
             atexit.register(self._dump_logs)
@@ -205,6 +240,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                     self.save()
                     self._update_sofa_slider()
                     self._update_sofa_plot()
+                    self._dump_logs_periodic()
 
                     self.sim_index += 1
                     self.counter = 0
@@ -335,11 +371,24 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self.set_inputs()
 
     def _set_sofa_plot(self) -> None:
-        """Set up ImGui plotting nodes for the configured signals."""
-        if not self._imgui:
+        """Set up ImGui plotting nodes for the configured signals.
+
+        If the ImGui plotting API is unavailable or fails, plotting is
+        disabled with a warning and the simulation keeps running.
+        """
+        if not self._imgui_plot:
             return
         if self.sim is None:
             raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
+        try:
+            self._setup_plot_nodes()
+        except Exception as e:
+            self._imgui_plot = False
+            self._plot_data = {}
+            print(f"[pySimBlocks] WARNING: ImGui plots disabled: {e}")
+
+    def _setup_plot_nodes(self) -> None:
+        """Create the SOFA data nodes and register them in the ImGui plot window."""
         self._plot_node = self.node.addChild("PLOT")
         self._plot_data = {}
         for plot in self.plot_cfg.plots:
@@ -354,7 +403,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
     def _update_sofa_plot(self) -> None:
         """Update ImGui plot values for the configured signals."""
-        if not self._imgui:
+        if not self._imgui_plot:
             return
 
         for name, node in self._plot_data.items():
@@ -365,13 +414,26 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                 node.getData(f"value{i}").value = float(value[i])
 
     def _set_sofa_slider(self) -> None:
-        """Set up ImGui slider nodes for the configured block attributes."""
-        if not self._imgui:
+        """Set up ImGui slider nodes for the configured block attributes.
+
+        If the ImGui slider API is unavailable or fails, sliders are
+        disabled with a warning and the simulation keeps running.
+        """
+        if not self._imgui_slider:
             return
 
         if self.sim is None:
             raise RuntimeError("[pySimBlocks] ERROR: Simulator not initialized.")
 
+        try:
+            self._setup_slider_nodes()
+        except Exception as e:
+            self._imgui_slider = False
+            self._slider_data = {}
+            print(f"[pySimBlocks] WARNING: ImGui sliders disabled: {e}")
+
+    def _setup_slider_nodes(self) -> None:
+        """Create the SOFA data nodes and register them in the ImGui robot window."""
         data = self._sofa_block.slider_params
         data = data if data is not None else {}
 
@@ -390,7 +452,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
     def _update_sofa_slider(self) -> None:
         """Read ImGui slider values and apply them to the corresponding block attributes."""
-        if not self._imgui:
+        if not self._imgui_slider:
             return
 
         for var in self._slider_data:
@@ -399,7 +461,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             node = self._slider_data[var]["node"]
             shape = self._slider_data[var]["shape"]
             new_values = []
-            for i in range(np.prod(shape)):
+            for i in range(int(np.prod(shape))):
                 new_values.append(node.getData(f"value{i}").value)
             setattr(block, key, np.array(new_values).reshape(shape))
 
@@ -436,8 +498,32 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         adapted["blocks"] = adapted_blocks
         return adapted
 
-    def _dump_logs(self) -> None:
-        """Serialize self.sim.logs to .npz at process exit (GUI-triggered runs only)."""
+    def _dump_logs_periodic(self) -> None:
+        """Write the logs at most once per ``_dump_interval`` seconds (wall clock).
+
+        Keeps the .npz up to date so logs survive a SOFA exit that skips
+        ``atexit`` (GUI-triggered runs only).
+        """
+        if self._dump_logs_path is None:
+            return
+        if time.monotonic() - self._last_dump_time < self._dump_interval:
+            return
+        start = time.perf_counter()
+        self._dump_logs(quiet=True)
+        cost = time.perf_counter() - start
+        # The dump cost grows with the log size: keep its overhead around 5%
+        # by waiting at least 20x its duration before the next one.
+        self._dump_interval = max(self._min_dump_interval, 20.0 * cost)
+        self._last_dump_time = time.monotonic()
+
+    def _dump_logs(self, quiet: bool = False) -> None:
+        """Serialize self.sim.logs to .npz (GUI-triggered runs only).
+
+        Called periodically during the run and once more at process exit.
+
+        Args:
+            quiet: If True, do not print the success message.
+        """
         if self._dump_logs_path is None or self.sim is None:
             return
         try:
@@ -447,7 +533,14 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
                     arrays["time"] = np.asarray(self.sim.logs["time"])
                     continue
                 arrays[var] = self.sim.get_data(variable=var)
-            np.savez(self._dump_logs_path, **arrays)
-            print(f"[pySimBlocks] Logs dumped to {self._dump_logs_path}")
+            # Write to a temp file then rename, so a hard exit in the middle
+            # of the write never leaves a truncated .npz behind.
+            tmp_path = self._dump_logs_path.with_name(".sofa_logs.tmp.npz")
+            np.savez(tmp_path, **arrays)
+            os.replace(tmp_path, self._dump_logs_path)
+            if not quiet:
+                print(f"[pySimBlocks] Logs dumped to {self._dump_logs_path}")
         except Exception as e:
-            print(f"[pySimBlocks] WARNING: failed to dump logs: {e}")
+            if not quiet or not self._dump_warned:
+                self._dump_warned = True
+                print(f"[pySimBlocks] WARNING: failed to dump logs: {e}")
